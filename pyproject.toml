@@ -1,0 +1,15 @@
+[tool.black]
+line-length = 89
+
+[tool.isort]
+filter_files = true
+force_single_line = true
+line_length = 89
+profile = "black"
+
+# pyproject.toml
+[tool.pytest.ini_options]
+filterwarnings = [
+    "error",
+    "ignore::statsmodels.tools.sm_exceptions.DomainWarning", # due to fitting the dipersion curve with the identity link
+]
