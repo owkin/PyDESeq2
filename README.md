@@ -1,6 +1,6 @@
 # PyDESeq2
 
-This package is a python implementation the [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) method [1]
+This package is a python implementation of the [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) method [1]
 for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
 It aims to facilitate DEA experiments for python users.
 
