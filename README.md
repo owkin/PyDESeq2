@@ -48,7 +48,7 @@ Please don't hesitate to open an issue in case you encounter any issue due to po
 
 ### TCGA Data
 
-See [datasets](PyDESeq2/datasets/README.md).
+See [datasets](datasets/README.md).
 
 # Citing this work
 
