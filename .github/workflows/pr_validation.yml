@@ -24,3 +24,5 @@ jobs:
       - name: Test with pytest
         run: |
           pytest
+        TODO: I would suggest also testing for black/flake8 (potential
+        contributors might ignore the pre-commit requirement)
