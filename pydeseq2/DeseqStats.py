@@ -16,35 +16,70 @@ from pydeseq2.utils import wald_test
 
 
 class DeseqStats:
-    """A class to implement p-value estimation for differential gene expression according
+    """PyDESeq2 statistical tests for differential expression.
+
+    Implements p-value estimation for differential gene expression according
     to the DESeq2 pipeline [1].
 
     Also supports apeGLM log-fold change shrinkage [2].
 
-    Attributes
+    Parameters
     ----------
     dds : DeseqDataSet
-        Bulk RNA and clinical data on which dispersion and LFCs were already estimated.
-    alpha : float
-        p-value and adjusted p-value significance threshold (usually 0.05).
-    cooks_filter : bool
+        DeseqDataSet for which dispersion and LFCs were already estimated.
+
+    alpha : float, default=0.05
+        P-value and adjusted p-value significance threshold (usually 0.05).
+
+    cooks_filter : bool, default=True
         Whether to filter p-values based on cooks outliers.
-    independent_filter : bool
-        Whether to perform independent filtering to currently p-value trends.
-    prior_disp_var : ndarray or None
+
+    independent_filter : bool, default=True
+        Whether to perform independent filtering to correct p-value trends.
+
+    n_cpus : int, default=None
+        Number of cpus to use for multiprocessing.
+        If None, all available CPUs will be used.
+
+    prior_disp_var : ndarray, default=None
         Prior variance for LFCs, used for ridge regularization.
+
+    batch_size : int, default=128
+        Number of tasks to allocate to each joblib parallel worker.
+
+    joblib_verbosity : int, default=0
+        The verbosity level for joblib tasks. The higher the value, the more updates
+        are reported.
+
+    Attributes
+    ----------
     base_mean : pandas.Series
         Genewise means of normalized counts.
-    LFCs : pandas.Series
-        Estimated log-fold changes between conditions, in natural log scale.
+
+    LFCs : pandas.DataFrame
+        Estimated log-fold change between conditions and intercept, in natural log scale.
+
+    SE : pandas.Series
+        Standard LFC error.
+
+    statistics : pandas.Series
+        Wald statistics.
+
+    p_values : pandas.Series
+        P-values estimated from Wald statistics.
+
+    padj : pandas.Series
+        P-values adjusted for multiple testing.
+
+    results_df : pandas.DataFrame
+        Summary of the statistical analysis.
+
     shrunk_LFCs : bool
         Whether LFCs are shrunk.
+
     n_processes : int
         Number of threads to use for multiprocessing.
-    batch_size : int
-        Number of tasks to allocate to each joblib parallel worker.
-    joblib_verbosity : int
-        Verbosity level for joblib tasks (higher = more frequent reporting).
+
     References
     ----------
     ..  [1] Love, M. I., Huber, W., & Anders, S. (2014). "Moderated estimation of fold
@@ -68,29 +103,6 @@ class DeseqStats:
         batch_size=128,
         joblib_verbosity=0,
     ):
-        """Initialize DeseqStats instance with DeseqDataSet object.
-
-        Parameters
-        ----------
-        dds : DeseqDataSet
-            DeseqDataSet for which dispersion and LFCs were already estimated.
-        alpha : float, default=0.05
-            p-value and adjusted p-value significance threshold (usually 0.05).
-        cooks_filter : bool, default=True
-            Whether to filter p-values based on cooks outliers.
-        independent_filter : bool, default=True
-            Whether to perform independent filtering to correct p-value trends.
-        n_cpus : int, default=None
-            Number of cpus to use for multiprocessing.
-            If None, all available CPUs will be used.
-        prior_disp_var : ndarray, default=None
-            Prior variance for LFCs, used for ridge regularization.
-        batch_size : int, default=128
-            Number of tasks to allocate to each joblib parallel worker.
-        joblib_verbosity : int, default=0
-            The verbosity level for joblib tasks. The higher the value, the more updates
-            are reported.
-        """
         assert hasattr(
             dds, "LFCs"
         ), "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
@@ -115,7 +127,7 @@ class DeseqStats:
 
         Returns
         -------
-        results_df : pandas.DataFrame
+        pandas.DataFrame
             Estimated log fold changes, p-values and adjusted p-values for each gene.
         """
 
@@ -150,8 +162,9 @@ class DeseqStats:
         return self.results_df
 
     def lfc_shrink(self):
-        """apeGLM LFC shrinkage. Shrinks LFCs using a heavy-tailed Cauchy prior,
-        leaving p-values unchanged.
+        """LFC shrinkage with an apeGLM prior [2].
+
+        Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
 
         Returns
         -------
@@ -220,8 +233,9 @@ class DeseqStats:
             return self.results_df
 
     def run_wald_test(self):
-        """Perform a Wald test and get gene-wise p-values for gene
-        over/under-expression.`
+        """Perform a Wald test.
+
+        Get gene-wise p-values for gene over/under-expression.`
         """
 
         n = len(self.LFCs)
@@ -285,8 +299,9 @@ class DeseqStats:
             self.p_values.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 1
 
     def _independent_filtering(self):
-        """Compute adjusted p-values using independent filtering,
-        to correct p-value trend.
+        """Compute adjusted p-values using independent filtering.
+
+        Corrects p-value trend (see [1])
         """
 
         # Check that p-values are available. If not, compute them.
@@ -330,9 +345,11 @@ class DeseqStats:
         self.padj = result.loc[:, j]
 
     def _p_value_adjustment(self):
-        """Compute adjusted p-values using the Benjamini-Hochberg method, without
-        correcting the p-value trend. This method and the `_independent_filtering` are
-        mutually exclusive.
+        """Compute adjusted p-values using the Benjamini-Hochberg method.
+
+
+        Does not correct the p-value trend.
+        This method and the `_independent_filtering` are mutually exclusive.
         """
         if not hasattr(self, "p_values"):
             # Estimate p-values with Wald test
@@ -394,10 +411,13 @@ class DeseqStats:
     def _fit_prior_var(self, min_var=1e-6, max_var=400):
         """Estimate the prior variance of the apeGLM model.
 
+        Returns shrinkage factors.
+
         Parameters
         ----------
         min_var : float, default=1e-6
             Lower bound for prior variance.
+
         max_var : float, default=400
             Upper bound for prior variance.
 
