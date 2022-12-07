@@ -27,7 +27,7 @@ def get_all_functions_names():
 def filter_errors(errors, method):
     """
     Ignore some errors based on the method type.
-    These rules are specific for scikit-learn."""
+    These rules are specific for pyDeseq2."""
     for code, message in errors:
         # We ignore following error code,
         #  - GL01: Docstring text (summary) should start in the line
