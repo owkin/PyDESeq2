@@ -4,7 +4,7 @@ This package is a python implementation of the [DESeq2](https://bioconductor.org
 for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
 It aims to facilitate DEA experiments for python users.
 
-Currently, available features broadly correspond to the default setting of DESeq2, but we plan to implement more in the
+Currently, available features broadly correspond to the default settings of DESeq2 (v.1.34.0), but we plan to implement more in the
 near if future. In case there is a feature you would particularly like to be implemented, feel free to open an issue.
 
 # Installation
@@ -42,6 +42,7 @@ For reference, the code was tested with the following package versions:
 - pandas 1.4.3
 - scikit-learn 1.1.1
 - scipy 1.8.1
+- statsmodels 0.13.2
 ```
 
 Please don't hesitate to open an issue in case you encounter any issue due to possible deprecations.

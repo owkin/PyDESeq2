@@ -1,4 +1,5 @@
 # NOTE: this file is adapted from the scikit-learn repository
+# https://github.com/scikit-learn/scikit-learn
 
 from inspect import signature
 from typing import Optional
@@ -20,7 +21,7 @@ CLASS_IGNORE_LIST = []
 def get_all_functions_names():
     functions = all_functions()
     for _, func in functions:
-        # exclude functions from utils.fixex since they come from external packages
+        # exclude functions outside pydeseq2
         if func.__module__.startswith("pydeseq2"):
             yield f"{func.__module__}.{func.__name__}"
 
@@ -29,7 +30,7 @@ def get_all_methods():
     estimators = all_estimators()
     # displays = all_displays()
     for name, Klass in estimators:
-        # ignore all the modules outside of flomics
+        # ignore all the modules outside of pydeseq2
         if name.startswith("_") or not Klass.__module__.startswith("pydeseq2"):
             # skip private classes
             continue
@@ -49,7 +50,7 @@ def get_all_methods():
 def filter_errors(errors, method, Klass=None):
     """
     Ignore some errors based on the method type.
-    These rules are specific for scikit-learn."""
+    These rules are specific for pydeseq2."""
     for code, message in errors:
         # We ignore following error code,
         #  - GL01: Docstring text (summary) should start in the line
