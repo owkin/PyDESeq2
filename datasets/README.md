@@ -4,7 +4,8 @@ Data from The Cancer Genome Atlas can be obtained [here](https://portal.gdc.canc
 
 ## Folder organisation
 
-The `tcga_data` is supposed to be organized in the following way:
+The `tcga_data` (TODO: add more info on where the tcga_data directory should be
+located) is supposed to be organized in the following way:
 
 ```
 tcga_data   
