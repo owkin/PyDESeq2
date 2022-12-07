@@ -23,8 +23,12 @@ jobs:
           pip install flake8
           pip install pytest
           pip install -e ."[dev]"
-      - name: flake8 Lint
+      - name: Run black
+        run: black --line-length=89 --check .
+      - name: Run flake8
         run: flake8 --max-line-length=89 --extend-ignore=E203 .
+      - name: Run isort
+        run: isort .
       - name: Test with pytest
         run: |
           pytest
