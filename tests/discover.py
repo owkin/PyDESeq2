@@ -1,4 +1,6 @@
 # NOTE: this file is adapted from the scikit-learn repository
+# https://github.com/scikit-learn/scikit-learn
+
 import inspect
 import pkgutil
 from importlib import import_module
@@ -30,8 +32,6 @@ def all_functions():
         List of (name, function), where ``name`` is the function name as
         string and ``function`` is the actual function.
     """
-    # lazy import to avoid circular imports from pydeseq2.base
-    # from ._testing import ignore_warnings
 
     all_functions = []
     root = str(Path(__file__).parent.parent / "pydeseq2")

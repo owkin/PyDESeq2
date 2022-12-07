@@ -14,7 +14,6 @@ setup(
         "jupyter",
         "numpy>=1.23.0",
         "pandas>=1.4.0",
-        "pre-commit",
         "scikit-learn>=1.1.0",
         "scipy>=1.8.0",
         "statsmodels",
