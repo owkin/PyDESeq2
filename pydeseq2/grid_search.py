@@ -13,8 +13,10 @@ def vec_nb_nll(y, mu, alpha):
     ----------
     y : ndarray
         Observations.
+
     mu : float
         Mean of the distribution.
+
     alpha : float
         Dispersion of the distribution, s.t. the variance is mu + alpha * mu^2.
 
@@ -64,22 +66,31 @@ def grid_fit_alpha(
     ----------
     y : ndarray
         Raw counts for a given gene.
+
     X : ndarray
         Design matrix.
+
     mu : ndarray
         Mean estimation for the NB model.
+
     alpha_hat : float
         Initial dispersion estimate.
+
     min_disp : float
         Lower threshold for dispersion parameters.
+
     max_disp : float
         Upper threshold for dispersion parameters.
+
     prior_disp_var : float
         Prior dispersion variance.
+
     cr_reg : bool, default=True
         Whether to use Cox-Reid regularization.
+
     prior_reg : bool, default=False
         Whether to use prior log-residual regularization.
+
     grid_length : int, default=100
         Number of grid points.
 
@@ -138,18 +149,25 @@ def grid_fit_beta(
     ----------
     counts : ndarray
         Raw counts for a given gene.
+
     size_factors : pandas.Series
         DESeq2 normalization factors.
+
     X : ndarray
         Design matrix.
+
     disp : float
         Gene-wise dispersion prior.
+
     min_mu : float
         Lower threshold for dispersion parameters.
+
     grid_length : int, default=100
         Number of grid points.
+
     min_beta : int, default=-30
         Lower-bound on LFC.
+
     max_beta : int, default=30
         Upper-bound on LFC.
 
@@ -212,22 +230,31 @@ def grid_fit_shrink_beta(
     ----------
     counts : ndarray
         Raw counts for a given gene.
+
     offset : ndarray
         Natural logarithm of size factor.
+
     design_matrix : ndarray
         Design matrix.
+
     size : ndarray
         Size parameter of NB family (inverse of dispersion).
+
     prior_no_shrink_scale : float
         Prior variance for the intercept.
+
     prior_scale : float
         Prior variance for the LFC coefficient.
+
     scale_cnst : float
         Scaling factor for the optimization.
+
     grid_length : int, default=100
         Number of grid points.
+
     min_beta : int, default=-30
         Lower-bound on LFC.
+
     max_beta : int, default=30
         Upper-bound on LFC.
 

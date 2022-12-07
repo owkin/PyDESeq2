@@ -29,42 +29,109 @@ warnings.simplefilter("ignore", DomainWarning)
 
 
 class DeseqDataSet:
-    """A class to implement dispersion and log fold-change (LFC) estimation according
-    to the DESeq2 pipeline [1].
+    r"""A class to implement dispersion and log fold-change (LFC) estimation.
 
-    Attributes
+    Follows the DESeq2 pipeline [1].
+
+    Parameters
     ----------
     counts : pandas.DataFrame
         Raw counts. One column per gene, rows are indexed by sample barcodes.
+
     clinical : pandas.DataFrame
         DataFrame containing clinical information.
         Must be indexed by sample barcodes.
-    design_factor : string, default='high_grade'
+
+    design_factor : str, default='high_grade'
         Name of the column of clinical to be used as a design variable.
-    design_matrix : pandas.DataFrame
-        A DataFrame with experiment design information (to split cohorts).
-        Indexed by sample barcodes. Unexpanded, *with* intercept.
+
     min_mu : float, default=0.5
         Threshold for mean estimates.
-        0.5 corresponds to the 'DESeq2' fitType in R, 1e-6 to the 'glmGamPoi' fitType.
+
     min_disp : float, default=1e-8
         Lower threshold for dispersion parameters.
+
     max_disp : float, default=10
         Upper threshold for dispersion parameters.
         NB: The threshold that is actually enforced is max(max_disp, len(counts)).
+
     refit_cooks : bool, default=True
         Whether to refit cooks outliers.
+
     min_replicates : int, default=7
         Minimum number of replicates a condition should have
         to allow refitting its samples.
+
     beta_tol : float, default=1e-8
-        Stopping criterion for IRWLS: abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol.
+        Stopping criterion for IRWLS:
+        abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol.
+
+    n_cpus : int, default=None
+        Number of cpus to use. If None, all available cpus will be used.
+
+    batch_size : int, default=128
+        Number of tasks to allocate to each joblib parallel worker.
+
+    joblib_verbosity : int, default=0
+        The verbosity level for joblib tasks. The higher the value, the more updates
+        are reported.
+
+    Attributes
+    ----------
+    design_matrix : pandas.DataFrame
+        A DataFrame with experiment design information (to split cohorts).
+        Indexed by sample barcodes. Unexpanded, *with* intercept.
+
     n_processes : int
         Number of cpus to use for multiprocessing.
-    batch_size : int
-        Number of tasks to allocate to each joblib parallel worker.
-    joblib_verbosity : int
-        Verbosity level for joblib tasks (higher = more frequent reporting).
+
+    size_factors : pandas.Series
+        DESeq normalization factors.
+
+    genewise_dispersions : pandas.Series
+        Initial estimates of gene counts dispersions.
+
+    trend_coeffs : pandas.Series
+        Coefficients of the trend curve: maths:: f(mu) = \alpha_1/ \mu + a_0.
+
+    fitted_dispersions : pandas.Series
+        Genewise dispersions regressed on the trend curve.
+
+    prior_disp_var : float
+        Dispersion prior of genewise dispersions,
+        used for dispersion shrinkage towards the trend curve.
+
+    MAP_dispersions : pandas.Series
+        MAP dispersions, after shrinkage towards the trend curve and before filtering.
+
+    dispersions : pandas.Series
+        Final dispersion estimates, after filtering MAP outliers.
+
+    LFCs : pandas.DataFrame
+        Log-fold change and intercept parameters, in natural log scale.
+
+    cooks : pandas.DataFrame
+        Cooks distances, used for outlier detection.
+
+    replaceable : pandas.Series
+        Whether counts are replaceable, i.e. if a given condition has enough samples.
+
+    replaced : pandas.Series
+        Counts which were replaced.
+
+    replace_cooks : pandas.DataFrame
+        Cooks distances after replacement.
+
+    counts_to_refit : pandas.DataFrame
+        Read counts after replacement,
+        for which dispersions and LFCs must be fitted again.
+
+    new_all_zeroes : pandas.Series
+        Genes which have only zero counts after outlier replacement.
+
+    _rough_dispersions : pandas.Series
+        Intial method-of-moments estimates of the dispersions
+
     References
     ----------
     ..  [1] Love, M. I., Huber, W., & Anders, S. (2014). "Moderated estimation of fold
@@ -89,38 +156,6 @@ class DeseqDataSet:
     ):
         """Initialize the DeseqDataSet instance, computing the design matrix and
         the number of multiprocessing threads.
-
-        Parameters
-        ----------
-        counts : pandas.DataFrame
-            Raw counts. One column per gene, rows are indexed by sample barcodes.
-        clinical : pandas.DataFrame
-            DataFrame containing clinical information.
-            Must be indexed by sample barcodes.
-        design_factor : string, default='high_grade'
-            Name of the column of clinical to be used as a design variable.
-        min_mu : float, default=0.5
-            Threshold for mean estimates.
-        min_disp : float, default=1e-8
-            Lower threshold for dispersion parameters.
-        max_disp : float, default=10
-            Upper threshold for dispersion parameters.
-            NB: The threshold that is actually enforced is max(max_disp, len(counts)).
-        refit_cooks : bool, default=True
-            Whether to refit cooks outliers.
-        min_replicates : int, default=7
-            Minimum number of replicates a condition should have
-            to allow refitting its samples.
-        beta_tol : float, default=1e-8
-            Stopping criterion for IRWLS:
-            abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol.
-        n_cpus : int, default=None
-            Number of cpus to use. If None, all available cpus will be used.
-        batch_size : int, default=128
-            Number of tasks to allocate to each joblib parallel worker.
-        joblib_verbosity : int, default=0
-            The verbosity level for joblib tasks. The higher the value, the more updates
-            are reported.
         """
         self.counts = counts
         self.clinical = clinical
@@ -140,8 +175,9 @@ class DeseqDataSet:
         self.joblib_verbosity = joblib_verbosity
 
     def deseq2(self):
-        """Dispersion and log fold-change (LFC) estimation according to the DESeq2
-        pipeline.
+        """Perform dispersion and log fold-change (LFC) estimation.
+
+        Wrapper for the first part of the PyDESeq2 pipeline.
         """
 
         # Compute DESeq2 normalization factors using the Median-of-ratios method
@@ -166,8 +202,9 @@ class DeseqDataSet:
             self.refit()
 
     def fit_size_factors(self):
-        """Fit sample-wise deseq1 normalization (size) factors, and store them in the
-        `size_factors` attribute.
+        """Fit sample-wise deseq2 normalization (size) factors.
+
+        Uses the median-of-ratios method.
         """
         print("Fitting size factors...")
         start = time.time()
@@ -176,7 +213,10 @@ class DeseqDataSet:
         print(f"... done in {end - start:.2f} seconds.\n")
 
     def fit_genewise_dispersions(self):
-        """Fit gene-wise dispersion estimates."""
+        """Fit gene-wise dispersion estimates.
+
+        Fits a negative binomial per gene, independently.
+        """
 
         # Check that size factors are available. If not, compute them.
         if not hasattr(self, "size_factors"):
@@ -243,8 +283,9 @@ class DeseqDataSet:
         )
 
     def fit_dispersion_trend(self):
-        r"""Fit the dispersion trend coefficients:
-        .. maths:: f(mu) = \alpha_1/\mu + a_0
+        r"""Fit the dispersion trend coefficients.
+
+        .. maths:: f(mu) = \alpha_1/\mu + a_0.
         """
 
         # Check that genewise dispersions are available. If not, compute them.
@@ -303,7 +344,10 @@ class DeseqDataSet:
         self.fitted_dispersions = dispersion_trend(self._normed_means, self.trend_coeffs)
 
     def fit_dispersion_prior(self):
-        """Fit dispersion variance priors and standard deviation of log-residuals."""
+        """Fit dispersion variance priors and standard deviation of log-residuals.
+
+        The computation is based on genes whose dispersions are above 100 * min_disp.
+        """
 
         # Check that the dispersion trend curve was fitted. If not, fit it.
         if not hasattr(self, "trend_coeffs"):
@@ -325,8 +369,9 @@ class DeseqDataSet:
         )
 
     def fit_MAP_dispersions(self):
-        """Fit Maximum a Posteriori dispersion estimates, and filter genes for which we
-        don't apply shrinkage.
+        """Fit Maximum a Posteriori dispersion estimates.
+
+        After MAP dispersions are fit, filter genes for which we don't apply shrinkage.
         """
 
         # Check that the dispersion prior variance is available. If not, compute it.
@@ -384,6 +429,7 @@ class DeseqDataSet:
 
     def fit_LFC(self):
         """Fit log fold change (LFC) coefficients.
+
         In the 2-level setting, the intercept corresponds to the base mean,
         while the second is the actual LFC coefficient, in natural log scale.
         """
@@ -439,6 +485,7 @@ class DeseqDataSet:
 
     def calculate_cooks(self):
         """Compute Cook's distance for outlier detection.
+
         Measures the contribution of a single entry to the output of LFC estimation.
         """
 
@@ -458,7 +505,9 @@ class DeseqDataSet:
         ).T
 
     def refit(self):
-        """Replace values that are filtered out based  on the Cooks distance with imputed
+        """Refit Cook outliers.
+
+        Replace values that are filtered out based on the Cooks distance with imputed
         values, and then re-run the whole DESeq2 pipeline on replaced values.
         """
         # Replace outlier counts

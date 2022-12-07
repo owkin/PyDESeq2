@@ -5,6 +5,7 @@ from typing import Optional
 
 import pytest
 
+from tests.discover import all_estimators
 from tests.discover import all_functions
 
 numpydoc_validation = pytest.importorskip("numpydoc.validate")
@@ -13,7 +14,7 @@ FUNCTION_DOCSTRING_IGNORE_LIST = []
 
 FUNCTION_DOCSTRING_IGNORE_LIST = set(FUNCTION_DOCSTRING_IGNORE_LIST)
 
-# TODO: this test only runs on individual functions, but it should be extended to classes
+CLASS_IGNORE_LIST = []
 
 
 def get_all_functions_names():
@@ -24,7 +25,28 @@ def get_all_functions_names():
             yield f"{func.__module__}.{func.__name__}"
 
 
-def filter_errors(errors, method):
+def get_all_methods():
+    estimators = all_estimators()
+    # displays = all_displays()
+    for name, Klass in estimators:
+        # ignore all the modules outside of flomics
+        if name.startswith("_") or not Klass.__module__.startswith("pydeseq2"):
+            # skip private classes
+            continue
+        methods = []
+        for name in dir(Klass):
+            if name.startswith("_"):
+                continue
+            method_obj = getattr(Klass, name)
+            if callable(method_obj) or isinstance(method_obj, property):
+                methods.append(name)
+        methods.append(None)
+
+        for method in sorted(methods, key=str):
+            yield Klass, method
+
+
+def filter_errors(errors, method, Klass=None):
     """
     Ignore some errors based on the method type.
     These rules are specific for scikit-learn."""
@@ -36,11 +58,17 @@ def filter_errors(errors, method):
         if code in ["GL01"]:
             continue
 
+        if code in ("PR02", "GL08") and Klass is not None and method is not None:
+            method_obj = getattr(Klass, method)
+            if isinstance(method_obj, property):
+                continue
+
         # Following codes are only taken into account for the
         # top level class docstrings:
         #  - SA01: See Also section not found
         #  - EX01: No examples section found
-        if method is not None and code in ["SA01", "EX01"]:
+        # if method is not None and code in ["SA01", "EX01"]: TODO: Skipping this for now
+        if code in ["SA01", "EX01"]:
             continue
         yield code, message
 
@@ -94,6 +122,32 @@ def repr_errors(res, Klass=None, method: Optional[str] = None) -> str:
         ]
     )
     return msg
+
+
+@pytest.mark.parametrize("Klass, method", get_all_methods())
+def test_docstring(Klass, method, request):
+    base_import_path = Klass.__module__
+    import_path = [base_import_path, Klass.__name__]
+    if method is not None:
+        import_path.append(method)
+
+    import_path = ".".join(import_path)
+
+    if (
+        import_path in FUNCTION_DOCSTRING_IGNORE_LIST
+        or base_import_path in CLASS_IGNORE_LIST  # functions which need to be corrected
+    ):  # some classes we want to ignore completely
+        request.applymarker(
+            pytest.mark.xfail(run=False, reason="TODO pass numpydoc validation")
+        )
+    res = numpydoc_validation.validate(import_path)
+
+    res["errors"] = list(filter_errors(res["errors"], method, Klass=Klass))
+
+    if res["errors"]:
+        msg = repr_errors(res, Klass, method)
+
+        raise ValueError(msg)
 
 
 @pytest.mark.parametrize("function_name", get_all_functions_names())

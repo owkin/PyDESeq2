@@ -17,6 +17,7 @@ def deseq2_norm(counts):
     deseq2_counts : pandas.DataFrame
         DESeq2 normalized counts.
         One column per gene, rows are indexed by sample barcodes.
+
     size_factors : pandas.DataFrame
         DESeq2 normalization factors.
     """

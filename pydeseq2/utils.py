@@ -31,11 +31,14 @@ def load_data(
     ----------
     modality : str
         Data modality. "raw_counts" or "clinical".
+
     cancer_type : str
         The cancer type for which to return TCGA gene expression data.
+
     debug : bool, default=False
         If true, subsample 10 samples and 100 genes at random.
         Only supported in "pooled" mode for now.
+
     debug_seed : int, default=42
         Seed for the debug mode.
 
@@ -104,13 +107,17 @@ def build_design_matrix(
     clinical_df : pandas.DataFrame
         DataFrame containing clinical information.
         Must be indexed by sample barcodes, and contain a "high_grade" column.
+
     design : str, default='high_grade'
         Name of the column of clinical_df to be used as a design_matrix variable.
+
     ref : str, default=None
         The factor to use as a reference. Must be one of the values taken by the design.
         If None, the reference will be chosen alphabetically (last in order).
+
     expanded : bool, default=False
         If true, use one column per category. Else, use a single column.
+
     intercept : bool, default=True
         If true, add an intercept (a column containing only ones).
 
@@ -144,6 +151,7 @@ def dispersion_trend(normed_mean, coeffs):
     ----------
     normed_mean : float or ndarray
         Mean of normalized counts for a given gene or set of genes.
+
     coeffs : ndarray or pd.Series
         Fitted dispersion trend coefficients :math:`a_0` and :math:`a_1`.
 
@@ -167,8 +175,10 @@ def nb_nll(y, mu, alpha):
     ----------
     y : ndarray
         Observations.
+
     mu : float
         Mean of the distribution.
+
     alpha : float
         Dispersion of the distribution, s.t. the variance is mu + alpha * mu^2.
 
@@ -196,8 +206,10 @@ def dnb_nll(y, mu, alpha):
     ----------
     y : ndarray
         Observations.
+
     mu : float
         Mean of the distribution.
+
     alpha : float
         Dispersion of the distribution, s.t. the variance is mu + alpha * mu^2.
 
@@ -241,20 +253,28 @@ def irls_solver(
     ----------
     counts : pandas.Series
         Raw counts for a given gene.
+
     size_factors : pandas.Series
         Sample-wise scaling factors (obtained from median-of-ratios).
+
     design_matrix : pandas.DataFrame
         Design matrix.
+
     disp : pandas.Series
         Gene-wise dispersion priors.
+
     min_mu : float, default=0.5
         Lower bound on estimated means, to ensure numerical stability.
+
     beta_tol : float, default=1e-8
         Stopping criterion for IRWLS: abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol.
+
     min_beta : int, default=-30
         Lower-bound on LFC.
+
     max_beta : int, default=30
         Upper-bound on LFC.
+
     optimizer : str, default='BFGS'
         Optimizing method to use in case IRLS starts diverging.
         Accepted values: 'BFGS' or 'L-BFGS-B'.
@@ -264,8 +284,10 @@ def irls_solver(
     -------
     beta: ndarray
         Fitted (basemean, lfc) coefficients of negative binomial GLM.
+
     mu: ndarray
         Means estimated from size factors and beta: :math:`\mu = s_{ij} \exp(\beta^t X)`.
+
     H: ndarray
         Diagonal of the W^{1/2} X (X^t W X)^-1 X^t W^{1/2} covariance matrix.
     """
@@ -383,22 +405,31 @@ def fit_alpha_mle(
     ----------
     y : ndarray
         Raw counts for a given gene.
+
     X : ndarray
         Design matrix.
+
     mu : ndarray
         Mean estimation for the NB model.
+
     alpha_hat : float
         Initial dispersion estimate.
+
     min_disp : float
         Lower threshold for dispersion parameters.
+
     max_disp : float
         Upper threshold for dispersion parameters.
+
     prior_disp_var : float
         Prior dispersion variance.
+
     cr_reg : bool, default=True
         Whether to use Cox-Reid regularization.
+
     prior_reg : bool, default=False
         Whether to use prior log-residual regularization.
+
     optimizer : str, default='BFGS'
         Optimizing method to use. Accepted values: 'BFGS' or 'L-BFGS-B'.
 
@@ -406,6 +437,7 @@ def fit_alpha_mle(
     -------
     float
         Dispersion estimate.
+
     bool
         Whether L-BFGS-B converged. If not, dispersion is estimated uing grid search.
     """
@@ -468,8 +500,10 @@ def trimmed_mean(x, trim=0.1, **kwargs):
     ----------
     x : ndarray
         Data whose mean to compute.
+
     trim : float, default=0.1
         Fraction of data to trim at each end.
+
     **kwargs
         Keyword arguments, useful to pass axis.
 
@@ -504,6 +538,7 @@ def trimmed_cell_variance(counts, cells):
     ----------
     counts : pandas.DataFrame
         Sample-wise gene counts.
+
     cells : pandas.DataFrame
         Cohort affiliation of each sample.
 
@@ -549,8 +584,10 @@ def trimmed_variance(x, trim=0.125, axis=1):
     ----------
     x : ndarray
         Data whose trimmed variance to compute.
+
     trim : float, default=0.1
         Fraction of data to trim at each end.
+
     axis : int
         Dimension along which to compute variance.
 
@@ -575,10 +612,13 @@ def fit_lin_mu(y, size_factors, X, min_mu=0.5):
     ----------
     y : ndarray
         Raw counts for a given gene.
+
     size_factors : ndarray
         Sample-wise scaling factors (obtained from median-of-ratios).
+
     X : ndarray
         Design matrix.
+
     min_mu : float, default=0.5
         Lower threshold for fitted means, for numerical stability.
 
@@ -605,14 +645,19 @@ def wald_test(X, disp, lfc, mu, D, idx=-1):
     ----------
     X : ndarray
         Design matrix.
+
     disp : float
         Dispersion estimate.
+
     lfc : float
         Log-fold change estimate (in natural log scale).
+
     mu : float
         Mean estimation for the NB model.
+
     D : ndarray
         Regularization factors.
+
     idx : int, default=-1
         Index of design factor (in design matrix).
 
@@ -620,8 +665,10 @@ def wald_test(X, disp, lfc, mu, D, idx=-1):
     -------
     wald_p_value : float
         Estimated p-value.
+
     wald_statistic : float
         Wald statistic.
+
     wald_se : float
         Standard error of the Wald statistic.
     """
@@ -649,8 +696,10 @@ def fit_rough_dispersions(counts, size_factors, design_matrix):
     ----------
     counts : pandas.DataFrame
         Raw counts. One column per gene, rows are indexed by sample barcodes.
+
     size_factors : pandas.Series
         DESeq2 normalization factors.
+
     design_matrix : pandas.DataFrame
         A DataFrame with experiment design information (to split cohorts).
         Indexed by sample barcodes. Unexpanded, *with* intercept.
@@ -682,6 +731,7 @@ def fit_moments_dispersions(counts, size_factors):
     ----------
     counts : pandas.DataFrame
         Raw counts. One column per gene, rows are indexed by sample barcodes.
+
     size_factors : pandas.Series
         DESeq2 normalization factors.
 
@@ -711,6 +761,7 @@ def robust_method_of_moments_disp(normed_counts, design_matrix):
     ----------
     normed_counts : pandas.DataFrame
         DF of deseq2-normalized read counts. Rows: samples, columns: genes.
+
     design_matrix : pandas.DataFrame
         A DataFrame with experiment design information (to split cohorts).
         Indexed by sample barcodes. Unexpanded, *with* intercept.
@@ -783,19 +834,26 @@ def nbinomGLM(
     ----------
     design_matrix : ndarray
         Design matrix.
+
     counts : ndarray
         Raw counts.
+
     size : ndarray
         Size parameter of NB family (inverse of dispersion).
+
     offset : ndarray
         Natural logarithm of size factor.
+
     prior_no_shrink_scale : float
         Prior variance for the intercept.
+
     prior_scale : float
         Prior variance for the LFC parameter.
+
     optimizer : str, default='Newton-CG'
         Optimizing method to use in case IRLS starts diverging.
         Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'.
+
     shrink_index : int, default = 1
         Index of the LFC coordinate to shrink.
 
@@ -803,8 +861,10 @@ def nbinomGLM(
     -------
     beta: ndarray
         2-element array, containing the intercept (first) and the LFC (second).
+
     inv_hessian: ndarray
         Inverse of the Hessian of the objective at the estimated MAP LFC.
+
     converged: bool
         Whether L-BFGS-B converged.
     """
@@ -918,18 +978,25 @@ def nbinomFn(
     ----------
     beta : ndarray
         2-element array: intercept and LFC coefficients.
+
     design_matrix : ndarray
         Design matrix.
+
     counts : ndarray
         Raw counts.
+
     size : ndarray
         Size parameter of NB family (inverse of dispersion).
+
     offset : ndarray
         Natural logarithm of size factor.
+
     prior_no_shrink_scale : float
         Prior variance for the intercept.
+
     prior_scale : float
         Prior variance for the intercept.
+
     shrink_index : int, default = 1
         Index of the LFC coordinate to shrink.
 
