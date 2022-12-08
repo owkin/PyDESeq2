@@ -4,7 +4,7 @@ from setuptools import setup
 setup(
     name="pydeseq2",
     version="0.0.1",
-    python_requires=">=3.8.0,<3.11",
+    python_requires=">=3.8.0",
     license="",
     description="A python implementation of DESeq2.",
     author="Boris Muzellec, Maria Telenczuk, Vincent Cabelli and Mathieu Andreux",
