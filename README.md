@@ -30,7 +30,7 @@ PyPI and conda versions will soon be released.
 
 ### 2 - Create a conda environment
 
-Run `conda create -n pydeseq2 python>=3.8` (or higher python version) to create the environment and then activate it:
+Run `conda create -n pydeseq2 python=3.8` (or higher python version) to create the environment and then activate it:
 `conda activate pydeseq2`.
 
 `cd` inside the root of the repo and run `pip install .` to install.
