@@ -1,42 +1,45 @@
 # PyDESeq2
 
+## Table of Contents
+- [Overview](#overview)
+- [Installation](#installation)
+- [Getting started](#getting-started)
+- [Contributing](#contributing)
+- [Citing this work](#citing-this-work)
+- [References](#references)
+- [License](#license)
+
+## Overview
+
 This package is a python implementation of the [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) method [1]
 for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
 It aims to facilitate DEA experiments for python users.
 
-Currently, available features broadly correspond to the default settings of DESeq2 (v.1.34.0), but we plan to implement more in the
+Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0), but we plan to implement more in the
 near if future. In case there is a feature you would particularly like to be implemented, feel free to open an issue.
 
-# Installation
+## Installation
 
-## Create a conda environment
+For now, the only way to use PyDESeq2 is to install it from source.
 
-`conda create -n pydeseq2 python=3.8`, and then activate it:
-`conda activate pydeseq2`
+PyPI and conda versions will soon be released.
 
-Run `pip install -e .` to install.
+### 1 - Download the repository
 
+`git clone https://github.com/owkin/PyDESeq2.git`
 
-# Getting started
+### 2 - Create a conda environment
 
-The `notebooks` directory contains minimal examples on how to use PyDESeq2 in the form of jupyter notebooks.
+Run `conda create -n pydeseq2 python>=3.8` (or higher python version) to create the environment and then activate it:
+`conda activate pydeseq2`.
 
-# Contributing
+`cd` inside the root of the repo and run `pip install .` to install.
 
-Run `pip install -e ."[dev]"` to install in developer mode.
-
-Then, run `pre-commit install`.
-
-The `pre-commit` tool will automatically run [black](https://black.readthedocs.io/en/stable/)
-and [isort](https://pycqa.github.io/isort/), and check [flake8](https://flake8.pycqa.org/en/latest/) compatibility
-
-PyDESeq2 is a living project and any contributions are welcome, in the form of PRs or new issues.
-
-# Requirements
+### Requirements
 
 The list of package version requirements is available in `setup.py`.
 
-For reference, the code was tested with the following package versions:
+For reference, the code was tested with python 3.8 and the following package versions:
 ```
 - numpy 1.23.0
 - pandas 1.4.3
@@ -47,16 +50,45 @@ For reference, the code was tested with the following package versions:
 
 Please don't hesitate to open an issue in case you encounter any issue due to possible deprecations.
 
+
+## Getting started
+
+The [`notebooks` directory](./notebooks/README.md) contains minimal examples on how to use PyDESeq2, in the form of jupyter notebooks.
+
 ### TCGA Data
 
-See [datasets](./datasets/README.md).
+The quick start notebooks use data from [The Cancer Genome Atlas](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga). 
 
-# Citing this work
+For more information on how to obtain and organize TCGA data, see [datasets](./datasets/README.md).
+
+## Contributing
+
+Run `pip install -e ."[dev]"` to install in developer mode.
+
+Then, run `pre-commit install`.
+
+The `pre-commit` tool will automatically run [black](https://black.readthedocs.io/en/stable/)
+and [isort](https://pycqa.github.io/isort/), and check [flake8](https://flake8.pycqa.org/en/latest/) compatibility
+
+PyDESeq2 is a living project and any contributions are welcome! Feel free to open new PRs or issues.
+
+## Citing this work
 
 TBD
 
-# References
+## References
 
 [1] Love, M. I., Huber, W., & Anders, S. (2014). "Moderated estimation of fold
         change and dispersion for RNA-seq data with DESeq2." Genome biology, 15(12), 1-21.
         <https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8>
+
+[2] Zhu, A., Ibrahim, J. G., & Love, M. I. (2019).
+        "Heavy-tailed prior distributions for sequence count data:
+        removing the noise and preserving large differences."
+        Bioinformatics, 35(12), 2084-2092.
+        <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>
+
+## License
+
+PyDESeq2 is released under an [MIT license](./LICENSE).
+
