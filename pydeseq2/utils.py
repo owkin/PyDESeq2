@@ -32,7 +32,7 @@ def load_data(
     modality : str
         Data modality. "raw_counts" or "clinical".
 
-    cancer_type : str, default = "synthetic".
+    cancer_type : str, default = "synthetic"
         The cancer type for which to return gene expression data.
         If "synthetic", will return the synthetic data that is used for CI unit tests.
         Otherwise, must be a valid TCGA dataset.
