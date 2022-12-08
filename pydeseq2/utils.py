@@ -19,11 +19,11 @@ from pydeseq2.grid_search import grid_fit_shrink_beta
 
 def load_data(
     modality="raw_counts",
-    cancer_type="TCGA-BRCA",
+    cancer_type="synthetic",
     debug=False,
     debug_seed=42,
 ):
-    """Load TCGA data (gene raw counts or clinical) for a given cancer type.
+    """Load synthetic or TCGA data (gene raw counts or clinical) for a given cancer type.
 
     May load either clinical or rna-seq data.
 
@@ -32,8 +32,10 @@ def load_data(
     modality : str
         Data modality. "raw_counts" or "clinical".
 
-    cancer_type : str
-        The cancer type for which to return TCGA gene expression data.
+    cancer_type : str, default = "synthetic".
+        The cancer type for which to return gene expression data.
+        If "synthetic", will return the synthetic data that is used for CI unit tests.
+        Otherwise, must be a valid TCGA dataset.
 
     debug : bool, default=False
         If true, subsample 10 samples and 100 genes at random.
@@ -53,6 +55,7 @@ def load_data(
     )
 
     assert cancer_type in [
+        "synthetic",
         "TCGA-BRCA",
         "TCGA-COAD",
         "TCGA-LUAD",
@@ -63,27 +66,44 @@ def load_data(
         "TCGA-SKCM",
     ], (
         "The cancer_type argument must be one of the following: "
-        "TCGA-BRCA, TCGA-COAD, TCGA-LUAD, TCGA-LUSC, "
+        "syntetic, TCGA-BRCA, TCGA-COAD, TCGA-LUAD, TCGA-LUSC, "
         "TCGA-PAAD, TCGA-PRAD, TCGA-READ, TCGA-SKCM"
     )
     # Load data
-    datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
-    path_to_data = datasets_path / "tcga_data"
+    if cancer_type == "synthetic":
+        datasets_path = Path(pydeseq2.__file__).parent.parent / "tests"
+        path_to_data = datasets_path / "data"
 
-    if modality == "raw_counts":
-        df = pd.read_csv(
-            path_to_data / "Gene_expressions" / f"{cancer_type}_raw_RNAseq.tsv.gz",
-            compression="gzip",
-            sep="\t",
-            index_col=0,
-        ).T
-    elif modality == "clinical":
-        df = pd.read_csv(
-            path_to_data / "Clinical" / f"{cancer_type}_clinical.tsv.gz",
-            compression="gzip",
-            sep="\t",
-            index_col=0,
-        )
+        if modality == "raw_counts":
+            df = pd.read_csv(
+                path_to_data / "test_counts.csv",
+                sep=",",
+                index_col=0,
+            ).T
+        elif modality == "clinical":
+            df = pd.read_csv(
+                path_to_data / "test_clinical.csv",
+                sep=",",
+                index_col=0,
+            )
+    else:
+        datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
+        path_to_data = datasets_path / "tcga_data"
+
+        if modality == "raw_counts":
+            df = pd.read_csv(
+                path_to_data / "Gene_expressions" / f"{cancer_type}_raw_RNAseq.tsv.gz",
+                compression="gzip",
+                sep="\t",
+                index_col=0,
+            ).T
+        elif modality == "clinical":
+            df = pd.read_csv(
+                path_to_data / "Clinical" / f"{cancer_type}_clinical.tsv.gz",
+                compression="gzip",
+                sep="\t",
+                index_col=0,
+            )
 
     if debug:
         # subsample 10 samples and 100 genes
