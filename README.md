@@ -16,7 +16,7 @@ for differential expression analysis (DEA) with bulk RNA-seq data, originally in
 It aims to facilitate DEA experiments for python users.
 
 Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0), but we plan to implement more in the
-near if future. In case there is a feature you would particularly like to be implemented, feel free to open an issue.
+near future. In case there is a feature you would particularly like to be implemented, feel free to open an issue.
 
 ## Installation
 
