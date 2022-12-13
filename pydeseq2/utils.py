@@ -25,7 +25,8 @@ def load_data(
 ):
     """Load synthetic or TCGA data (gene raw counts or clinical) for a given cancer type.
 
-    May load either clinical or rna-seq data.
+    May load either clinical or rna-seq data.The synthetic data is part of this
+    repo, but TCGA data should be downloaded as per the instructions in `datasets/`.
 
     Parameters
     ----------
