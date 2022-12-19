@@ -12,10 +12,10 @@ setup(
     packages=find_packages(exclude=["tests*"]),
     install_requires=[
         "jupyter",
-        "numpy>=1.21.0",
-        "pandas>=1.3.0",
-        "scikit-learn>=1.0.1",
-        "scipy>=1.7.0",
+        "numpy>=1.23.0",
+        "pandas>=1.4.0",
+        "scikit-learn>=1.1.0",
+        "scipy>=1.8.0",
         "statsmodels",
     ],  # external packages as dependencies
     extras_require={
