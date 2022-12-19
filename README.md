@@ -74,7 +74,15 @@ PyDESeq2 is a living project and any contributions are welcome! Feel free to ope
 
 ## Citing this work
 
-TBD
+```
+@article{muzellec2022pydeseq2,
+  title={PyDESeq2: a python package for bulk RNA-seq differential expression analysis},
+  author={Muzellec, Boris and Telenczuk, Maria and Cabeli, Vincent and Andreux, Mathieu},
+  year={2022},
+  doi = {10.1101/2022.12.14.520412},
+  journal={bioRxiv},
+}
+```
 
 ## References
 
