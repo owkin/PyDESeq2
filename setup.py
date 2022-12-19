@@ -13,7 +13,7 @@ setup(
     install_requires=[
         "jupyter",
         "numpy>=1.23.0",
-        "pandas>=1.4.0",
+        "pandas>=1.3.0",
         "scikit-learn>=1.1.0",
         "scipy>=1.7.0",
         "statsmodels",
