@@ -15,8 +15,10 @@ This package is a python implementation of the [DESeq2](https://bioconductor.org
 for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
 It aims to facilitate DEA experiments for python users.
 
-Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0), but we plan to implement more in the
-near future. In case there is a feature you would particularly like to be implemented, feel free to open an issue.
+As PyDESeq2 is a re-implementation of [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) from scratch, you may experience some differences in terms of retrieved values or available features.
+
+Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor analysis,
+but we plan to implement more in the near future. In case there is a feature you would particularly like to be implemented, feel free to open an issue.
 
 ## Installation
 
@@ -30,10 +32,8 @@ PyPI and conda versions will soon be released.
 
 ### 2 - Create a conda environment
 
-Run `conda create -n pydeseq2 python=3.8` (or higher python version) to create the environment and then activate it:
+Run `conda create env -f environment.yml` (or higher python version) to create the `pydeseq2` environment and then activate it:
 `conda activate pydeseq2`.
-
-`cd` inside the root of the repo and run `pip install .` to install.
 
 ### Requirements
 
@@ -55,15 +55,17 @@ Please don't hesitate to open an issue in case you encounter any issue due to po
 
 The [`notebooks` directory](./notebooks/README.md) contains minimal examples on how to use PyDESeq2, in the form of jupyter notebooks.
 
+You can also try them from your browser (on synthetic data only):  [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/owkin/PyDESeq2/HEAD?labpath=notebooks%2Findex.ipynb) 
+
 ### TCGA Data
 
-The quick start notebooks use data from [The Cancer Genome Atlas](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga). 
+The quick start notebooks either use synthetic data (provided in this repo) or data from [The Cancer Genome Atlas](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga). 
 
 For more information on how to obtain and organize TCGA data, see [datasets](./datasets/README.md).
 
 ## Contributing
 
-Run `pip install -e ."[dev]"` to install in developer mode.
+`cd` to the root of the repo and run `pip install -e ."[dev]"` to install in developer mode.
 
 Then, run `pre-commit install`.
 
