@@ -88,6 +88,9 @@ class DeseqDataSet:
     size_factors : pandas.Series
         DESeq normalization factors.
 
+    non_zero_genes : pandas.Index
+        Index of genes that have non-uniformly zero counts.
+
     genewise_dispersions : pandas.Series
         Initial estimates of gene counts dispersions.
 
@@ -226,12 +229,14 @@ class DeseqDataSet:
         self._fit_MoM_dispersions()
 
         # Exclude genes with all zeroes
-        counts_nonzero = self.counts.loc[:, ~(self.counts == 0).all()].values
+        non_zero = ~(self.counts == 0).all()
+        self.non_zero_genes = non_zero[non_zero].index
+        counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
         m = counts_nonzero.shape[1]
 
         # Convert design_matrix to numpy for speed
         X = self.design_matrix.values
-        rough_disps = self._rough_dispersions.values
+        rough_disps = self._rough_dispersions.loc[self.non_zero_genes].values
         size_factors = self.size_factors.values
 
         with parallel_backend("loky", inner_max_num_threads=1):
@@ -254,7 +259,7 @@ class DeseqDataSet:
         self._mu_hat = pd.DataFrame(
             mu_hat_.T,
             index=self.counts.index,
-            columns=self._rough_dispersions.index,
+            columns=self.non_zero_genes,
         )
 
         print("Fitting dispersions...")
@@ -275,11 +280,14 @@ class DeseqDataSet:
         print(f"... done in {end - start:.2f} seconds.\n")
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
-        self.genewise_dispersions = pd.Series(
-            dispersions_, index=self._rough_dispersions.index
-        ).clip(self.min_disp, self.max_disp)
+        self.genewise_dispersions = pd.Series(np.NaN, index=self.counts.columns)
+        self.genewise_dispersions.update(
+            pd.Series(dispersions_, index=self.non_zero_genes).clip(
+                self.min_disp, self.max_disp
+            )
+        )
         self._genewise_converged = pd.Series(
-            l_bfgs_b_converged_, index=self._rough_dispersions.index
+            l_bfgs_b_converged_, index=self.non_zero_genes
         )
 
     def fit_dispersion_trend(self):
@@ -297,8 +305,8 @@ class DeseqDataSet:
         self._normed_means = self.counts.div(self.size_factors, 0).mean(0)
 
         # Exclude all-zero counts
-        targets = self.genewise_dispersions[self._normed_means > 0].copy()
-        covariates = sm.add_constant(1 / self._normed_means[self._normed_means > 0])
+        targets = self.genewise_dispersions.loc[self.non_zero_genes].copy()
+        covariates = sm.add_constant(1 / self._normed_means.loc[self.non_zero_genes])
 
         for gene in targets.index:
             if (
@@ -341,7 +349,14 @@ class DeseqDataSet:
         print(f"... done in {end - start:.2f} seconds.\n")
 
         self.trend_coeffs = pd.Series(coeffs, index=["a0", "a1"])
-        self.fitted_dispersions = dispersion_trend(self._normed_means, self.trend_coeffs)
+        self.fitted_dispersions = pd.Series(
+            np.NaN, index=self.genewise_dispersions.index
+        )
+        self.fitted_dispersions.update(
+            dispersion_trend(
+                self._normed_means.loc[self.non_zero_genes], self.trend_coeffs
+            )
+        )
 
     def fit_dispersion_prior(self):
         """Fit dispersion variance priors and standard deviation of log-residuals.
@@ -353,16 +368,22 @@ class DeseqDataSet:
         if not hasattr(self, "trend_coeffs"):
             self.fit_dispersion_trend()
 
-        m, p = self.design_matrix.shape
+        # Exclude genes with all zeroes
+        m = len(self.non_zero_genes)
+        p = self.design_matrix.shape[1]
+
         # Fit dispersions to the curve, and compute log residuals
         disp_residuals = np.log(self.genewise_dispersions) - np.log(
             self.fitted_dispersions
         )
+
         # Compute squared log-residuals and prior variance based on genes whose
         # dispersions are above 100 * min_disp. This is to reproduce DESeq2's behaviour.
-        above_min_disp = self.genewise_dispersions >= (100 * self.min_disp)
+        above_min_disp = self.genewise_dispersions.loc[self.non_zero_genes] >= (
+            100 * self.min_disp
+        )
         self._squared_logres = np.abs(
-            disp_residuals[above_min_disp]
+            disp_residuals.loc[self.non_zero_genes][above_min_disp]
         ).median() ** 2 / norm.ppf(0.75)
         self.prior_disp_var = np.maximum(
             self._squared_logres - polygamma(1, (m - p) / 2), 0.25
@@ -379,12 +400,12 @@ class DeseqDataSet:
             self.fit_dispersion_prior()
 
         # Exclude genes with all zeroes
-        counts_nonzero = self.counts.loc[:, ~(self.counts == 0).all()].values
+        counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
         m = counts_nonzero.shape[1]
 
         X = self.design_matrix.values
         mu_hat = self._mu_hat.values
-        fit_disps = self.fitted_dispersions.values
+        fit_disps = self.fitted_dispersions.loc[self.non_zero_genes].values
 
         print("Fitting MAP dispersions...")
         start = time.time()
@@ -411,12 +432,13 @@ class DeseqDataSet:
         print(f"... done in {end-start:.2f} seconds.\n")
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
-        self.MAP_dispersions = pd.Series(
-            dispersions_, index=self.fitted_dispersions.index
-        ).clip(self.min_disp, self.max_disp)
-        self._MAP_converged = pd.Series(
-            l_bfgs_b_converged_, index=self.fitted_dispersions.index
+        self.MAP_dispersions = pd.Series(np.NaN, index=self.fitted_dispersions.index)
+        self.MAP_dispersions.update(
+            pd.Series(dispersions_, index=self.non_zero_genes).clip(
+                self.min_disp, self.max_disp
+            )
         )
+        self._MAP_converged = pd.Series(l_bfgs_b_converged_, index=self.non_zero_genes)
 
         # Filter outlier genes for which we won't apply shrinkage
         self.dispersions = self.MAP_dispersions.copy()
@@ -439,12 +461,12 @@ class DeseqDataSet:
             self.fit_MAP_dispersions()
 
         # Exclude genes with all zeroes
-        counts_nonzero = self.counts.loc[:, ~(self.counts == 0).all()].values
+        counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
         m = counts_nonzero.shape[1]
 
         X = self.design_matrix.values
         size_factors = self.size_factors.values
-        disps = self.dispersions.values
+        disps = self.dispersions.loc[self.non_zero_genes].values
 
         print("Fitting LFCs...")
         start = time.time()
@@ -470,18 +492,34 @@ class DeseqDataSet:
         MAP_lfcs_, mu_, hat_diagonals_, converged_ = zip(*res)
 
         self.LFCs = pd.DataFrame(
-            MAP_lfcs_, index=self.dispersions.index, columns=self.design_matrix.columns
+            np.NaN, index=self.dispersions.index, columns=self.design_matrix.columns
         )
+
+        self.LFCs.update(
+            pd.DataFrame(
+                MAP_lfcs_, index=self.non_zero_genes, columns=self.design_matrix.columns
+            )
+        )
+
         self._mu_LFC = pd.DataFrame(
-            np.array(mu_).T, index=self.counts.index, columns=self.dispersions.index
+            np.array(mu_).T, index=self.counts.index, columns=self.non_zero_genes
         )
+
         self._hat_diagonals = pd.DataFrame(
-            hat_diagonals_,
+            np.NaN,
             index=self.dispersions.index,
             columns=self.design_matrix.index,
         ).T
 
-        self._LFC_converged = pd.DataFrame(converged_, index=self.dispersions.index)
+        self._hat_diagonals.update(
+            pd.DataFrame(
+                hat_diagonals_,
+                index=self.non_zero_genes,
+                columns=self.design_matrix.index,
+            ).T
+        )
+
+        self._LFC_converged = pd.DataFrame(converged_, index=self.non_zero_genes)
 
     def calculate_cooks(self):
         """Compute Cook's distance for outlier detection.
@@ -494,10 +532,13 @@ class DeseqDataSet:
             self.fit_MAP_dispersions()
 
         p = self.design_matrix.shape[1]
-        normed_counts = self.counts.div(self.size_factors, 0)
+        # Keep only non-zero genes
+        normed_counts = self.counts.loc[:, self.non_zero_genes].div(self.size_factors, 0)
         dispersions = robust_method_of_moments_disp(normed_counts, self.design_matrix)
         V = self._mu_LFC + dispersions * self._mu_LFC**2
-        squared_pearson_res = (self.counts - self._mu_LFC) ** 2 / V
+        squared_pearson_res = (
+            self.counts.loc[:, self.non_zero_genes] - self._mu_LFC
+        ) ** 2 / V
         self.cooks = (
             squared_pearson_res
             / p
