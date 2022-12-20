@@ -12,7 +12,6 @@ PyDESeq2
 └───datasets
         │
         └───tcga_data   
-            │   centers.csv
             │
             └───Clinical
             │       TCGA-BRCA_clinical.tsv.gz
