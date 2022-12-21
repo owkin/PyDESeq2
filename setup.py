@@ -1,12 +1,17 @@
 from setuptools import find_packages
 from setuptools import setup
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
     name="pydeseq2",
-    version="0.0.1",
+    version="0.1",
     python_requires=">=3.8.0",
     license="",
     description="A python implementation of DESeq2.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author="Boris Muzellec, Maria Telenczuk, Vincent Cabelli and Mathieu Andreux",
     author_email="boris.muzellec@owkin.com",
     packages=find_packages(exclude=["tests*"]),

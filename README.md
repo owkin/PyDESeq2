@@ -1,13 +1,19 @@
 # PyDESeq2
 
 ## Table of Contents
-- [Overview](#overview)
-- [Installation](#installation)
-- [Getting started](#getting-started)
-- [Contributing](#contributing)
-- [Citing this work](#citing-this-work)
-- [References](#references)
-- [License](#license)
+- [PyDESeq2](#pydeseq2)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Installation](#installation)
+    - [1 - Download the repository](#1---download-the-repository)
+    - [2 - Create a conda environment](#2---create-a-conda-environment)
+    - [Requirements](#requirements)
+  - [Getting started](#getting-started)
+    - [TCGA Data](#tcga-data)
+  - [Contributing](#contributing)
+  - [Citing this work](#citing-this-work)
+  - [References](#references)
+  - [License](#license)
 
 ## Overview
 
@@ -53,7 +59,7 @@ Please don't hesitate to open an issue in case you encounter any issue due to po
 
 ## Getting started
 
-The [`notebooks` directory](./notebooks/README.md) contains minimal examples on how to use PyDESeq2, in the form of jupyter notebooks.
+The [`notebooks` directory](https://github.com/owkin/PyDESeq2/blob/main/notebooks/README.md) contains minimal examples on how to use PyDESeq2, in the form of jupyter notebooks.
 
 You can also try them from your browser (on synthetic data only):  [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/owkin/PyDESeq2/HEAD?labpath=notebooks%2Findex.ipynb) 
 
@@ -61,7 +67,7 @@ You can also try them from your browser (on synthetic data only):  [![Binder](ht
 
 The quick start notebooks either use synthetic data (provided in this repo) or data from [The Cancer Genome Atlas](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga). 
 
-For more information on how to obtain and organize TCGA data, see [datasets](./datasets/README.md).
+For more information on how to obtain and organize TCGA data, see [datasets](https://github.com/owkin/PyDESeq2/blob/main/datasets/README.md).
 
 ## Contributing
 
@@ -100,5 +106,5 @@ PyDESeq2 is a living project and any contributions are welcome! Feel free to ope
 
 ## License
 
-PyDESeq2 is released under an [MIT license](./LICENSE).
+PyDESeq2 is released under an [MIT license](https://github.com/owkin/PyDESeq2/blob/main/LICENSE).
 
