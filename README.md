@@ -38,7 +38,7 @@ PyPI and conda versions will soon be released.
 
 ### 2 - Create a conda environment
 
-Run `conda create env -f environment.yml` to create the `pydeseq2` environment and then activate it:
+Run `conda env create -f environment.yml` to create the `pydeseq2` environment and then activate it:
 `conda activate pydeseq2`.
 
 ### Requirements
