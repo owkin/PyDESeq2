@@ -19,9 +19,9 @@ class DeseqStats:
     """PyDESeq2 statistical tests for differential expression.
 
     Implements p-value estimation for differential gene expression according
-    to the DESeq2 pipeline [1].
+    to the DESeq2 pipeline [1]_.
 
-    Also supports apeGLM log-fold change shrinkage [2].
+    Also supports apeGLM log-fold change shrinkage [2]_.
 
     Parameters
     ----------
@@ -301,7 +301,7 @@ class DeseqStats:
     def _independent_filtering(self):
         """Compute adjusted p-values using independent filtering.
 
-        Corrects p-value trend (see [1])
+        Corrects p-value trend (see [1]_)
         """
 
         # Check that p-values are available. If not, compute them.

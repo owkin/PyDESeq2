@@ -31,7 +31,7 @@ warnings.simplefilter("ignore", DomainWarning)
 class DeseqDataSet:
     r"""A class to implement dispersion and log fold-change (LFC) estimation.
 
-    Follows the DESeq2 pipeline [1].
+    Follows the DESeq2 pipeline [1]_.
 
     Parameters
     ----------
@@ -95,7 +95,7 @@ class DeseqDataSet:
         Initial estimates of gene counts dispersions.
 
     trend_coeffs : pandas.Series
-        Coefficients of the trend curve: maths:: f(mu) = \alpha_1/ \mu + a_0.
+        Coefficients of the trend curve: math:: f(mu) = \alpha_1/ \mu + a_0.
 
     fitted_dispersions : pandas.Series
         Genewise dispersions regressed on the trend curve.
@@ -188,7 +188,7 @@ class DeseqDataSet:
         # Fit an independent negative binomial model per gene
         self.fit_genewise_dispersions()
         # Fit a parameterized trend curve for dispersions, of the form
-        # maths:: f(mu) = \alpha_1/\mu + a_0
+        # math:: f(mu) = \alpha_1/\mu + a_0
         self.fit_dispersion_trend()
         # Compute prior dispersion variance
         self.fit_dispersion_prior()
@@ -293,7 +293,7 @@ class DeseqDataSet:
     def fit_dispersion_trend(self):
         r"""Fit the dispersion trend coefficients.
 
-        .. maths:: f(mu) = \alpha_1/\mu + a_0.
+        .. math:: f(mu) = \alpha_1/\mu + a_0.
         """
 
         # Check that genewise dispersions are available. If not, compute them.
