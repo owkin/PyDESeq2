@@ -7,6 +7,8 @@ SPHINXOPTS    ?= -W --keep-going -n
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
+LINKCHECKDIR  = build/linkcheck
+
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -21,3 +23,4 @@ help:
 
 livehtml:
 	sphinx-autobuild -b html $(SOURCEDIR) $(BUILDDIR)/html
+
