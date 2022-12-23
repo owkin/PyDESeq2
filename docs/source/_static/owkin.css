@@ -1,0 +1,184 @@
+:root {
+    --color-blue: #3c73c4;
+    --color-dark-grey: #262c3c;
+
+    --font-title: "futuralt", Trebuchet MS, arial, sans-serif;
+
+    --font-size-xxl: 62px;
+    --font-size-xl: 4rem;
+    --font-size-large: 2.4rem;
+    --font-size-normal: 17px;
+    --font-size-small: 14px;
+}
+
+html {
+    font-size: 62.5%;
+}
+
+body {
+    font-family: "averta", "Helvetica Neue", helvetica, arial, sans-serif;
+    color: black;
+    font-size: var(--font-size-normal);
+}
+
+a {
+    color: var(--color-blue);
+}
+
+a:hover {
+    color: black;
+}
+
+h1, h2, h3,
+.rst-content .toctree-wrapper > p.caption {
+    font-family: var(--font-title);
+    font-weight: bolder;
+    color: var(--color-dark-grey);
+}
+
+h1 {
+    font-size: var(--font-size-xxl);
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+h2,
+.rst-content .toctree-wrapper > p.caption {
+    font-size: var(--font-size-xl);
+    line-height: 1.4;
+    margin: 6rem auto 3rem;
+}
+
+h3 {
+    font-size: var(--font-size-large);
+    line-height: 1.4;
+    margin: 4.5rem auto 2.5rem;
+}
+
+p, ul, ol {
+    font-size: var(--font-size-normal);
+    line-height: 1.4;
+    margin: 0 0 1.5em 0;
+}
+
+.wy-nav-content {
+    max-width: 900px;
+}
+
+@media screen and (min-width: 1100px) {
+    .wy-nav-content {
+        margin-left: 75px;
+        background-color: white;
+    }
+
+    .rst-content div[class^=highlight] {
+        max-width: calc(100vw - 300px - 2 * 75px - 3.236em);
+        min-width: 100%;
+        width: fit-content;
+        overflow-x: hidden;
+
+    }
+}
+
+.wy-side-nav-search,
+.wy-nav-content-wrap,
+.wy-body-for-nav,
+.wy-nav-side {
+    color: black;
+    background-color: white !important;
+}
+
+.wy-side-nav-search {
+    padding: 2.8rem 0 0 0;
+
+}
+
+
+.wy-breadcrumbs {
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: var(--font-size-small);
+}
+
+a,
+a:visited {
+    color: var(--color-blue);
+}
+
+a:hover,
+a:visited:hover {
+    color: black;
+}
+
+.btn-download {
+    display: flex;
+    max-width: 260px;
+    align-items: center;
+    text-transform: uppercase;
+    padding-bottom: 0.625rem;
+    border-bottom: 1px solid #f3f4f7;
+}
+
+.btn-download:hover {
+    border-bottom: 1px solid;
+}
+
+.btn-download-image {
+    height: 40px !important;
+    margin-right: 8px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 30px;
+    border: 1px solid;
+    text-transform: uppercase;
+    font-size: var(--font-size-small);
+    text-decoration: none;
+    margin: 0 10px 12px 0;
+    line-height: 2;
+    text-align: center;
+    color: var(--color-blue);
+}
+
+.btn:active {
+    padding: 8px 20px;
+}
+
+.btn-neutral,
+.btn-neutral:visited {
+    color: var(--color-blue) !important;
+    background-color: transparent !important;
+}
+
+.btn-neutral:hover,
+.btn-neutral:visited:hover {
+    color: black !important;
+    background-color: transparent !important;
+}
+
+.rst-content .admonition-title,
+.wy-alert-title {
+    font-size: var(--font-size-small);
+}
+
+html.writer-html4 .rst-content dl:not(.docutils) > dt,
+html.writer-html5 .rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple) > dt {
+    font-size: var(--font-size-small);
+}
+
+html.writer-html5 .rst-content table.docutils td > p,
+html.writer-html5 .rst-content table.docutils th > p {
+    font-size: var(--font-size-small);
+}
+
+.wy-nav-top {
+    background-color: var(--color-dark-grey);
+}
+
+.wy-nav-top a,
+.wy-nav-top a:visited,
+.wy-nav-top a:hover {
+    color: white;
+}

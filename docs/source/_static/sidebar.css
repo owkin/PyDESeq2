@@ -1,0 +1,91 @@
+.wy-side-nav-search > a {
+    font-family: var(--font-title);
+    font-weight: bolder;
+    color: var(--color-dark-grey);
+    display: flex;
+    flex-direction: column-reverse;
+    font-size: 2rem;
+    text-transform: uppercase;
+    align-items: center;
+    padding: 0;
+    margin-bottom: 0.5em;
+}
+
+.wy-side-nav-search .wy-dropdown>a img.logo,
+.wy-side-nav-search>a img.logo {
+    width: 200px;
+    margin: 0 !important;
+}
+
+.wy-side-nav-search > a:before {
+    display: none;
+}
+
+.wy-side-nav-search>div.version {
+    font-family: var(--font-title);
+    color: black;
+    font-size: 1.4rem;
+    font-weight: bolder;
+}
+
+.wy-side-nav-search input[type=text] {
+    padding: 8px 20px;
+    margin: 2.8rem 1rem 0 1rem;
+    border-radius: 30px;
+    border: 1px solid;
+    font-size: 17px;
+    text-decoration: none;
+    line-height: 2;
+    color: var(--color-blue);
+    width: calc(100% - 2rem);
+}
+
+.wy-menu-vertical header,
+.wy-menu-vertical p.caption {
+    font-size: 1.4rem;
+    margin-top: 2.8rem;
+    text-transform: uppercase;
+    color: black;
+    opacity: 0.4;
+}
+
+.wy-menu-vertical a,
+.wy-menu-vertical li.current a {
+    color: black;
+    border-right: none;
+}
+.wy-menu-vertical a:hover,
+.wy-menu-vertical li.current a:hover {
+    background-color: transparent;
+}
+.wy-menu-vertical li.current,
+.wy-menu-vertical li.toctree-l1.current > a,
+.wy-menu-vertical li.toctree-l2.current > a,
+.wy-menu-vertical li.toctree-l2.current li.toctree-l3 > a {
+    color: var(--color-blue);
+    background-color: transparent;
+    border-bottom: none;
+    border-top: none;
+}
+
+.rst-versions {
+    background: var(--color-dark-grey);
+    color: white;
+    font-family: inherit;
+}
+
+.rst-versions .rst-current-version {
+    background-color: var(--color-dark-grey);
+    color: white;
+    font-size: var(--font-size-small);
+}
+
+.rst-versions .rst-other-versions {
+    background-color: var(--color-dark-grey);
+    color: white;
+    font-size: var(--font-size-small);
+}
+
+.rst-versions .rst-other-versions dd a {
+    color: white;
+}
