@@ -19,8 +19,9 @@ but we plan to implement more in the near future. In case there is a feature you
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
-   quickstart
+ 
+   pydeseq2
+   notebook
    pydeseq2
    dataset
 
