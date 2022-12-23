@@ -5,8 +5,6 @@
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Installation](#installation)
-    - [1 - Download the repository](#1---download-the-repository)
-    - [2 - Create a conda environment](#2---create-a-conda-environment)
     - [Requirements](#requirements)
   - [Getting started](#getting-started)
     - [TCGA Data](#tcga-data)
@@ -28,18 +26,19 @@ but we plan to implement more in the near future. In case there is a feature you
 
 ## Installation
 
-For now, the only way to use PyDESeq2 is to install it from source.
+`PyDESeq2` can be installed from PyPI:
 
-PyPI and conda versions will soon be released.
+`pip install pydeseq2`
 
-### 1 - Download the repository
+We recommend installing within a conda environment:
 
-`git clone https://github.com/owkin/PyDESeq2.git`
+```
+conda env create -n pydeseq2
+conda activate pydeseq2
+pip install pydeseq2
+```
 
-### 2 - Create a conda environment
-
-Run `conda env create -f environment.yml` to create the `pydeseq2` environment and then activate it:
-`conda activate pydeseq2`.
+If you're interested in contributing or what access to the development version, please see the [contributing](#contributing) section.
 
 ### Requirements
 
@@ -61,7 +60,9 @@ Please don't hesitate to open an issue in case you encounter any issue due to po
 
 The [`notebooks` directory](https://github.com/owkin/PyDESeq2/blob/main/notebooks/README.md) contains minimal examples on how to use PyDESeq2, in the form of jupyter notebooks.
 
-You can also try them from your browser (on synthetic data only):  [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/owkin/PyDESeq2/HEAD?labpath=notebooks%2Findex.ipynb) 
+You can also try them from your browser (on synthetic data only):  
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/owkin/PyDESeq2/HEAD?labpath=notebooks%2Findex.ipynb) 
 
 ### TCGA Data
 
@@ -70,6 +71,15 @@ The quick start notebooks either use synthetic data (provided in this repo) or d
 For more information on how to obtain and organize TCGA data, see [datasets](https://github.com/owkin/PyDESeq2/blob/main/datasets/README.md).
 
 ## Contributing
+
+### 1 - Download the repository
+
+`git clone https://github.com/owkin/PyDESeq2.git`
+
+### 2 - Create a conda environment
+
+Run `conda env create -n pydeseq2 python=3.8` (or higher python version) to create the `pydeseq2` environment and then activate it:
+`conda activate pydeseq2`.
 
 `cd` to the root of the repo and run `pip install -e ."[dev]"` to install in developer mode.
 
