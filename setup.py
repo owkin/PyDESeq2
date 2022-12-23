@@ -35,8 +35,6 @@ setup(
         "statsmodels",
     ],  # external packages as dependencies
     extras_require={
-        "dev": ["pytest>=6.2.4", 
-                "pre-commit>=2.13.0", 
-                "numpydoc"],
+        "dev": ["pytest>=6.2.4", "pre-commit>=2.13.0", "numpydoc"],
     },
 )
