@@ -38,7 +38,7 @@ conda activate pydeseq2
 pip install pydeseq2
 ```
 
-If you're interested in contributing or what access to the development version, please see the [contributing](#contributing) section.
+If you're interested in contributing or want access to the development version, please see the [contributing](#contributing) section.
 
 ### Requirements
 
