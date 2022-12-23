@@ -116,6 +116,15 @@ def load_data(
 
 
 def test_valid_counts(counts_df):
+    """Test that the count matrix contains valid inputs.
+
+    More precisely, test that inputs are non-negative integers.
+
+    Parameters
+    ----------
+    counts_df : pandas.DataFrame
+        Raw counts. One column per gene, rows are indexed by sample barcodes.
+    """
     if counts_df.isna().any().any():
         raise ValueError("NaNs are not allowed in the count matrix.")
     if ~counts_df.apply(
