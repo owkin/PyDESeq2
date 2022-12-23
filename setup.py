@@ -1,16 +1,27 @@
+"""Packaging settings."""
+import os
+from codecs import open
+
 from setuptools import find_packages
 from setuptools import setup
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+here = os.path.abspath(os.path.dirname(__file__))
+
+
+with open(os.path.join(here, "README.md"), "r", "utf-8") as fp:
+    readme = fp.read()
+
+about: dict = dict()
+with open(os.path.join(here, "pydeseq2", "__version__.py"), "r", "utf-8") as fp:
+    exec(fp.read(), about)
 
 setup(
     name="pydeseq2",
-    version="0.1",
+    version=about["__version__"],
     python_requires=">=3.8.0",
-    license="",
+    license="MIT",
     description="A python implementation of DESeq2.",
-    long_description=long_description,
+    long_description=readme,
     long_description_content_type="text/markdown",
     author="Boris Muzellec, Maria Telenczuk, Vincent Cabelli and Mathieu Andreux",
     author_email="boris.muzellec@owkin.com",
@@ -24,6 +35,8 @@ setup(
         "statsmodels",
     ],  # external packages as dependencies
     extras_require={
-        "dev": ["pytest>=6.2.4", "pre-commit>=2.13.0", "numpydoc"],
+        "dev": ["pytest>=6.2.4", 
+                "pre-commit>=2.13.0", 
+                "numpydoc"],
     },
 )
