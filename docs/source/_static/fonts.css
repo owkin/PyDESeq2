@@ -1,0 +1,35 @@
+@font-face {
+    font-family: "averta";
+    src: url("./Averta/AvertaDemo-Regular.otf") format("truetype");
+}
+
+@font-face {
+    font-family: "averta";
+    src: url("./Averta/AvertaDemo-Bold.otf") format("truetype");
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: "averta";
+    src: url("./Averta/AvertaDemo-ExtraBoldItalic.otf") format("truetype");
+    font-weight: bolder;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "futuralt";
+    src: url("./Futura/FuturaLT.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "futuralt";
+    src: url("./Futura/FuturaLT-Bold.ttf") format("truetype");
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: "futuralt";
+    src: url("./Futura/FuturaLT-Heavy.otf") format("truetype");
+    font-weight: bolder;
+    font-style: italic;
+}
