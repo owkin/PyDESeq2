@@ -7,8 +7,11 @@
   - [Installation](#installation)
     - [Requirements](#requirements)
   - [Getting started](#getting-started)
+    - [Documentation](#documentation)
     - [TCGA Data](#tcga-data)
   - [Contributing](#contributing)
+    - [1 - Download the repository](#1---download-the-repository)
+    - [2 - Create a conda environment](#2---create-a-conda-environment)
   - [Citing this work](#citing-this-work)
   - [References](#references)
   - [License](#license)
@@ -63,6 +66,10 @@ The [`notebooks` directory](https://github.com/owkin/PyDESeq2/blob/main/notebook
 You can also try them from your browser (on synthetic data only):  
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/owkin/PyDESeq2/HEAD?labpath=notebooks%2Findex.ipynb) 
+
+### Documentation
+
+The documentation is hosted [here on ReadTheDoc](https://pydeseq2.readthedocs.io/en/latest/). If you want to have the latest version of the documentation you can build it from sources. Please go to the dedicated [README.md](https://github.com/owkin/PyDESeq2/blob/main/docs/README.md) for information on how to do so.
 
 ### TCGA Data
 
