@@ -22,6 +22,7 @@ from pydeseq2.utils import fit_rough_dispersions
 from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import irls_solver
 from pydeseq2.utils import robust_method_of_moments_disp
+from pydeseq2.utils import test_valid_counts
 from pydeseq2.utils import trimmed_mean
 
 # Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
@@ -160,6 +161,10 @@ class DeseqDataSet:
         """Initialize the DeseqDataSet instance, computing the design matrix and
         the number of multiprocessing threads.
         """
+
+        # Test counts before going further
+        test_valid_counts(counts)
+
         self.counts = counts
         self.clinical = clinical
         self.design_factor = design_factor

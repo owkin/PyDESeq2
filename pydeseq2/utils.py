@@ -115,6 +115,19 @@ def load_data(
     return df
 
 
+def test_valid_counts(counts_df):
+    if counts_df.isna().any().any():
+        raise ValueError("NaNs are not allowed in the count matrix.")
+    if ~counts_df.apply(
+        lambda s: pd.to_numeric(s, errors="coerce").notnull().all()
+    ).all():
+        raise ValueError("The count matrix should only contain numbers.")
+    if (counts_df % 1 != 0).any().any():
+        raise ValueError("The count matrix should only contain integers.")
+    if (counts_df < 0).any().any():
+        raise ValueError("The count matrix should only contain non-negative values.")
+
+
 def build_design_matrix(
     clinical_df, design="high_grade", ref=None, expanded=False, intercept=True
 ):
