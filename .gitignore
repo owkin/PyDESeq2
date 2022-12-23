@@ -110,6 +110,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Mac OS-specific storage files
+.DS_Store
+
 # Spyder project settings
 .spyderproject
 .spyproject
