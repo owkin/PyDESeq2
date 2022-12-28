@@ -165,10 +165,13 @@ class DeseqDataSet:
 
         # Test counts before going further
         test_valid_counts(counts)
-
         self.counts = counts
+
+        # Import clinical data and convert design_column to string
         self.clinical = clinical
         self.design_factor = design_factor
+        self.clinical[self.design_factor] = self.clinical[self.design_factor].astype(str)
+
         # Build the design matrix (splits the dataset in two cohorts)
         self.design_matrix = build_design_matrix(
             self.clinical, design_factor, expanded=False, intercept=True
