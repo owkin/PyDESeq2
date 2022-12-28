@@ -104,6 +104,16 @@ and [isort](https://pycqa.github.io/isort/), and check [flake8](https://flake8.p
 
 PyDESeq2 is a living project and any contributions are welcome! Feel free to open new PRs or issues.
 
+## Development Roadmap
+
+Currently, PyDESeq2's features broadly correspond to the default settings of DESeq2 (v1.34.0)
+for single-factor analysis. Here are some of the features and improvements we plan to implement in the near future:
+
+- Integration to the [scverse](https://scverse.org/) ecosystem:
+  * Refactor to use the [AnnData](https://anndata.readthedocs.io/) data structure
+- Multi-factor analysis
+- Variance-stabilizing transformation
+
 ## Citing this work
 
 ```
