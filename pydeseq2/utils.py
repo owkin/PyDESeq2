@@ -174,6 +174,16 @@ def build_design_matrix(
         Indexed by sample barcodes.
     """
     design_matrix = pd.get_dummies(clinical_df[design])
+    if design_matrix.shape[-1] == 1:
+        raise ValueError(
+            f"The design factor takes only one value: "
+            f"{design_matrix.columns.values.tolist()}, but two are necessary."
+        )
+    elif design_matrix.shape[-1] > 2:
+        raise ValueError(
+            f"The design factor takes more than two values: "
+            f"{design_matrix.columns.values.tolist()}, but should have exactly two."
+        )
     # Sort columns alphabetically
     design_matrix = design_matrix.reindex(
         sorted(design_matrix.columns, reverse=True), axis=1
