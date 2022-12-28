@@ -69,7 +69,7 @@ You can also try them from your browser (on synthetic data only):
 
 ### Documentation
 
-The documentation is hosted [here on ReadTheDoc](https://pydeseq2.readthedocs.io/en/latest/). If you want to have the latest version of the documentation, you can build it from sources. Please go to the dedicated [README.md](https://github.com/owkin/PyDESeq2/blob/main/docs/README.md) for information on how to do so.
+The documentation is hosted [here on ReadTheDocs](https://pydeseq2.readthedocs.io/en/latest/). If you want to have the latest version of the documentation, you can build it from source. Please go to the dedicated [README.md](https://github.com/owkin/PyDESeq2/blob/main/docs/README.md) for information on how to do so.
 
 ### TCGA Data
 
