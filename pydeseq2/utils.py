@@ -173,7 +173,9 @@ def build_design_matrix(
         A DataFrame with experiment design information (to split cohorts).
         Indexed by sample barcodes.
     """
+
     design_matrix = pd.get_dummies(clinical_df[design])
+
     if design_matrix.shape[-1] == 1:
         raise ValueError(
             f"The design factor takes only one value: "
