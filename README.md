@@ -12,6 +12,7 @@
   - [Contributing](#contributing)
     - [1 - Download the repository](#1---download-the-repository)
     - [2 - Create a conda environment](#2---create-a-conda-environment)
+  - [Development roadmap](#development-roadmap)
   - [Citing this work](#citing-this-work)
   - [References](#references)
   - [License](#license)
