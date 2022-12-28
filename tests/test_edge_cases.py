@@ -51,6 +51,7 @@ def test_zero_genes():
     assert res_df.loc[zero_genes].padj.isna().all()
 
 
+# Tests on the count matrix
 def test_nan_counts():
     """Test that a ValueError is thrown when the count matrix contains NaNs."""
     counts_df = pd.DataFrame({"gene1": [0, np.nan], "gene2": [4, 12]})
@@ -86,6 +87,35 @@ def test_non_negative_counts():
     negative values."""
     counts_df = pd.DataFrame({"gene1": [0, -1], "gene2": [4, 12]})
     clinical_df = pd.DataFrame({"condition": [0, 1]})
+
+    with pytest.raises(ValueError):
+        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+
+
+# Tests on the clinical data (design factors)
+def test_nan_factors():
+    """Test that a ValueError is thrown when the design factor contains NaNs."""
+    counts_df = pd.DataFrame({"gene1": [0, 1], "gene2": [4, 12]})
+    clinical_df = pd.DataFrame({"condition": [0, np.NaN]})
+
+    with pytest.raises(ValueError):
+        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+
+
+def test_one_factors():
+    """Test that a ValueError is thrown when the design factor takes only one value ."""
+    counts_df = pd.DataFrame({"gene1": [0, 1], "gene2": [4, 12]})
+    clinical_df = pd.DataFrame({"condition": [0, 0]})
+
+    with pytest.raises(ValueError):
+        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+
+
+def test_too_many_factors():
+    """Test that a ValueError is thrown when the design factor takes
+    more than two values."""
+    counts_df = pd.DataFrame({"gene1": [0, 1, 5], "gene2": [4, 12, 8]})
+    clinical_df = pd.DataFrame({"condition": [0, 1, 2]})
 
     with pytest.raises(ValueError):
         DeseqDataSet(counts_df, clinical_df, design_factor="condition")
