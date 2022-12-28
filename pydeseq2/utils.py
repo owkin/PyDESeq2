@@ -179,7 +179,14 @@ def build_design_matrix(
         sorted(design_matrix.columns, reverse=True), axis=1
     )
     if ref is not None:  # Put reference level last
-        ref_level = design_matrix.pop(ref)
+        try:
+            ref_level = design_matrix.pop(ref)
+        except KeyError as e:
+            print(
+                "The reference level must correspond to"
+                " one of the design factor values."
+            )
+            raise e
         design_matrix.insert(1, ref, ref_level)
     if not expanded:  # drop last factor
         design_matrix.drop(columns=design_matrix.columns[-1], axis=1, inplace=True)
