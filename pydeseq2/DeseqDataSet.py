@@ -44,17 +44,24 @@ class DeseqDataSet:
         Must be indexed by sample barcodes.
 
     design_factor : str
-        Name of the column of clinical to be used as a design variable. (default: 'high_grade').
+        Name of the column of clinical to be used as a design variable.
+        (default: 'high_grade').
 
     min_mu : float
         Threshold for mean estimates. (default: 0.5).
 
+    reference_level : str, 
+        The factor to use as a reference. Must be one of the values taken by the design.
+        If None, the reference will be chosen alphabetically (last in order).
+        (default: None).
+        
     min_disp : float
         Lower threshold for dispersion parameters. (default: 1e-8).
 
     max_disp : float
         Upper threshold for dispersion parameters.
-        NB: The threshold that is actually enforced is max(max_disp, len(counts)). (default: 10).
+        NB: The threshold that is actually enforced is max(max_disp, len(counts)).
+        (default: 10).
 
     refit_cooks : bool
         Whether to refit cooks outliers. (default: True).
@@ -149,6 +156,7 @@ class DeseqDataSet:
         counts,
         clinical,
         design_factor="high_grade",
+        reference_level=None,
         min_mu=0.5,
         min_disp=1e-8,
         max_disp=10,
@@ -174,7 +182,11 @@ class DeseqDataSet:
 
         # Build the design matrix (splits the dataset in two cohorts)
         self.design_matrix = build_design_matrix(
-            self.clinical, design_factor, expanded=False, intercept=True
+            self.clinical,
+            design_factor,
+            ref=reference_level,
+            expanded=False,
+            intercept=True,
         )
         self.min_mu = min_mu
         self.min_disp = min_disp

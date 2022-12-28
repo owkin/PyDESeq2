@@ -178,9 +178,9 @@ def build_design_matrix(
     design_matrix = design_matrix.reindex(
         sorted(design_matrix.columns, reverse=True), axis=1
     )
-    if ref is not None:  # Put reference level first
+    if ref is not None:  # Put reference level last
         ref_level = design_matrix.pop(ref)
-        design_matrix.insert(0, ref, ref_level)
+        design_matrix.insert(1, ref, ref_level)
     if not expanded:  # drop last factor
         design_matrix.drop(columns=design_matrix.columns[-1], axis=1, inplace=True)
     if intercept:
