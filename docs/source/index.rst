@@ -12,8 +12,8 @@ It aims to facilitate DEA experiments for python users.
 
 As PyDESeq2 is a re-implementation of `DESeq2 <https://bioconductor.org/packages/release/bioc/html/DESeq2.html>`_ from scratch, you may experience some differences in terms of retrieved values or available features.
 
-Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor analysis,
-but we plan to implement more in the near future. In case there is a feature you would particularly like to be implemented, feel free to open an issue on GitHub.
+Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor analysis, with an optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage [2]_.
+We plan to implement more in the near future. In case there is a feature you would particularly like to be implemented, feel free to open an issue on GitHub.
 
 .. toctree::
    :maxdepth: 2
@@ -65,7 +65,7 @@ Getting started
 
 The `notebooks directory <https://github.com/owkin/PyDESeq2/blob/main/notebooks/README.md>`_ contains minimal examples on how to use PyDESeq2, in the form of jupyter notebooks.
 
-You can also try them from your browser (on synthetic data only):|Binder|
+You can also try them from your browser (on synthetic data only): |Binder|
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg 
    :target: https://mybinder.org/v2/gh/owkin/PyDESeq2/HEAD?labpath=notebooks%2Findex.ipynb
@@ -96,6 +96,12 @@ References
         change and dispersion for RNA-seq data with DESeq2." Genome biology, 15(12), 1-21.
         <https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8>
 
+..  [2] Zhu, A., Ibrahim, J. G., & Love, M. I. (2019).
+        "Heavy-tailed prior distributions for sequence count data:
+        removing the noise and preserving large differences."
+        Bioinformatics, 35(12), 2084-2092.
+        <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>
+        
 License
 -------
 
