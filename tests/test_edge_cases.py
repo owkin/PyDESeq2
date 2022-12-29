@@ -119,3 +119,31 @@ def test_too_many_factors():
 
     with pytest.raises(ValueError):
         DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+
+
+def test_reference_level():
+    """Test that a ValueError is thrown when the reference level is not one of the
+    design factor values."""
+    counts_df = pd.DataFrame({"gene1": [0, 1], "gene2": [4, 12]})
+    clinical_df = pd.DataFrame({"condition": [0, 1]})
+
+    with pytest.raises(ValueError):
+        DeseqDataSet(
+            counts_df, clinical_df, design_factor="condition", reference_level="control"
+        )
+
+
+def test_indexes():
+    """Test that a ValueError is thrown when the count matrix and the clinical data
+    don't have the same index."""
+    counts_df = pd.DataFrame(
+        {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
+    )
+    clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample01", "sample02"])
+
+    with pytest.raises(ValueError):
+        DeseqDataSet(
+            counts_df,
+            clinical_df,
+            design_factor="condition",
+        )
