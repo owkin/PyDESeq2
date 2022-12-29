@@ -47,13 +47,13 @@ class DeseqDataSet:
         Name of the column of clinical to be used as a design variable.
         (default: 'high_grade').
 
-    min_mu : float
-        Threshold for mean estimates. (default: 0.5).
-
     reference_level : str
         The factor to use as a reference. Must be one of the values taken by the design.
         If None, the reference will be chosen alphabetically (last in order).
         (default: None).
+
+    min_mu : float
+        Threshold for mean estimates. (default: 0.5).
 
     min_disp : float
         Lower threshold for dispersion parameters. (default: 1e-8).
