@@ -23,6 +23,7 @@ jobs:
           pip install flake8
           pip install pytest
           pip install -e ."[dev]"
+          pip install -r docs/requirements.txt
       - name: Run black
         run: black --line-length=89 --check .
       - name: Run flake8
@@ -32,3 +33,7 @@ jobs:
       - name: Test with pytest
         run: |
           pytest
+      - name: Compile docs
+        run: |
+          cd docs
+          make clean html 
