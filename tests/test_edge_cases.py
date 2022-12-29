@@ -127,7 +127,7 @@ def test_reference_level():
     counts_df = pd.DataFrame({"gene1": [0, 1], "gene2": [4, 12]})
     clinical_df = pd.DataFrame({"condition": [0, 1]})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         DeseqDataSet(
             counts_df, clinical_df, design_factor="condition", reference_level="control"
         )
