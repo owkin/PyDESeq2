@@ -29,27 +29,27 @@ class DeseqStats:
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
     alpha : float
-        P-value and adjusted p-value significance threshold (usually 0.05). (default: 0.05)
+        P-value and adjusted p-value significance threshold (usually 0.05). (default: 0.05).
 
     cooks_filter : bool
-        Whether to filter p-values based on cooks outliers. (default: True)
+        Whether to filter p-values based on cooks outliers. (default: True).
 
     independent_filter : bool
-        Whether to perform independent filtering to correct p-value trends. (default: True)
+        Whether to perform independent filtering to correct p-value trends. (default: True).
 
     n_cpus : int
         Number of cpus to use for multiprocessing.
-        If None, all available CPUs will be used. (default: None)
+        If None, all available CPUs will be used. (default: None).
 
     prior_disp_var : ndarray
-        Prior variance for LFCs, used for ridge regularization. (default: None)
+        Prior variance for LFCs, used for ridge regularization. (default: None).
 
     batch_size : int
-        Number of tasks to allocate to each joblib parallel worker. (default: 128)
+        Number of tasks to allocate to each joblib parallel worker. (default: 128).
 
     joblib_verbosity : int
         The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported. (default: 0)
+        are reported. (default: 0).
 
     Attributes
     ----------
@@ -416,10 +416,10 @@ class DeseqStats:
         Parameters
         ----------
         min_var : float
-            Lower bound for prior variance. (default: 1e-6)
+            Lower bound for prior variance. (default: 1e-6).
 
         max_var : float
-            Upper bound for prior variance. (default: 400)
+            Upper bound for prior variance. (default: 400).
 
         Returns
         -------

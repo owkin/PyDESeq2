@@ -44,39 +44,39 @@ class DeseqDataSet:
         Must be indexed by sample barcodes.
 
     design_factor : str
-        Name of the column of clinical to be used as a design variable. (default: 'high_grade')
+        Name of the column of clinical to be used as a design variable. (default: 'high_grade').
 
     min_mu : float
-        Threshold for mean estimates. (default: 0.5)
+        Threshold for mean estimates. (default: 0.5).
 
     min_disp : float
-        Lower threshold for dispersion parameters. (default: 1e-8)
+        Lower threshold for dispersion parameters. (default: 1e-8).
 
     max_disp : float
         Upper threshold for dispersion parameters.
-        NB: The threshold that is actually enforced is max(max_disp, len(counts)). (default: 10)
+        NB: The threshold that is actually enforced is max(max_disp, len(counts)). (default: 10).
 
     refit_cooks : bool
-        Whether to refit cooks outliers. (default: True)
+        Whether to refit cooks outliers. (default: True).
 
     min_replicates : int
         Minimum number of replicates a condition should have
-        to allow refitting its samples. (default: 7)
+        to allow refitting its samples. (default: 7).
 
     beta_tol : float
         Stopping criterion for IRWLS:
         math:: abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol.
-        (default: 1e-8)
+        (default: 1e-8).
 
     n_cpus : int
-        Number of cpus to use. If None, all available cpus will be used. (default: None)
+        Number of cpus to use. If None, all available cpus will be used. (default: None).
 
     batch_size : int
-        Number of tasks to allocate to each joblib parallel worker. (default: 128)
+        Number of tasks to allocate to each joblib parallel worker. (default: 128).
 
     joblib_verbosity : int
         The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported. (default: 0)
+        are reported. (default: 0).
 
     Attributes
     ----------
@@ -97,7 +97,7 @@ class DeseqDataSet:
         Initial estimates of gene counts dispersions.
 
     trend_coeffs : pandas.Series
-        Coefficients of the trend curve: math:: f(\mu) = \alpha_1/ \mu + a_0.
+        Coefficients of the trend curve: :math:`f(\mu) = \alpha_1/ \mu + a_0`.
 
     fitted_dispersions : pandas.Series
         Genewise dispersions regressed on the trend curve.
