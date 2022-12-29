@@ -18,12 +18,14 @@ def vec_nb_nll(y, mu, alpha):
         Mean of the distribution.
 
     alpha : float
-        Dispersion of the distribution, s.t. the variance is mu + alpha * mu^2.
+        Dispersion of the distribution, s.t. the variance is
+        :math:`\\mu + \\alpha * \\mu^2`.
 
     Returns
     -------
     float
-        Negative log likelihood of the observations y following NB(mu, alpha).
+        Negative log likelihood of the observations y following
+        :math:`NB(\\mu, \\alpha)`.
     """
 
     n = len(y)
@@ -86,13 +88,13 @@ def grid_fit_alpha(
         Prior dispersion variance.
 
     cr_reg : bool
-        Whether to use Cox-Reid regularization. (default: True)
+        Whether to use Cox-Reid regularization. (default: True).
 
     prior_reg : bool
-        Whether to use prior log-residual regularization. (default: False)
+        Whether to use prior log-residual regularization. (default: False).
 
     grid_length : int
-        Number of grid points. (default: 100)
+        Number of grid points. (default: 100).
 
     Returns
     -------
@@ -163,13 +165,13 @@ def grid_fit_beta(
         Lower threshold for dispersion parameters.
 
     grid_length : int
-        Number of grid points. (default: 100)
+        Number of grid points. (default: 100).
 
     min_beta : int
-        Lower-bound on LFC. (default: 30)
+        Lower-bound on LFC. (default: 30).
 
     max_beta : int
-        Upper-bound on LFC. (default: 30)
+        Upper-bound on LFC. (default: 30).
 
     Returns
     -------
@@ -250,13 +252,13 @@ def grid_fit_shrink_beta(
         Scaling factor for the optimization.
 
     grid_length : int
-        Number of grid points. (default: 100)
+        Number of grid points. (default: 100).
 
     min_beta : int
-        Lower-bound on LFC. (default: 30)
+        Lower-bound on LFC. (default: 30).
 
     max_beta : int
-        Upper-bound on LFC. (default: 30)
+        Upper-bound on LFC. (default: 30).
 
     Returns
     -------
