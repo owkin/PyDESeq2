@@ -177,6 +177,10 @@ class DeseqDataSet:
 
         # Import clinical data and convert design_column to string
         self.clinical = clinical
+        if not self.counts.index.identical(self.clinical.index):
+            raise ValueError(
+                "The count matrix and clinical data should have the same index."
+            )
         self.design_factor = design_factor
         if self.clinical[self.design_factor].isna().any():
             raise ValueError("NaNs are not allowed in the design factor.")
