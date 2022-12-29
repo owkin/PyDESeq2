@@ -43,39 +43,40 @@ class DeseqDataSet:
         DataFrame containing clinical information.
         Must be indexed by sample barcodes.
 
-    design_factor : str, default='high_grade'
-        Name of the column of clinical to be used as a design variable.
+    design_factor : str
+        Name of the column of clinical to be used as a design variable. (default: 'high_grade')
 
-    min_mu : float, default=0.5
-        Threshold for mean estimates.
+    min_mu : float
+        Threshold for mean estimates. (default: 0.5)
 
-    min_disp : float, default=1e-8
-        Lower threshold for dispersion parameters.
+    min_disp : float
+        Lower threshold for dispersion parameters. (default: 1e-8)
 
-    max_disp : float, default=10
+    max_disp : float
         Upper threshold for dispersion parameters.
-        NB: The threshold that is actually enforced is max(max_disp, len(counts)).
+        NB: The threshold that is actually enforced is max(max_disp, len(counts)). (default: 10)
 
-    refit_cooks : bool, default=True
-        Whether to refit cooks outliers.
+    refit_cooks : bool
+        Whether to refit cooks outliers. (default: True)
 
-    min_replicates : int, default=7
+    min_replicates : int
         Minimum number of replicates a condition should have
-        to allow refitting its samples.
+        to allow refitting its samples. (default: 7)
 
-    beta_tol : float, default=1e-8
+    beta_tol : float
         Stopping criterion for IRWLS:
-        abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol.
+        math:: abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol.
+        (default: 1e-8)
 
-    n_cpus : int, default=None
-        Number of cpus to use. If None, all available cpus will be used.
+    n_cpus : int
+        Number of cpus to use. If None, all available cpus will be used. (default: None)
 
-    batch_size : int, default=128
-        Number of tasks to allocate to each joblib parallel worker.
+    batch_size : int
+        Number of tasks to allocate to each joblib parallel worker. (default: 128)
 
-    joblib_verbosity : int, default=0
+    joblib_verbosity : int
         The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported.
+        are reported. (default: 0)
 
     Attributes
     ----------

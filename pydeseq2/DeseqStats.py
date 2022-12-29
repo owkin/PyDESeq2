@@ -28,28 +28,28 @@ class DeseqStats:
     dds : DeseqDataSet
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
-    alpha : float, default=0.05
-        P-value and adjusted p-value significance threshold (usually 0.05).
+    alpha : float
+        P-value and adjusted p-value significance threshold (usually 0.05). (default: 0.05)
 
-    cooks_filter : bool, default=True
-        Whether to filter p-values based on cooks outliers.
+    cooks_filter : bool
+        Whether to filter p-values based on cooks outliers. (default: True)
 
-    independent_filter : bool, default=True
-        Whether to perform independent filtering to correct p-value trends.
+    independent_filter : bool
+        Whether to perform independent filtering to correct p-value trends. (default: True)
 
-    n_cpus : int, default=None
+    n_cpus : int
         Number of cpus to use for multiprocessing.
-        If None, all available CPUs will be used.
+        If None, all available CPUs will be used. (default: None)
 
-    prior_disp_var : ndarray, default=None
-        Prior variance for LFCs, used for ridge regularization.
+    prior_disp_var : ndarray
+        Prior variance for LFCs, used for ridge regularization. (default: None)
 
-    batch_size : int, default=128
-        Number of tasks to allocate to each joblib parallel worker.
+    batch_size : int
+        Number of tasks to allocate to each joblib parallel worker. (default: 128)
 
-    joblib_verbosity : int, default=0
+    joblib_verbosity : int
         The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported.
+        are reported. (default: 0)
 
     Attributes
     ----------
@@ -162,7 +162,7 @@ class DeseqStats:
         return self.results_df
 
     def lfc_shrink(self):
-        """LFC shrinkage with an apeGLM prior [2].
+        """LFC shrinkage with an apeGLM prior [2]_.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
 
@@ -415,11 +415,11 @@ class DeseqStats:
 
         Parameters
         ----------
-        min_var : float, default=1e-6
-            Lower bound for prior variance.
+        min_var : float
+            Lower bound for prior variance. (default: 1e-6)
 
-        max_var : float, default=400
-            Upper bound for prior variance.
+        max_var : float
+            Upper bound for prior variance. (default: 400)
 
         Returns
         -------
