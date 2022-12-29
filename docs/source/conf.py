@@ -49,8 +49,8 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
-    "torch": ("https://pytorch.org/docs/stable/", None),
 }
+
 autosectionlabel_prefix_document = True
 
 # autodoc settings
