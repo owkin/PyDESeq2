@@ -33,17 +33,17 @@ def load_data(
     modality : str
         Data modality. "raw_counts" or "clinical".
 
-    cancer_type : str, default = "synthetic"
+    cancer_type : str
         The cancer type for which to return gene expression data.
         If "synthetic", will return the synthetic data that is used for CI unit tests.
-        Otherwise, must be a valid TCGA dataset.
+        Otherwise, must be a valid TCGA dataset. (default: "synthetic")
 
-    debug : bool, default=False
+    debug : bool
         If true, subsample 10 samples and 100 genes at random.
-        Only supported in "pooled" mode for now.
+        Only supported in "pooled" mode for now. (default: False)
 
-    debug_seed : int, default=42
-        Seed for the debug mode.
+    debug_seed : int
+        Seed for the debug mode. (default: 42)
 
     Returns
     -------
@@ -151,18 +151,20 @@ def build_design_matrix(
         DataFrame containing clinical information.
         Must be indexed by sample barcodes, and contain a "high_grade" column.
 
-    design : str, default='high_grade'
+    design : str
         Name of the column of clinical_df to be used as a design_matrix variable.
+        (default: "high_grade")
 
-    ref : str, default=None
+    ref : str
         The factor to use as a reference. Must be one of the values taken by the design.
         If None, the reference will be chosen alphabetically (last in order).
+        (default: None)
 
-    expanded : bool, default=False
-        If true, use one column per category. Else, use a single column.
+    expanded : bool
+        If true, use one column per category. Else, use a single column. (default: False)
 
-    intercept : bool, default=True
-        If true, add an intercept (a column containing only ones).
+    intercept : bool
+        If true, add an intercept (a column containing only ones). (default: True)
 
     Returns
     -------
@@ -223,12 +225,14 @@ def nb_nll(y, mu, alpha):
         Mean of the distribution.
 
     alpha : float
-        Dispersion of the distribution, s.t. the variance is mu + alpha * mu^2.
+        Dispersion of the distribution,
+        s.t. the variance is :math:`\\mu + \\alpha * \\mu^2`.
 
     Returns
     -------
     float
-        Negative log likelihood of the observations y following NB(mu, alpha).
+        Negative log likelihood of the observations y
+        following :math:`NB(\\mu, \\alpha)`.
     """
 
     n = len(y)
@@ -254,12 +258,13 @@ def dnb_nll(y, mu, alpha):
         Mean of the distribution.
 
     alpha : float
-        Dispersion of the distribution, s.t. the variance is mu + alpha * mu^2.
+        Dispersion of the distribution,
+        s.t. the variance is :math:`\\mu + \\alpha * \\mu^2`.
 
     Returns
     -------
     float
-        Derivative of negative log likelihood of NB w.r.t. alpha.
+        Derivative of negative log likelihood of NB w.r.t. :math:`\\alpha`.
     """
 
     alpha_neg1 = 1 / alpha
@@ -306,22 +311,24 @@ def irls_solver(
     disp : pandas.Series
         Gene-wise dispersion priors.
 
-    min_mu : float, default=0.5
-        Lower bound on estimated means, to ensure numerical stability.
+    min_mu : float
+        Lower bound on estimated means, to ensure numerical stability. (default: 0.5)
 
-    beta_tol : float, default=1e-8
-        Stopping criterion for IRWLS: abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol.
+    beta_tol : float
+        Stopping criterion for IRWLS:
+        :math:`abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol`. (default: 1e-8)
 
-    min_beta : int, default=-30
-        Lower-bound on LFC.
+    min_beta : int
+        Lower-bound on LFC. (default: -30)
 
-    max_beta : int, default=30
-        Upper-bound on LFC.
+    max_beta : int
+        Upper-bound on LFC. (default: -30)
 
-    optimizer : str, default='BFGS'
+    optimizer : str
         Optimizing method to use in case IRLS starts diverging.
         Accepted values: 'BFGS' or 'L-BFGS-B'.
-        NB: only 'L-BFGS-B' ensures that LFCS will lay in the [min_beta, max_beta] range.
+        NB: only 'L-BFGS-B' ensures that LFCS will
+        lay in the [min_beta, max_beta] range. (default: 'BFGS')
 
     Returns
     -------
@@ -329,10 +336,11 @@ def irls_solver(
         Fitted (basemean, lfc) coefficients of negative binomial GLM.
 
     mu: ndarray
-        Means estimated from size factors and beta: :math:`\mu = s_{ij} \exp(\beta^t X)`.
+        Means estimated from size factors and beta:
+        :math:`\\mu = s_{ij} \\exp(\\beta^t X)`.
 
     H: ndarray
-        Diagonal of the W^{1/2} X (X^t W X)^-1 X^t W^{1/2} covariance matrix.
+        Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}` covariance matrix.
     """
 
     assert optimizer in ["BFGS", "L-BFGS-B"]
@@ -467,14 +475,15 @@ def fit_alpha_mle(
     prior_disp_var : float
         Prior dispersion variance.
 
-    cr_reg : bool, default=True
-        Whether to use Cox-Reid regularization.
+    cr_reg : bool
+        Whether to use Cox-Reid regularization. (default: True)
 
-    prior_reg : bool, default=False
-        Whether to use prior log-residual regularization.
+    prior_reg : bool
+        Whether to use prior log-residual regularization. (default: False)
 
-    optimizer : str, default='BFGS'
+    optimizer : str
         Optimizing method to use. Accepted values: 'BFGS' or 'L-BFGS-B'.
+        (default: 'BFGS')
 
     Returns
     -------
@@ -482,7 +491,7 @@ def fit_alpha_mle(
         Dispersion estimate.
 
     bool
-        Whether L-BFGS-B converged. If not, dispersion is estimated uing grid search.
+        Whether L-BFGS-B converged. If not, dispersion is estimated using grid search.
     """
 
     assert optimizer in ["BFGS", "L-BFGS-B"]
@@ -544,8 +553,8 @@ def trimmed_mean(x, trim=0.1, **kwargs):
     x : ndarray
         Data whose mean to compute.
 
-    trim : float, default=0.1
-        Fraction of data to trim at each end.
+    trim : float
+        Fraction of data to trim at each end. (default: 0.1)
 
     **kwargs
         Keyword arguments, useful to pass axis.
@@ -628,8 +637,8 @@ def trimmed_variance(x, trim=0.125, axis=1):
     x : ndarray
         Data whose trimmed variance to compute.
 
-    trim : float, default=0.1
-        Fraction of data to trim at each end.
+    trim : float
+        Fraction of data to trim at each end. (default: 0.1)
 
     axis : int
         Dimension along which to compute variance.
@@ -662,8 +671,8 @@ def fit_lin_mu(y, size_factors, X, min_mu=0.5):
     X : ndarray
         Design matrix.
 
-    min_mu : float, default=0.5
-        Lower threshold for fitted means, for numerical stability.
+    min_mu : float
+        Lower threshold for fitted means, for numerical stability. (default: 0.5)
 
     Returns
     -------
@@ -701,8 +710,8 @@ def wald_test(X, disp, lfc, mu, D, idx=-1):
     D : ndarray
         Regularization factors.
 
-    idx : int, default=-1
-        Index of design factor (in design matrix).
+    idx : int
+        Index of design factor (in design matrix). (default: -1)
 
     Returns
     -------
@@ -839,8 +848,9 @@ def get_num_processes(n_cpus=None):
 
     Parameters
     ----------
-    n_cpus : int, default=None
+    n_cpus : int
         Desired number of cpus. If None, will return the number of available cpus.
+        (default: None)
 
     Returns
     -------
@@ -893,12 +903,12 @@ def nbinomGLM(
     prior_scale : float
         Prior variance for the LFC parameter.
 
-    optimizer : str, default='Newton-CG'
+    optimizer : str
         Optimizing method to use in case IRLS starts diverging.
-        Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'.
+        Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'. (default: 'Newton-CG')
 
-    shrink_index : int, default = 1
-        Index of the LFC coordinate to shrink.
+    shrink_index : int
+        Index of the LFC coordinate to shrink. (default: 1)
 
     Returns
     -------
@@ -1040,8 +1050,8 @@ def nbinomFn(
     prior_scale : float
         Prior variance for the intercept.
 
-    shrink_index : int, default = 1
-        Index of the LFC coordinate to shrink.
+    shrink_index : int
+        Index of the LFC coordinate to shrink. (default: 1)
 
     Returns
     -------
