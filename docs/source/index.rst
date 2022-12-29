@@ -39,7 +39,7 @@ We recommend installing within a conda environment:
    pip install pydeseq2
 
 
-If you're interested in contributing or want access to the development version, please see the :ref: contributing section.
+If you're interested in contributing or want access to the development version, please see the :ref:`contributing`.
 
 Requirements
 ------------
@@ -70,9 +70,10 @@ You can also try them from your browser (on synthetic data only): |Binder|
 .. |Binder| image:: https://mybinder.org/badge_logo.svg 
    :target: https://mybinder.org/v2/gh/owkin/PyDESeq2/HEAD?labpath=notebooks%2Findex.ipynb
 
+.. _contributing:
+
 Contributing
 ------------
-
 PyDESeq2 is a living project and any contributions are welcome! The project is hosted on `Github <https://github.com/owkin/PyDESeq2>`_ .
 Feel free to come and open new PRs or issues.
 
@@ -101,7 +102,7 @@ References
         removing the noise and preserving large differences."
         Bioinformatics, 35(12), 2084-2092.
         <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>
-        
+
 License
 -------
 
