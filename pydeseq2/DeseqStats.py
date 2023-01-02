@@ -406,45 +406,48 @@ class DeseqStats:
             self.run_wald_test()
 
         m, p = self.dds.design_matrix.shape
-        if p == 2:  # TODO : adapt to multifactor designs
-            # If for a gene there are 3 samples or more that have more counts than the
-            # maximum cooks sample, don't count this gene as an outlier.
-            # Do this only if there are 2 cohorts.
-            cooks_cutoff = f.ppf(0.99, p, m - p)
+        cooks_cutoff = f.ppf(0.99, p, m - p)
 
+        # If for a gene there are 3 samples or more that have more counts than the
+        # maximum cooks sample, don't count this gene as an outlier.
+        # Do this only if there are 2 cohorts.
+        if p == 2:
             # Check whether cohorts have enough samples to allow refitting
             # Only consider conditions with 3 or more samples (same as in R)
             n_or_more = (
-                self.dds.design_matrix[self.dds.design_matrix.columns[-1]].value_counts()
-                >= 3
+                self.dds.design_matrix.iloc[:, self.contrast_idx].value_counts() >= 3
             )
             use_for_max = pd.Series(
-                n_or_more[self.dds.design_matrix[self.dds.design_matrix.columns[-1]]]
+                n_or_more[self.dds.design_matrix.iloc[:, self.contrast_idx]]
             )
             use_for_max.index = self.dds.design_matrix.index
 
-            # Take into account whether we already replaced outliers
-            if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
-                cooks_outlier = (
-                    self.dds.replace_cooks.loc[:, use_for_max] > cooks_cutoff
-                ).any(axis=1)
+        else:
+            use_for_max = pd.Series(True, index=self.dds.design_matrix.index)
 
-            else:
-                cooks_outlier = (self.dds.cooks.loc[:, use_for_max] > cooks_cutoff).any(
-                    axis=1
-                )
+        # Take into account whether we already replaced outliers
+        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
+            cooks_outlier = (
+                self.dds.replace_cooks.loc[:, use_for_max] > cooks_cutoff
+            ).any(axis=1)
 
-            pos = self.dds.cooks[cooks_outlier].to_numpy().argmax(1)
-            cooks_outlier.update(
-                (
-                    self.dds.counts.loc[:, cooks_outlier]
-                    > self.dds.counts.loc[:, cooks_outlier].to_numpy()[
-                        pos, np.arange(len(pos))
-                    ]
-                ).sum(0)
-                < 3
+        else:
+            cooks_outlier = (self.dds.cooks.loc[:, use_for_max] > cooks_cutoff).any(
+                axis=1
             )
-            self.p_values[cooks_outlier] = np.nan
+
+        pos = self.dds.cooks[cooks_outlier].to_numpy().argmax(1)
+        cooks_outlier.update(
+            (
+                self.dds.counts.loc[:, cooks_outlier]
+                > self.dds.counts.loc[:, cooks_outlier].to_numpy()[
+                    pos, np.arange(len(pos))
+                ]
+            ).sum(0)
+            < 3
+        )
+
+        self.p_values[cooks_outlier] = np.nan
 
     def _fit_prior_var(self, min_var=1e-6, max_var=400):
         """Estimate the prior variance of the apeGLM model.
