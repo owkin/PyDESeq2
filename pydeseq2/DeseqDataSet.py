@@ -43,8 +43,8 @@ class DeseqDataSet:
         DataFrame containing clinical information.
         Must be indexed by sample barcodes.
 
-    design_factor : str
-        Name of the column of clinical to be used as a design variable.
+    design_factor : str or list[str]
+        Name of the columns of clinical to be used as design variables.
         (default: 'high_grade').
 
     reference_level : str
@@ -182,7 +182,7 @@ class DeseqDataSet:
                 "The count matrix and clinical data should have the same index."
             )
         self.design_factor = design_factor
-        if self.clinical[self.design_factor].isna().any():
+        if self.clinical[self.design_factor].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factor.")
         self.clinical[self.design_factor] = self.clinical[self.design_factor].astype(str)
 
