@@ -3,6 +3,7 @@ import time
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+from IPython.display import display
 from joblib import Parallel
 from joblib import delayed
 from joblib import parallel_backend
@@ -28,8 +29,15 @@ class DeseqStats:
     dds : DeseqDataSet
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
+    contrast : list[str] or None
+        A list of three strings, in the following format:
+        ['variable_of_interest', 'tested_level', 'reference_level'].
+        Names must correspond to the clinical data passed to the DeseqDataSet.
+        (default: None)
+
     alpha : float
-        P-value and adjusted p-value significance threshold (usually 0.05). (default: 0.05).
+        P-value and adjusted p-value significance threshold (usually 0.05).
+        (default: 0.05).
 
     cooks_filter : bool
         Whether to filter p-values based on cooks outliers. (default: True).
@@ -55,6 +63,9 @@ class DeseqStats:
     ----------
     base_mean : pandas.Series
         Genewise means of normalized counts.
+
+    contrast_idx : int
+        Index of the LFC column corresponding to the variable being tested.
 
     LFCs : pandas.DataFrame
         Estimated log-fold change between conditions and intercept, in natural log scale.
@@ -95,6 +106,7 @@ class DeseqStats:
     def __init__(
         self,
         dds,
+        contrast=None,
         alpha=0.05,
         cooks_filter=True,
         independent_filter=True,
@@ -108,6 +120,19 @@ class DeseqStats:
         ), "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
 
         self.dds = dds
+
+        # Build contrast if None
+        if contrast is not None:
+            # TODO : tests on the constrast
+            self.contrast = contrast
+        else:
+            factor = self.dds.design_factor[-1]
+            levels = np.unique(self.dds.clinical[factor]).astype(str)
+            if "_".join([factor, levels[0]]) == self.dds.design_matrix.columns[-1]:
+                self.contrast = [factor, levels[0], levels[1]]
+            else:
+                self.contrast = [factor, levels[1], levels[0]]
+
         self.alpha = alpha
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
@@ -121,14 +146,9 @@ class DeseqStats:
         self.joblib_verbosity = joblib_verbosity
 
     def summary(self):
-        """Run the statistical analysis and return the results in a DataFrame.
+        """Run the statistical analysis.
 
-        The results are also stored in the `results_df` attribute.
-
-        Returns
-        -------
-        pandas.DataFrame
-            Estimated log fold changes, p-values and adjusted p-values for each gene.
+        The results are stored in the `results_df` attribute.
         """
 
         if not hasattr(self, "p_values"):
@@ -151,15 +171,99 @@ class DeseqStats:
         # Store the results in a DataFrame, in log2 scale for LFCs.
         self.results_df = pd.DataFrame(index=self.dds.dispersions.index)
         self.results_df["baseMean"] = self.base_mean
-        self.results_df["log2FoldChange"] = self.LFCs[
-            self.dds.design_matrix.columns[-1]
+        self.results_df["log2FoldChange"] = self.LFCs.iloc[
+            :, self.contrast_idx
         ] / np.log(2)
         self.results_df["lfcSE"] = self.SE / np.log(2)
         self.results_df["stat"] = self.statistics
         self.results_df["pvalue"] = self.p_values
         self.results_df["padj"] = self.padj
 
-        return self.results_df
+        print(
+            f"Log2 fold change & Wald test p-value: "
+            f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
+        )
+        display(self.results_df)
+
+    def run_wald_test(self):
+        """Perform a Wald test.
+
+        Get gene-wise p-values for gene over/under-expression.`
+        """
+
+        n = len(self.LFCs)
+        p = self.dds.design_matrix.shape[1]
+
+        # Raise a warning if LFCs are shrunk.
+        if self.shrunk_LFCs:
+            print(
+                "Note: running Wald test on shrunk LFCs. "
+                "Some sequencing datasets show better performance with the testing "
+                "separated from the use of the LFC prior."
+            )
+
+        # Get the LFC column corresponding to the design variable.
+        if self.contrast is None:
+            self.contrast_idx = self.LFCs.columns.get_loc(
+                self.dds.design_matrix.columns[-1]
+            )
+        else:
+            # If the design matrix of dds is unexpanded, only one of the two levels
+            # will have a corresponding column
+            alternative_level = "_".join([self.contrast[0], self.contrast[1]])
+            try:
+                self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
+            except KeyError:
+                alternative_level = "_".join([self.contrast[0], self.contrast[2]])
+                self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
+                self.LFCs.iloc[:, self.contrast_idx] *= -1
+                pass
+
+        # Compute means according to the LFC model.
+        mu = (
+            np.exp(self.dds.design_matrix @ self.LFCs.T)
+            .multiply(self.dds.size_factors, 0)
+            .values
+        )
+
+        # Set regularization factors.
+        if self.prior_disp_var is not None:
+            D = np.diag(1 / self.prior_disp_var**2)
+        else:
+            D = np.diag(np.repeat(1e-6, p))
+
+        X = self.dds.design_matrix.values
+        disps = self.dds.dispersions.values
+        LFCs = self.LFCs.values
+
+        print("Running Wald tests...")
+        start = time.time()
+        with parallel_backend("loky", inner_max_num_threads=1):
+            res = Parallel(
+                n_jobs=self.n_processes,
+                verbose=self.joblib_verbosity,
+                batch_size=self.batch_size,
+            )(
+                delayed(wald_test)(X, disps[i], LFCs[i], mu[:, i], D, self.contrast_idx)
+                for i in range(n)
+            )
+        end = time.time()
+        print(f"... done in {end-start:.2f} seconds.\n")
+
+        pvals, stats, se = zip(*res)
+
+        self.p_values = pd.Series(pvals, index=self.LFCs.index)
+        self.statistics = pd.Series(stats, index=self.LFCs.index)
+        self.SE = pd.Series(se, index=self.LFCs.index)
+
+        # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
+        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
+
+            self.SE.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 0
+            self.statistics.loc[
+                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
+            ] = 0
+            self.p_values.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 1
 
     def lfc_shrink(self):
         """LFC shrinkage with an apeGLM prior [2]_.
@@ -232,72 +336,6 @@ class DeseqStats:
             self.results_df["lfcSE"] = self.SE / np.log(2)
             return self.results_df
 
-    def run_wald_test(self):
-        """Perform a Wald test.
-
-        Get gene-wise p-values for gene over/under-expression.`
-        """
-
-        n = len(self.LFCs)
-        p = self.dds.design_matrix.shape[1]
-
-        # Raise a warning if LFCs are shrunk.
-        if self.shrunk_LFCs:
-            print(
-                "Note: running Wald test on shrunk LFCs. "
-                "Some sequencing datasets show better performance with the testing "
-                "separated from the use of the LFC prior."
-            )
-
-        # Get the LFC column corresponding to the design variable.
-        idx = self.LFCs.columns.get_loc(self.dds.design_matrix.columns[-1])
-
-        # Compute means according to the LFC model.
-        mu = (
-            np.exp(self.dds.design_matrix @ self.LFCs.T)
-            .multiply(self.dds.size_factors, 0)
-            .values
-        )
-
-        # Set regularization factors.
-        if self.prior_disp_var is not None:
-            D = np.diag(1 / self.prior_disp_var**2)
-        else:
-            D = np.diag(np.repeat(1e-6, p))
-
-        X = self.dds.design_matrix.values
-        disps = self.dds.dispersions.values
-        LFCs = self.LFCs.values
-
-        print("Running Wald tests...")
-        start = time.time()
-        with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
-            )(
-                delayed(wald_test)(X, disps[i], LFCs[i], mu[:, i], D, idx)
-                for i in range(n)
-            )
-        end = time.time()
-        print(f"... done in {end-start:.2f} seconds.\n")
-
-        pvals, stats, se = zip(*res)
-
-        self.p_values = pd.Series(pvals, index=self.LFCs.index)
-        self.statistics = pd.Series(stats, index=self.LFCs.index)
-        self.SE = pd.Series(se, index=self.LFCs.index)
-
-        # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
-        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
-
-            self.SE.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 0
-            self.statistics.loc[
-                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
-            ] = 0
-            self.p_values.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 1
-
     def _independent_filtering(self):
         """Compute adjusted p-values using independent filtering.
 
@@ -368,7 +406,7 @@ class DeseqStats:
             self.run_wald_test()
 
         m, p = self.dds.design_matrix.shape
-        if p == 2:
+        if p == 2:  # TODO : adapt to multifactor designs
             # If for a gene there are 3 samples or more that have more counts than the
             # maximum cooks sample, don't count this gene as an outlier.
             # Do this only if there are 2 cohorts.
@@ -426,6 +464,8 @@ class DeseqStats:
         float
             Estimated prior variance.
         """
+
+        # TODO : adapt to multifactor
         keep = ~self.LFCs.iloc[:, 1].isna()
         S = self.LFCs[keep].iloc[:, 1] ** 2
         D = self.SE[keep] ** 2
