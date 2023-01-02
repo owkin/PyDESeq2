@@ -144,6 +144,7 @@ def build_design_matrix(
 
     Only single factor, 2-level designs are currently supported.
     Unless specified, the reference factor is chosen alphabetically.
+    NOTE: For now, each factor should have exactly two levels.
 
     Parameters
     ----------
@@ -151,10 +152,9 @@ def build_design_matrix(
         DataFrame containing clinical information.
         Must be indexed by sample barcodes, and contain a "high_grade" column.
 
-    design : str TODO : or list
-        Name of the column of clinical_df to be used as a design_matrix variable.
+    design : str or list
+        Name of the columns of clinical_df to be used as design_matrix variables.
         (default: "high_grade").
-        TODO : last is the "reference"
 
     ref : str
         The factor to use as a reference. Must be one of the values taken by the design.
@@ -175,39 +175,36 @@ def build_design_matrix(
         Indexed by sample barcodes.
     """
 
+    if isinstance(design, str):  # if there is a single factor, convert to singleton list
+        design = [design]
+
     design_matrix = pd.get_dummies(clinical_df[design])
 
-    # TODO : check that each factor takes only two values
-
-    if design_matrix.shape[-1] == 1:
-        raise ValueError(
-            f"The design factor takes only one value: "
-            f"{design_matrix.columns.values.tolist()}, but two are necessary."
-        )
-    elif design_matrix.shape[-1] > 2:
-        raise ValueError(
-            f"The design factor takes more than two values: "
-            f"{design_matrix.columns.values.tolist()}, but should have exactly two."
-        )
-    # Sort columns alphabetically
-    design_matrix = design_matrix.reindex(
-        sorted(design_matrix.columns, reverse=True), axis=1
-    )
-    if ref is not None:  # Put reference level last
+    for factor in design:
+        # Check that each factor has exactly 2 levels
+        if len(np.unique(clinical_df[factor])) != 2:
+            print(
+                f"Factors should take exactly two values, but {factor} "
+                f"takes values {np.unique(clinical_df[factor])}."
+            )
+    factor = design[-1]
+    if ref is None:
+        ref = "_".join([factor, np.sort(np.unique(clinical_df[factor]).astype(str))[0]])
+        ref_level = design_matrix.pop(ref)
+    else:  # Put reference level last
+        ref = "_".join([factor, ref])
         try:
-            ref_level = design_matrix.pop(ref)
+            ref_level = design_matrix.pop(f"{factor}_{ref}")
         except KeyError as e:
             print(
                 "The reference level must correspond to"
                 " one of the design factor values."
             )
             raise e
-        design_matrix.insert(1, ref, ref_level)
+    design_matrix.insert(design_matrix.shape[-1], ref, ref_level)
     if not expanded:  # drop duplicate factors
-        # TODO : remove commented line
-        # design_matrix.drop(columns=design_matrix.columns[-1], axis=1, inplace=True)
         design_matrix.drop(
-            columns=[col for col in clinical_df.columns[::-2]], axis=1, inplace=True
+            columns=[col for col in design_matrix.columns[::-2]], axis=1, inplace=True
         )  # Drops every other column, starting from the last
     if intercept:
         design_matrix.insert(0, "intercept", 1.0)
@@ -318,11 +315,11 @@ def irls_solver(
     min_beta=-30,
     max_beta=30,
     optimizer="L-BFGS-B",
+    maxiter=100,
 ):
     r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 
     See equations (1-2) in the DESeq2 paper.
-    Uses the L-BFGS-B, more stable than Fisher scoring.
 
     Parameters
     ----------
@@ -355,7 +352,11 @@ def irls_solver(
         Optimizing method to use in case IRLS starts diverging.
         Accepted values: 'BFGS' or 'L-BFGS-B'.
         NB: only 'L-BFGS-B' ensures that LFCS will
-        lay in the [min_beta, max_beta] range. (default: 'BFGS').
+        lay in the [min_beta, max_beta] range. (default: 'L-BFGS-B').
+
+    maxiter : int
+        Maximum number of IRLS iterations to perform before switching to L-BFGS-B.
+        (default: 100)
 
     Returns
     -------
@@ -398,13 +399,16 @@ def irls_solver(
     mu = np.maximum(size_factors * np.exp(X @ beta), min_mu)
 
     converged = True
+    i = 0
     while dev_ratio > beta_tol:
 
         W = mu / (1.0 + mu * disp)
         z = np.log(mu / size_factors) + (counts - mu) / mu
         H = (X.T * W) @ X + D
         beta_hat = solve(H, X.T @ (W * z), assume_a="pos")
-        if sum(np.abs(beta_hat) > max_beta) > 0:
+        i += 1
+
+        if sum(np.abs(beta_hat) > max_beta) > 0 or i >= maxiter:
             # If IRLS starts diverging, use L-BFGS-B
             def f(beta):
                 # closure to minimize
@@ -424,16 +428,14 @@ def irls_solver(
                 beta_init,
                 jac=df,
                 method=optimizer,
-                bounds=[(min_beta, max_beta), (min_beta, max_beta)]
-                if optimizer == "L-BFGS-B"
-                else None,
+                bounds=[(min_beta, max_beta)] * p if optimizer == "L-BFGS-B" else None,
             )
 
             beta = res.x
             mu = np.maximum(size_factors * np.exp(X @ beta), min_mu)
             converged = res.success
 
-            if not res.success:
+            if not res.success and p <= 2:
                 beta = grid_fit_beta(
                     counts,
                     size_factors,
