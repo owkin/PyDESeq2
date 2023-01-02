@@ -174,9 +174,11 @@ class DeseqDataSet:
         # Test counts before going further
         test_valid_counts(counts)
         self.counts = counts
+        self.counts.sort_index(inplace=True)
 
         # Import clinical data and convert design_column to string
         self.clinical = clinical
+        self.clinical.sort_index(inplace=True)
         if not self.counts.index.identical(self.clinical.index):
             raise ValueError(
                 "The count matrix and clinical data should have the same index."
