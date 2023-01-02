@@ -151,9 +151,10 @@ def build_design_matrix(
         DataFrame containing clinical information.
         Must be indexed by sample barcodes, and contain a "high_grade" column.
 
-    design : str
+    design : str TODO : or list
         Name of the column of clinical_df to be used as a design_matrix variable.
         (default: "high_grade").
+        TODO : last is the "reference"
 
     ref : str
         The factor to use as a reference. Must be one of the values taken by the design.
@@ -175,6 +176,8 @@ def build_design_matrix(
     """
 
     design_matrix = pd.get_dummies(clinical_df[design])
+
+    # TODO : check that each factor takes only two values
 
     if design_matrix.shape[-1] == 1:
         raise ValueError(
@@ -200,8 +203,12 @@ def build_design_matrix(
             )
             raise e
         design_matrix.insert(1, ref, ref_level)
-    if not expanded:  # drop last factor
-        design_matrix.drop(columns=design_matrix.columns[-1], axis=1, inplace=True)
+    if not expanded:  # drop duplicate factors
+        # TODO : remove commented line
+        # design_matrix.drop(columns=design_matrix.columns[-1], axis=1, inplace=True)
+        design_matrix.drop(
+            columns=[col for col in clinical_df.columns[::-2]], axis=1, inplace=True
+        )  # Drops every other column, starting from the last
     if intercept:
         design_matrix.insert(0, "intercept", 1.0)
     return design_matrix
