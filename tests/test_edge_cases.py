@@ -141,7 +141,7 @@ def test_indexes():
     )
     clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample01", "sample02"])
 
-    with pytest.raises(ValueError):
+    with pytest.raises((KeyError, AssertionError)):
         DeseqDataSet(
             counts_df,
             clinical_df,
