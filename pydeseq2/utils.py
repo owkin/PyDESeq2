@@ -950,18 +950,25 @@ def nbinomGLM(
     converged: bool
         Whether L-BFGS-B converged.
     """
-    beta_init = np.array([0.1, -0.1])
-    no_shrink_index = 1 - shrink_index
+
+    p = design_matrix.shape[-1]
+
+    shrink_mask = np.zeros(p)
+    shrink_mask[shrink_index] = 1
+    no_shrink_mask = np.ones(p) - shrink_mask
+
+    beta_init = np.ones(p) * 0.1 * (-1) ** (np.arange(p))
 
     # Set optimization scale
     scale_cnst = nbinomFn(
-        np.array([0, 0]),
+        np.zeros(p),
         design_matrix,
         counts,
         size,
         offset,
         prior_no_shrink_scale,
         prior_scale,
+        shrink_index,
     )
     scale_cnst = np.maximum(scale_cnst, 1)
 
@@ -976,6 +983,7 @@ def nbinomGLM(
                 offset,
                 prior_no_shrink_scale,
                 prior_scale,
+                shrink_index,
             )
             / cnst
         )
@@ -983,11 +991,9 @@ def nbinomGLM(
     def df(beta, cnst=scale_cnst):
         # Gradient of the function to optimize
         xbeta = design_matrix @ beta
-        d_neg_prior = np.array(
-            [
-                beta[no_shrink_index] / prior_no_shrink_scale**2,
-                2 * beta[shrink_index] / (prior_scale**2 + beta[shrink_index] ** 2),
-            ]
+        d_neg_prior = (
+            beta * no_shrink_mask / prior_no_shrink_scale**2
+            + 2 * beta * shrink_mask / (prior_scale**2 + beta[shrink_index] ** 2),
         )
 
         d_nll = (
@@ -998,18 +1004,21 @@ def nbinomGLM(
 
     def ddf(beta, cnst=scale_cnst):
         # Hessian of the function to optimize
+        # Note: will only work if there is a single shrink index
         xbeta = design_matrix @ beta
         exp_xbeta_off = np.exp(xbeta + offset)
         frac = (counts + size) * size * exp_xbeta_off / (size + exp_xbeta_off) ** 2
+        # Build diagonal
         h11 = 1 / prior_no_shrink_scale**2
         h22 = (
             2
             * (prior_scale**2 - beta[shrink_index] ** 2)
             / (prior_scale**2 + beta[shrink_index] ** 2) ** 2
         )
-        return (
-            1 / cnst * ((design_matrix.T * frac) @ design_matrix + np.diag([h11, h22]))
-        )
+
+        h = np.diag(no_shrink_mask * h11 + shrink_mask * h22)
+
+        return 1 / cnst * ((design_matrix.T * frac) @ design_matrix + np.diag(h))
 
     res = minimize(
         f,
@@ -1022,8 +1031,9 @@ def nbinomGLM(
     beta = res.x
     converged = res.success
 
-    if not converged:
+    if not converged and p == 2:
         # If the solver failed, fit using grid search (slow)
+        # Only for single-factor analysis
         beta = grid_fit_shrink_beta(
             counts,
             offset,
@@ -1088,11 +1098,16 @@ def nbinomFn(
         Sum of the NB negative likelihood and apeGLM prior.
     """
 
-    no_shrink_index = 1 - shrink_index
+    p = design_matrix.shape[-1]
+
+    shrink_mask = np.zeros(p)
+    shrink_mask[shrink_index] = 1
+    no_shrink_mask = np.ones(p) - shrink_mask
+
     xbeta = design_matrix @ beta
-    prior = beta[no_shrink_index] ** 2 / (2 * prior_no_shrink_scale**2) + np.log1p(
-        (beta[shrink_index] / prior_scale) ** 2
-    )
+    prior = (
+        (beta * no_shrink_mask) ** 2 / (2 * prior_no_shrink_scale**2)
+    ).sum() + np.log1p((beta[shrink_index] / prior_scale) ** 2)
 
     nll = (
         counts * xbeta - (counts + size) * np.logaddexp(xbeta + offset, np.log(size))

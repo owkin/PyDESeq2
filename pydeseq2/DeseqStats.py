@@ -217,6 +217,7 @@ class DeseqStats:
                 alternative_level = "_".join([self.contrast[0], self.contrast[2]])
                 self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
                 self.LFCs.iloc[:, self.contrast_idx] *= -1
+                self._change_lfc_sign = True
                 pass
 
         # Compute means according to the LFC model.
@@ -269,6 +270,7 @@ class DeseqStats:
         """LFC shrinkage with an apeGLM prior [2]_.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
+        TODO : for now, shrinks the LFCs of the variable given by self.contrast
 
         Returns
         -------
@@ -306,6 +308,8 @@ class DeseqStats:
                     offset,
                     prior_no_shrink_scale,
                     prior_scale,
+                    "L-BFGS-B",
+                    self.contrast_idx,
                 )
                 for i in range(m)
             )
@@ -314,27 +318,43 @@ class DeseqStats:
 
         lfcs, inv_hessians, l_bfgs_b_converged_ = zip(*res)
 
-        self.LFCs.iloc[:, 1] = pd.Series(
-            np.array(lfcs)[:, 1], index=self.dds.dispersions[nonzero].index
+        self.LFCs.iloc[:, self.contrast_idx] = pd.Series(
+            np.array(lfcs)[:, self.contrast_idx],
+            index=self.dds.dispersions[nonzero].index,
         )
         self.SE = pd.Series(
-            np.array([np.sqrt(np.abs(inv_hess[1, 1])) for inv_hess in inv_hessians]),
+            np.array(
+                [
+                    np.sqrt(np.abs(inv_hess[self.contrast_idx, self.contrast_idx]))
+                    for inv_hess in inv_hessians
+                ]
+            ),
             index=self.dds.dispersions[nonzero].index,
         )
         self._lcf_shrink_converged = pd.Series(
             np.array(l_bfgs_b_converged_), index=self.dds.dispersions[nonzero].index
         )
 
+        # Change sign to comply with contrast, if needed
+        if self._change_lfc_sign:
+            self.LFCs.iloc[:, self.contrast_idx] *= -1
+
         # Set a flag to indicate that LFCs were shrunk
         self.shrunk_LFCs = True
 
         # Replace in results dataframe, if it exists
         if hasattr(self, "results_df"):
-            self.results_df["log2FoldChange"] = self.LFCs[
-                self.dds.design_matrix.columns[-1]
+            self.results_df["log2FoldChange"] = self.LFCs.iloc[
+                :, self.contrast_idx
             ] / np.log(2)
             self.results_df["lfcSE"] = self.SE / np.log(2)
-            return self.results_df
+
+            print(
+                f"Shrunk Log2 fold change & Wald test p-value: "
+                f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
+            )
+
+            display(self.results_df)
 
     def _independent_filtering(self):
         """Compute adjusted p-values using independent filtering.
@@ -468,9 +488,8 @@ class DeseqStats:
             Estimated prior variance.
         """
 
-        # TODO : adapt to multifactor
-        keep = ~self.LFCs.iloc[:, 1].isna()
-        S = self.LFCs[keep].iloc[:, 1] ** 2
+        keep = ~self.LFCs.iloc[:, self.contrast_idx].isna()
+        S = self.LFCs[keep].iloc[:, self.contrast_idx] ** 2
         D = self.SE[keep] ** 2
 
         def objective(a):
