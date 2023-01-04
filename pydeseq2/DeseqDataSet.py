@@ -182,7 +182,9 @@ class DeseqDataSet:
             raise ValueError(
                 "The count matrix and clinical data should have the same index."
             )
-        self.design_factor = design_factor
+        self.design_factor = (
+            [design_factor] if isinstance(design_factor, str) else design_factor
+        )
         if self.clinical[self.design_factor].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factor.")
         self.clinical[self.design_factor] = self.clinical[self.design_factor].astype(str)
