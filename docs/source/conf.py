@@ -43,6 +43,7 @@ extensions = [
     "myst_parser",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.intersphinx",
+    "sphinx_gallery.gen_gallery",
 ]
 
 intersphinx_mapping = {
@@ -199,3 +200,8 @@ html_css_files = [
 # html_logo = "static/logo.svg"
 html_show_sourcelink = False
 html_show_sphinx = True
+
+sphinx_gallery_conf = {
+    "examples_dirs": "../../examples",  # path to your example scripts
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+}
