@@ -18,10 +18,10 @@ def test_zero_genes():
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
     counts_df = pd.read_csv(
-        os.path.join(test_path, "data/test_counts.csv"), index_col=0
+        os.path.join(test_path, "data/single_factor/test_counts.csv"), index_col=0
     ).T
     clinical_df = pd.read_csv(
-        os.path.join(test_path, "data/test_clinical.csv"), index_col=0
+        os.path.join(test_path, "data/single_factor/test_clinical.csv"), index_col=0
     )
 
     n, m = counts_df.shape
@@ -40,7 +40,8 @@ def test_zero_genes():
     assert dds.LFCs.loc[zero_genes].isna().all().all()
 
     res = DeseqStats(dds)
-    res_df = res.summary()
+    res.summary()
+    res_df = res.results_df
 
     # check that the corresponding stats are NaN
     assert (res_df.loc[zero_genes].baseMean == 0).all()
