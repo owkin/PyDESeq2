@@ -175,18 +175,14 @@ class DeseqDataSet:
         test_valid_counts(counts)
         self.counts = counts
 
-        # Import clinical data and convert design_column to string
-        try:
-            self.clinical = clinical.loc[self.counts.index]
-        except KeyError as e:
-            print(
+        if set(self.counts.index) != set(clinical.index):
+            raise KeyError(
                 "The count matrix and clinical data "
                 "should contain the same sample indexes."
             )
-            raise e
-        assert len(self.clinical) == len(
-            clinical
-        ), "The count matrix and clinical data should contain the same sample indexes."
+
+        # Import clinical data and convert design_column to string
+        self.clinical = clinical.loc[self.counts.index]
         self.design_factor = design_factor
         if self.clinical[self.design_factor].isna().any():
             raise ValueError("NaNs are not allowed in the design factor.")
