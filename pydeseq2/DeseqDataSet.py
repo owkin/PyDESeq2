@@ -46,7 +46,7 @@ class DeseqDataSet:
     design_factor : str or list[str]
         Name of the columns of clinical to be used as design variables. If a list,
         the last factor will be considered the variable of interest by default.
-        (default: 'high_grade').
+        Only bi-level factors are supported. (default: 'high_grade').
 
     reference_level : str
         The factor to use as a reference. Must be one of the values taken by the design.
@@ -182,14 +182,17 @@ class DeseqDataSet:
             raise ValueError(
                 "The count matrix and clinical data should have the same index."
             )
+
+        # Convert design factor to list if a single string was provided.
         self.design_factor = (
             [design_factor] if isinstance(design_factor, str) else design_factor
         )
+
         if self.clinical[self.design_factor].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factor.")
         self.clinical[self.design_factor] = self.clinical[self.design_factor].astype(str)
 
-        # Build the design matrix (splits the dataset in two cohorts)
+        # Build the design matrix (splits the dataset in cohorts)
         self.design_matrix = build_design_matrix(
             self.clinical,
             design_factor,
@@ -271,6 +274,10 @@ class DeseqDataSet:
         rough_disps = self._rough_dispersions.loc[self.non_zero_genes].values
         size_factors = self.size_factors.values
 
+        # mu_hat is initialized differently depending on the number of different factor
+        # groups. If there are as many different factor combinations as design factors
+        # (intercept included), it is fitted with a linear model, otherwise it is fitted
+        # with a GLM (using rough dispersion estimates).
         if len(self.design_matrix.value_counts()) == p:
             with parallel_backend("loky", inner_max_num_threads=1):
                 mu_hat_ = np.array(

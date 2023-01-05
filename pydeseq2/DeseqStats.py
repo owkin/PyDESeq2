@@ -123,7 +123,7 @@ class DeseqStats:
 
         # Build contrast if None
         if contrast is not None:
-            # TODO : tests on the constrast
+            # TODO : tests on the contrast
             self.contrast = contrast
         else:
             factor = self.dds.design_factor[-1]
