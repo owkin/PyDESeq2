@@ -73,7 +73,7 @@ def load_data(
     # Load data
     if cancer_type == "synthetic":
         datasets_path = Path(pydeseq2.__file__).parent.parent / "tests"
-        path_to_data = datasets_path / "data"
+        path_to_data = datasets_path / "data/single_factor/"
 
         if modality == "raw_counts":
             df = pd.read_csv(
@@ -192,7 +192,6 @@ def build_design_matrix(
         ref = "_".join([factor, np.sort(np.unique(clinical_df[factor]).astype(str))[0]])
         ref_level = design_matrix.pop(ref)
     else:  # Put reference level last
-        ref = "_".join([factor, ref])
         try:
             ref_level = design_matrix.pop(f"{factor}_{ref}")
         except KeyError as e:
@@ -315,7 +314,7 @@ def irls_solver(
     min_beta=-30,
     max_beta=30,
     optimizer="L-BFGS-B",
-    maxiter=100,
+    maxiter=250,
 ):
     r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 
@@ -684,6 +683,7 @@ def trimmed_variance(x, trim=0.125, axis=1):
     return 1.51 * trimmed_mean(sqerror, trim=trim, axis=axis)
 
 
+# TODO : bug here in multi-factor?
 def fit_lin_mu(y, size_factors, X, min_mu=0.5):
     """Estimate mean of negative binomial model using a linear regression.
 
@@ -760,10 +760,8 @@ def wald_test(X, disp, lfc, mu, D, idx=-1):
     H = np.linalg.inv(M + D)
     S = H @ M @ H
     # Evaluate standard error and Wald statistic
-    c = np.zeros(lfc.shape)
-    c[idx] = 1
-    wald_se = np.sqrt(c.T @ S @ c)
-    wald_statistic = c.T @ lfc / wald_se
+    wald_se = np.sqrt(S[idx, idx])
+    wald_statistic = lfc[idx] / wald_se
     wald_p_value = 2 * norm.sf(np.abs(wald_statistic))
     return wald_p_value, wald_statistic, wald_se
 
