@@ -183,7 +183,7 @@ def build_design_matrix(
     for factor in design:
         # Check that each factor has exactly 2 levels
         if len(np.unique(clinical_df[factor])) != 2:
-            print(
+            raise ValueError(
                 f"Factors should take exactly two values, but {factor} "
                 f"takes values {np.unique(clinical_df[factor])}."
             )
@@ -355,7 +355,7 @@ def irls_solver(
 
     maxiter : int
         Maximum number of IRLS iterations to perform before switching to L-BFGS-B.
-        (default: 100)
+        (default: 250).
 
     Returns
     -------

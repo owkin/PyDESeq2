@@ -33,7 +33,7 @@ class DeseqStats:
         A list of three strings, in the following format:
         ['variable_of_interest', 'tested_level', 'reference_level'].
         Names must correspond to the clinical data passed to the DeseqDataSet.
-        (default: None)
+        (default: None).
 
     alpha : float
         P-value and adjusted p-value significance threshold (usually 0.05).
