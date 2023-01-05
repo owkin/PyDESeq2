@@ -17,4 +17,4 @@ We recommend installing within a conda environment:
 
 
 If you're interested in contributing or want access to the development version,
-please see the :doc:`contributing`.
+please see the :doc:`contributing` section.
