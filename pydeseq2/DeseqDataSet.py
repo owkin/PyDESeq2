@@ -251,6 +251,8 @@ class DeseqDataSet:
         Fits a negative binomial per gene, independently.
         """
 
+        p = self.design_matrix.shape[-1]
+
         # Check that size factors are available. If not, compute them.
         if not hasattr(self, "size_factors"):
             self.fit_size_factors()
@@ -269,22 +271,43 @@ class DeseqDataSet:
         rough_disps = self._rough_dispersions.loc[self.non_zero_genes].values
         size_factors = self.size_factors.values
 
-        with parallel_backend("loky", inner_max_num_threads=1):
-            mu_hat_ = np.array(
-                Parallel(
+        if len(self.design_matrix.value_counts()) == p:
+            with parallel_backend("loky", inner_max_num_threads=1):
+                mu_hat_ = np.array(
+                    Parallel(
+                        n_jobs=self.n_processes,
+                        verbose=self.joblib_verbosity,
+                        batch_size=self.batch_size,
+                    )(
+                        delayed(fit_lin_mu)(
+                            counts_nonzero[:, i],
+                            size_factors,
+                            X,
+                            self.min_mu,
+                        )
+                        for i in range(m)
+                    )
+                )
+        else:
+            with parallel_backend("loky", inner_max_num_threads=1):
+                res = Parallel(
                     n_jobs=self.n_processes,
                     verbose=self.joblib_verbosity,
                     batch_size=self.batch_size,
                 )(
-                    delayed(fit_lin_mu)(
+                    delayed(irls_solver)(
                         counts_nonzero[:, i],
                         size_factors,
                         X,
+                        rough_disps[i],
                         self.min_mu,
+                        self.beta_tol,
                     )
                     for i in range(m)
                 )
-            )
+
+                _, mu_hat_, _, _ = zip(*res)
+                mu_hat_ = np.array(mu_hat_)
 
         self._mu_hat = pd.DataFrame(
             mu_hat_.T,
