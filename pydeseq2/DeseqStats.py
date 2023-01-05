@@ -144,6 +144,7 @@ class DeseqStats:
         self.n_processes = get_num_processes(n_cpus)
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
+        self._change_lfc_sign = False
 
     def summary(self):
         """Run the statistical analysis.
@@ -270,7 +271,6 @@ class DeseqStats:
         """LFC shrinkage with an apeGLM prior [2]_.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
-        TODO : for now, shrinks the LFCs of the variable given by self.contrast
 
         Returns
         -------
