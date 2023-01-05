@@ -126,7 +126,7 @@ class DeseqStats:
             # TODO : tests on the contrast
             self.contrast = contrast
         else:
-            factor = self.dds.design_factor[-1]
+            factor = self.dds.design_factors[-1]
             levels = np.unique(self.dds.clinical[factor]).astype(str)
             if "_".join([factor, levels[0]]) == self.dds.design_matrix.columns[-1]:
                 self.contrast = [factor, levels[0], levels[1]]

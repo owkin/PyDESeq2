@@ -43,7 +43,7 @@ class DeseqDataSet:
         DataFrame containing clinical information.
         Must be indexed by sample barcodes.
 
-    design_factor : str or list[str]
+    design_factors : str or list[str]
         Name of the columns of clinical to be used as design variables. If a list,
         the last factor will be considered the variable of interest by default.
         Only bi-level factors are supported. (default: 'high_grade').
@@ -156,7 +156,7 @@ class DeseqDataSet:
         self,
         counts,
         clinical,
-        design_factor="high_grade",
+        design_factors="high_grade",
         reference_level=None,
         min_mu=0.5,
         min_disp=1e-8,
@@ -184,18 +184,20 @@ class DeseqDataSet:
             )
 
         # Convert design factor to list if a single string was provided.
-        self.design_factor = (
-            [design_factor] if isinstance(design_factor, str) else design_factor
+        self.design_factors = (
+            [design_factors] if isinstance(design_factors, str) else design_factors
         )
 
-        if self.clinical[self.design_factor].isna().any().any():
+        if self.clinical[self.design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factor.")
-        self.clinical[self.design_factor] = self.clinical[self.design_factor].astype(str)
+        self.clinical[self.design_factors] = self.clinical[self.design_factors].astype(
+            str
+        )
 
         # Build the design matrix (splits the dataset in cohorts)
         self.design_matrix = build_design_matrix(
             self.clinical,
-            design_factor,
+            design_factors,
             ref=reference_level,
             expanded=False,
             intercept=True,
@@ -704,7 +706,7 @@ class DeseqDataSet:
         sub_dds = DeseqDataSet(
             counts=self.counts_to_refit,
             clinical=self.clinical,
-            design_factor=self.design_factor,
+            design_factors=self.design_factors,
             min_mu=self.min_mu,
             min_disp=self.min_disp,
             max_disp=self.max_disp,
