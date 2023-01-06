@@ -8,11 +8,15 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import os
+import shutil
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 from datetime import date
+from pathlib import Path
 
 import pydeseq2
 
@@ -205,3 +209,9 @@ sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
 }
+
+# copy the synthetic data to the doc source directory
+data_csv = Path(__file__).parents[2] / "tests" / "data" / "test_counts.csv"
+doc_data_src = Path(__file__).parents[0] / "tests" / "data"
+os.makedirs(doc_data_src, exist_ok=True)  # make the data tree
+shutil.copy2(data_csv, doc_data_src)
