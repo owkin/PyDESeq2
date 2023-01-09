@@ -188,9 +188,11 @@ class DeseqDataSet:
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
         )
-        if self.clinical[self.design_factor].isna().any():
+        if self.clinical[self.design_factors].isna().any():
             raise ValueError("NaNs are not allowed in the design factor.")
-        self.clinical[self.design_factor] = self.clinical[self.design_factor].astype(str)
+        self.clinical[self.design_factors] = self.clinical[self.design_factors].astype(
+            str
+        )
 
         # Build the design matrix (splits the dataset in cohorts)
         self.design_matrix = build_design_matrix(
