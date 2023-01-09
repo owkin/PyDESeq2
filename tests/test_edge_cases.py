@@ -18,10 +18,10 @@ def test_zero_genes():
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
     counts_df = pd.read_csv(
-        os.path.join(test_path, "data/test_counts.csv"), index_col=0
+        os.path.join(test_path, "data/single_factor/test_counts.csv"), index_col=0
     ).T
     clinical_df = pd.read_csv(
-        os.path.join(test_path, "data/test_clinical.csv"), index_col=0
+        os.path.join(test_path, "data/single_factor/test_clinical.csv"), index_col=0
     )
 
     n, m = counts_df.shape
@@ -32,7 +32,7 @@ def test_zero_genes():
     counts_df[zero_genes] = 0
 
     # Run analysis
-    dds = DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+    dds = DeseqDataSet(counts_df, clinical_df, design_factors="condition")
     dds.deseq2()
 
     # check that the corresponding parameters are NaN
@@ -40,7 +40,8 @@ def test_zero_genes():
     assert dds.LFCs.loc[zero_genes].isna().all().all()
 
     res = DeseqStats(dds)
-    res_df = res.summary()
+    res.summary()
+    res_df = res.results_df
 
     # check that the corresponding stats are NaN
     assert (res_df.loc[zero_genes].baseMean == 0).all()
@@ -58,7 +59,7 @@ def test_nan_counts():
     clinical_df = pd.DataFrame({"condition": [0, 1]})
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
 
 
 def test_numeric_counts():
@@ -69,7 +70,7 @@ def test_numeric_counts():
     clinical_df = pd.DataFrame({"condition": [0, 1]})
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
 
 
 def test_integer_counts():
@@ -79,7 +80,7 @@ def test_integer_counts():
     clinical_df = pd.DataFrame({"condition": [0, 1]})
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
 
 
 def test_non_negative_counts():
@@ -89,7 +90,7 @@ def test_non_negative_counts():
     clinical_df = pd.DataFrame({"condition": [0, 1]})
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
 
 
 # Tests on the clinical data (design factors)
@@ -99,7 +100,7 @@ def test_nan_factors():
     clinical_df = pd.DataFrame({"condition": [0, np.NaN]})
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
 
 
 def test_one_factors():
@@ -108,7 +109,7 @@ def test_one_factors():
     clinical_df = pd.DataFrame({"condition": [0, 0]})
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
 
 
 def test_too_many_factors():
@@ -118,7 +119,7 @@ def test_too_many_factors():
     clinical_df = pd.DataFrame({"condition": [0, 1, 2]})
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factor="condition")
+        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
 
 
 def test_reference_level():
@@ -129,7 +130,7 @@ def test_reference_level():
 
     with pytest.raises(KeyError):
         DeseqDataSet(
-            counts_df, clinical_df, design_factor="condition", reference_level="control"
+            counts_df, clinical_df, design_factors="condition", reference_level="control"
         )
 
 
@@ -145,5 +146,5 @@ def test_indexes():
         DeseqDataSet(
             counts_df,
             clinical_df,
-            design_factor="condition",
+            design_factors="condition",
         )

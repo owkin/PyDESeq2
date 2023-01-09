@@ -3,6 +3,7 @@ import time
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+from IPython.display import display
 from joblib import Parallel
 from joblib import delayed
 from joblib import parallel_backend
@@ -28,8 +29,18 @@ class DeseqStats:
     dds : DeseqDataSet
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
+    contrast : list[str] or None
+        A list of three strings, in the following format:
+        ['variable_of_interest', 'tested_level', 'reference_level'].
+        Names must correspond to the clinical data passed to the DeseqDataSet.
+        E.g., ['condition', 'B', 'A'] will measure the LFC of 'condition B' compared to
+        'condition A'. If None, the last variable from the design matrix is chosen
+        as the variable of interest, and the reference level is picked alphabetically.
+        (default: None).
+
     alpha : float
-        P-value and adjusted p-value significance threshold (usually 0.05). (default: 0.05).
+        P-value and adjusted p-value significance threshold (usually 0.05).
+        (default: 0.05).
 
     cooks_filter : bool
         Whether to filter p-values based on cooks outliers. (default: True).
@@ -55,6 +66,9 @@ class DeseqStats:
     ----------
     base_mean : pandas.Series
         Genewise means of normalized counts.
+
+    contrast_idx : int
+        Index of the LFC column corresponding to the variable being tested.
 
     LFCs : pandas.DataFrame
         Estimated log-fold change between conditions and intercept, in natural log scale.
@@ -95,6 +109,7 @@ class DeseqStats:
     def __init__(
         self,
         dds,
+        contrast=None,
         alpha=0.05,
         cooks_filter=True,
         independent_filter=True,
@@ -108,6 +123,25 @@ class DeseqStats:
         ), "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
 
         self.dds = dds
+
+        if contrast is not None:  # Test contrast if provided
+            assert len(contrast) == 3, "The contrast should contain three strings."
+            assert (
+                contrast[0] in self.dds.design_factors
+            ), "The contrast variable should be one of the design factors."
+            assert (
+                contrast[1] in self.dds.clinical[contrast[0]].values
+                and contrast[2] in self.dds.clinical[contrast[0]].values
+            ), "The contrast levels should correspond to design factors levels."
+            self.contrast = contrast
+        else:  # Build contrast if None
+            factor = self.dds.design_factors[-1]
+            levels = np.unique(self.dds.clinical[factor]).astype(str)
+            if "_".join([factor, levels[0]]) == self.dds.design_matrix.columns[-1]:
+                self.contrast = [factor, levels[0], levels[1]]
+            else:
+                self.contrast = [factor, levels[1], levels[0]]
+
         self.alpha = alpha
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
@@ -119,16 +153,12 @@ class DeseqStats:
         self.n_processes = get_num_processes(n_cpus)
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
+        self._change_lfc_sign = False
 
     def summary(self):
-        """Run the statistical analysis and return the results in a DataFrame.
+        """Run the statistical analysis.
 
-        The results are also stored in the `results_df` attribute.
-
-        Returns
-        -------
-        pandas.DataFrame
-            Estimated log fold changes, p-values and adjusted p-values for each gene.
+        The results are stored in the `results_df` attribute.
         """
 
         if not hasattr(self, "p_values"):
@@ -151,15 +181,107 @@ class DeseqStats:
         # Store the results in a DataFrame, in log2 scale for LFCs.
         self.results_df = pd.DataFrame(index=self.dds.dispersions.index)
         self.results_df["baseMean"] = self.base_mean
-        self.results_df["log2FoldChange"] = self.LFCs[
-            self.dds.design_matrix.columns[-1]
+        self.results_df["log2FoldChange"] = self.LFCs.iloc[
+            :, self.contrast_idx
         ] / np.log(2)
         self.results_df["lfcSE"] = self.SE / np.log(2)
         self.results_df["stat"] = self.statistics
         self.results_df["pvalue"] = self.p_values
         self.results_df["padj"] = self.padj
 
-        return self.results_df
+        print(
+            f"Log2 fold change & Wald test p-value: "
+            f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
+        )
+        display(self.results_df)
+
+    def run_wald_test(self):
+        """Perform a Wald test.
+
+        Get gene-wise p-values for gene over/under-expression.`
+        """
+
+        num_genes = len(self.LFCs)
+        num_vars = self.dds.design_matrix.shape[1]
+
+        # Raise a warning if LFCs are shrunk.
+        if self.shrunk_LFCs:
+            print(
+                "Note: running Wald test on shrunk LFCs. "
+                "Some sequencing datasets show better performance with the testing "
+                "separated from the use of the LFC prior."
+            )
+
+        # Get the LFC column corresponding to the design variable.
+        if self.contrast is None:
+            self.contrast_idx = self.LFCs.columns.get_loc(
+                self.dds.design_matrix.columns[-1]
+            )
+        else:
+            # If the design matrix of dds is unexpanded, only one of the two levels
+            # will have a corresponding column
+            alternative_level = "_".join([self.contrast[0], self.contrast[1]])
+            try:
+                self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
+            except KeyError:
+                alternative_level = "_".join([self.contrast[0], self.contrast[2]])
+                self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
+                self.LFCs.iloc[:, self.contrast_idx] *= -1
+                self._change_lfc_sign = True
+                pass
+
+        # Compute means according to the LFC model.
+        mu = (
+            np.exp(self.dds.design_matrix @ self.LFCs.T)
+            .multiply(self.dds.size_factors, 0)
+            .values
+        )
+
+        # Set regularization factors.
+        if self.prior_disp_var is not None:
+            ridge_factor = np.diag(1 / self.prior_disp_var**2)
+        else:
+            ridge_factor = np.diag(np.repeat(1e-6, num_vars))
+
+        X = self.dds.design_matrix.values
+        disps = self.dds.dispersions.values
+        LFCs = self.LFCs.values
+
+        print("Running Wald tests...")
+        start = time.time()
+        with parallel_backend("loky", inner_max_num_threads=1):
+            res = Parallel(
+                n_jobs=self.n_processes,
+                verbose=self.joblib_verbosity,
+                batch_size=self.batch_size,
+            )(
+                delayed(wald_test)(
+                    design_matrix=X,
+                    disp=disps[i],
+                    lfc=LFCs[i],
+                    mu=mu[:, i],
+                    ridge_factor=ridge_factor,
+                    idx=self.contrast_idx,
+                )
+                for i in range(num_genes)
+            )
+        end = time.time()
+        print(f"... done in {end-start:.2f} seconds.\n")
+
+        pvals, stats, se = zip(*res)
+
+        self.p_values = pd.Series(pvals, index=self.LFCs.index)
+        self.statistics = pd.Series(stats, index=self.LFCs.index)
+        self.SE = pd.Series(se, index=self.LFCs.index)
+
+        # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
+        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
+
+            self.SE.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 0
+            self.statistics.loc[
+                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
+            ] = 0
+            self.p_values.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 1
 
     def lfc_shrink(self):
         """LFC shrinkage with an apeGLM prior [2]_.
@@ -175,7 +297,7 @@ class DeseqStats:
         # Filter genes with all zero counts
         nonzero = self.dds.counts.sum(0) > 0
         counts_nonzero = self.dds.counts.loc[:, nonzero].values
-        m = counts_nonzero.shape[1]
+        num_genes = counts_nonzero.shape[1]
 
         size = (1.0 / self.dds.dispersions[nonzero]).values
         offset = np.log(self.dds.size_factors).values
@@ -196,107 +318,59 @@ class DeseqStats:
                 batch_size=self.batch_size,
             )(
                 delayed(nbinomGLM)(
-                    X,
-                    counts_nonzero[:, i],
-                    size[i],
-                    offset,
-                    prior_no_shrink_scale,
-                    prior_scale,
+                    design_matrix=X,
+                    counts=counts_nonzero[:, i],
+                    size=size[i],
+                    offset=offset,
+                    prior_no_shrink_scale=prior_no_shrink_scale,
+                    prior_scale=prior_scale,
+                    optimizer="L-BFGS-B",
+                    shrink_index=self.contrast_idx,
                 )
-                for i in range(m)
+                for i in range(num_genes)
             )
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
 
         lfcs, inv_hessians, l_bfgs_b_converged_ = zip(*res)
 
-        self.LFCs.iloc[:, 1] = pd.Series(
-            np.array(lfcs)[:, 1], index=self.dds.dispersions[nonzero].index
+        self.LFCs.iloc[:, self.contrast_idx] = pd.Series(
+            np.array(lfcs)[:, self.contrast_idx],
+            index=self.dds.dispersions[nonzero].index,
         )
         self.SE = pd.Series(
-            np.array([np.sqrt(np.abs(inv_hess[1, 1])) for inv_hess in inv_hessians]),
+            np.array(
+                [
+                    np.sqrt(np.abs(inv_hess[self.contrast_idx, self.contrast_idx]))
+                    for inv_hess in inv_hessians
+                ]
+            ),
             index=self.dds.dispersions[nonzero].index,
         )
         self._lcf_shrink_converged = pd.Series(
             np.array(l_bfgs_b_converged_), index=self.dds.dispersions[nonzero].index
         )
 
+        # Change sign to comply with contrast, if needed
+        if self._change_lfc_sign:
+            self.LFCs.iloc[:, self.contrast_idx] *= -1
+
         # Set a flag to indicate that LFCs were shrunk
         self.shrunk_LFCs = True
 
         # Replace in results dataframe, if it exists
         if hasattr(self, "results_df"):
-            self.results_df["log2FoldChange"] = self.LFCs[
-                self.dds.design_matrix.columns[-1]
+            self.results_df["log2FoldChange"] = self.LFCs.iloc[
+                :, self.contrast_idx
             ] / np.log(2)
             self.results_df["lfcSE"] = self.SE / np.log(2)
-            return self.results_df
 
-    def run_wald_test(self):
-        """Perform a Wald test.
-
-        Get gene-wise p-values for gene over/under-expression.`
-        """
-
-        n = len(self.LFCs)
-        p = self.dds.design_matrix.shape[1]
-
-        # Raise a warning if LFCs are shrunk.
-        if self.shrunk_LFCs:
             print(
-                "Note: running Wald test on shrunk LFCs. "
-                "Some sequencing datasets show better performance with the testing "
-                "separated from the use of the LFC prior."
+                f"Shrunk Log2 fold change & Wald test p-value: "
+                f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
             )
 
-        # Get the LFC column corresponding to the design variable.
-        idx = self.LFCs.columns.get_loc(self.dds.design_matrix.columns[-1])
-
-        # Compute means according to the LFC model.
-        mu = (
-            np.exp(self.dds.design_matrix @ self.LFCs.T)
-            .multiply(self.dds.size_factors, 0)
-            .values
-        )
-
-        # Set regularization factors.
-        if self.prior_disp_var is not None:
-            D = np.diag(1 / self.prior_disp_var**2)
-        else:
-            D = np.diag(np.repeat(1e-6, p))
-
-        X = self.dds.design_matrix.values
-        disps = self.dds.dispersions.values
-        LFCs = self.LFCs.values
-
-        print("Running Wald tests...")
-        start = time.time()
-        with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
-            )(
-                delayed(wald_test)(X, disps[i], LFCs[i], mu[:, i], D, idx)
-                for i in range(n)
-            )
-        end = time.time()
-        print(f"... done in {end-start:.2f} seconds.\n")
-
-        pvals, stats, se = zip(*res)
-
-        self.p_values = pd.Series(pvals, index=self.LFCs.index)
-        self.statistics = pd.Series(stats, index=self.LFCs.index)
-        self.SE = pd.Series(se, index=self.LFCs.index)
-
-        # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
-        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
-
-            self.SE.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 0
-            self.statistics.loc[
-                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
-            ] = 0
-            self.p_values.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 1
+            display(self.results_df)
 
     def _independent_filtering(self):
         """Compute adjusted p-values using independent filtering.
@@ -367,46 +441,49 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        m, p = self.dds.design_matrix.shape
-        if p == 2:
-            # If for a gene there are 3 samples or more that have more counts than the
-            # maximum cooks sample, don't count this gene as an outlier.
-            # Do this only if there are 2 cohorts.
-            cooks_cutoff = f.ppf(0.99, p, m - p)
+        num_samples, num_vars = self.dds.design_matrix.shape
+        cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
 
+        # If for a gene there are 3 samples or more that have more counts than the
+        # maximum cooks sample, don't count this gene as an outlier.
+        # Do this only if there are 2 cohorts.
+        if num_vars == 2:
             # Check whether cohorts have enough samples to allow refitting
             # Only consider conditions with 3 or more samples (same as in R)
             n_or_more = (
-                self.dds.design_matrix[self.dds.design_matrix.columns[-1]].value_counts()
-                >= 3
+                self.dds.design_matrix.iloc[:, self.contrast_idx].value_counts() >= 3
             )
             use_for_max = pd.Series(
-                n_or_more[self.dds.design_matrix[self.dds.design_matrix.columns[-1]]]
+                n_or_more[self.dds.design_matrix.iloc[:, self.contrast_idx]]
             )
             use_for_max.index = self.dds.design_matrix.index
 
-            # Take into account whether we already replaced outliers
-            if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
-                cooks_outlier = (
-                    self.dds.replace_cooks.loc[:, use_for_max] > cooks_cutoff
-                ).any(axis=1)
+        else:
+            use_for_max = pd.Series(True, index=self.dds.design_matrix.index)
 
-            else:
-                cooks_outlier = (self.dds.cooks.loc[:, use_for_max] > cooks_cutoff).any(
-                    axis=1
-                )
+        # Take into account whether we already replaced outliers
+        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
+            cooks_outlier = (
+                self.dds.replace_cooks.loc[:, use_for_max] > cooks_cutoff
+            ).any(axis=1)
 
-            pos = self.dds.cooks[cooks_outlier].to_numpy().argmax(1)
-            cooks_outlier.update(
-                (
-                    self.dds.counts.loc[:, cooks_outlier]
-                    > self.dds.counts.loc[:, cooks_outlier].to_numpy()[
-                        pos, np.arange(len(pos))
-                    ]
-                ).sum(0)
-                < 3
+        else:
+            cooks_outlier = (self.dds.cooks.loc[:, use_for_max] > cooks_cutoff).any(
+                axis=1
             )
-            self.p_values[cooks_outlier] = np.nan
+
+        pos = self.dds.cooks[cooks_outlier].to_numpy().argmax(1)
+        cooks_outlier.update(
+            (
+                self.dds.counts.loc[:, cooks_outlier]
+                > self.dds.counts.loc[:, cooks_outlier].to_numpy()[
+                    pos, np.arange(len(pos))
+                ]
+            ).sum(0)
+            < 3
+        )
+
+        self.p_values[cooks_outlier] = np.nan
 
     def _fit_prior_var(self, min_var=1e-6, max_var=400):
         """Estimate the prior variance of the apeGLM model.
@@ -426,8 +503,9 @@ class DeseqStats:
         float
             Estimated prior variance.
         """
-        keep = ~self.LFCs.iloc[:, 1].isna()
-        S = self.LFCs[keep].iloc[:, 1] ** 2
+
+        keep = ~self.LFCs.iloc[:, self.contrast_idx].isna()
+        S = self.LFCs[keep].iloc[:, self.contrast_idx] ** 2
         D = self.SE[keep] ** 2
 
         def objective(a):

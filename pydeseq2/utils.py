@@ -17,7 +17,7 @@ from pydeseq2.grid_search import grid_fit_beta
 from pydeseq2.grid_search import grid_fit_shrink_beta
 
 
-def load_data(
+def load_example_data(
     modality="raw_counts",
     cancer_type="synthetic",
     debug=False,
@@ -73,7 +73,7 @@ def load_data(
     # Load data
     if cancer_type == "synthetic":
         datasets_path = Path(pydeseq2.__file__).parent.parent / "tests"
-        path_to_data = datasets_path / "data"
+        path_to_data = datasets_path / "data/single_factor/"
 
         if modality == "raw_counts":
             df = pd.read_csv(
@@ -138,12 +138,13 @@ def test_valid_counts(counts_df):
 
 
 def build_design_matrix(
-    clinical_df, design="high_grade", ref=None, expanded=False, intercept=True
+    clinical_df, design_factors="high_grade", ref=None, expanded=False, intercept=True
 ):
     """Build design_matrix matrix for DEA.
 
     Only single factor, 2-level designs are currently supported.
     Unless specified, the reference factor is chosen alphabetically.
+    NOTE: For now, each factor should have exactly two levels.
 
     Parameters
     ----------
@@ -151,8 +152,8 @@ def build_design_matrix(
         DataFrame containing clinical information.
         Must be indexed by sample barcodes, and contain a "high_grade" column.
 
-    design : str
-        Name of the column of clinical_df to be used as a design_matrix variable.
+    design_factors : str or list[str]
+        Name of the columns of clinical_df to be used as design_matrix variables.
         (default: "high_grade").
 
     ref : str
@@ -174,34 +175,38 @@ def build_design_matrix(
         Indexed by sample barcodes.
     """
 
-    design_matrix = pd.get_dummies(clinical_df[design])
+    if isinstance(
+        design_factors, str
+    ):  # if there is a single factor, convert to singleton list
+        design_factors = [design_factors]
 
-    if design_matrix.shape[-1] == 1:
-        raise ValueError(
-            f"The design factor takes only one value: "
-            f"{design_matrix.columns.values.tolist()}, but two are necessary."
-        )
-    elif design_matrix.shape[-1] > 2:
-        raise ValueError(
-            f"The design factor takes more than two values: "
-            f"{design_matrix.columns.values.tolist()}, but should have exactly two."
-        )
-    # Sort columns alphabetically
-    design_matrix = design_matrix.reindex(
-        sorted(design_matrix.columns, reverse=True), axis=1
-    )
-    if ref is not None:  # Put reference level last
+    design_matrix = pd.get_dummies(clinical_df[design_factors])
+
+    for factor in design_factors:
+        # Check that each factor has exactly 2 levels
+        if len(np.unique(clinical_df[factor])) != 2:
+            raise ValueError(
+                f"Factors should take exactly two values, but {factor} "
+                f"takes values {np.unique(clinical_df[factor])}."
+            )
+    factor = design_factors[-1]
+    if ref is None:
+        ref = "_".join([factor, np.sort(np.unique(clinical_df[factor]).astype(str))[0]])
+        ref_level = design_matrix.pop(ref)
+    else:  # Put reference level last
         try:
-            ref_level = design_matrix.pop(ref)
+            ref_level = design_matrix.pop(f"{factor}_{ref}")
         except KeyError as e:
             print(
                 "The reference level must correspond to"
                 " one of the design factor values."
             )
             raise e
-        design_matrix.insert(1, ref, ref_level)
-    if not expanded:  # drop last factor
-        design_matrix.drop(columns=design_matrix.columns[-1], axis=1, inplace=True)
+    design_matrix.insert(design_matrix.shape[-1], ref, ref_level)
+    if not expanded:  # drop duplicate factors
+        design_matrix.drop(
+            columns=[col for col in design_matrix.columns[::-2]], axis=1, inplace=True
+        )  # Drops every other column, starting from the last
     if intercept:
         design_matrix.insert(0, "intercept", 1.0)
     return design_matrix
@@ -231,14 +236,14 @@ def dispersion_trend(normed_mean, coeffs):
         return coeffs[0] + coeffs[1] / normed_mean
 
 
-def nb_nll(y, mu, alpha):
+def nb_nll(counts, mu, alpha):
     """Negative log-likelihood of a negative binomial.
 
     Unvectorized version.
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Observations.
 
     mu : float
@@ -251,27 +256,31 @@ def nb_nll(y, mu, alpha):
     Returns
     -------
     float
-        Negative log likelihood of the observations y
+        Negative log likelihood of the observations counts
         following :math:`NB(\\mu, \\alpha)`.
     """
 
-    n = len(y)
+    n = len(counts)
     alpha_neg1 = 1 / alpha
-    logbinom = gammaln(y + alpha_neg1) - gammaln(y + 1) - gammaln(alpha_neg1)
+    logbinom = gammaln(counts + alpha_neg1) - gammaln(counts + 1) - gammaln(alpha_neg1)
     return (
         n * alpha_neg1 * np.log(alpha)
-        + (-logbinom + (y + alpha_neg1) * np.log(alpha_neg1 + mu) - y * np.log(mu)).sum()
+        + (
+            -logbinom
+            + (counts + alpha_neg1) * np.log(alpha_neg1 + mu)
+            - counts * np.log(mu)
+        ).sum()
     )
 
 
-def dnb_nll(y, mu, alpha):
+def dnb_nll(counts, mu, alpha):
     """Gradient of the negative log-likelihood of a negative binomial.
 
     Unvectorized.
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Observations.
 
     mu : float
@@ -292,9 +301,9 @@ def dnb_nll(y, mu, alpha):
         alpha_neg1**2
         * (
             polygamma(0, alpha_neg1)
-            - polygamma(0, y + alpha_neg1)
+            - polygamma(0, counts + alpha_neg1)
             + np.log(1 + mu * alpha)
-            + (y - mu) / (mu + alpha_neg1)
+            + (counts - mu) / (mu + alpha_neg1)
         ).sum()
     )
 
@@ -311,11 +320,11 @@ def irls_solver(
     min_beta=-30,
     max_beta=30,
     optimizer="L-BFGS-B",
+    maxiter=250,
 ):
     r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 
     See equations (1-2) in the DESeq2 paper.
-    Uses the L-BFGS-B, more stable than Fisher scoring.
 
     Parameters
     ----------
@@ -348,7 +357,11 @@ def irls_solver(
         Optimizing method to use in case IRLS starts diverging.
         Accepted values: 'BFGS' or 'L-BFGS-B'.
         NB: only 'L-BFGS-B' ensures that LFCS will
-        lay in the [min_beta, max_beta] range. (default: 'BFGS').
+        lay in the [min_beta, max_beta] range. (default: 'L-BFGS-B').
+
+    maxiter : int
+        Maximum number of IRLS iterations to perform before switching to L-BFGS-B.
+        (default: 250).
 
     Returns
     -------
@@ -357,7 +370,7 @@ def irls_solver(
 
     mu: ndarray
         Means estimated from size factors and beta:
-        :math:`\\mu = s_{ij} \\exp(\\beta^t X)`.
+        :math:`\\mu = s_{ij} \\exp(\\beta^t design_matrix)`.
 
     H: ndarray
         Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}` covariance matrix.
@@ -365,7 +378,7 @@ def irls_solver(
 
     assert optimizer in ["BFGS", "L-BFGS-B"]
 
-    p = design_matrix.shape[1]
+    num_vars = design_matrix.shape[1]
 
     # converting to numpy for speed
     if type(counts) == pd.Series:
@@ -378,7 +391,7 @@ def irls_solver(
         X = design_matrix
 
     # if full rank, estimate initial betas for IRLS below
-    if np.linalg.matrix_rank(X) == p:
+    if np.linalg.matrix_rank(X) == num_vars:
         Q, R = np.linalg.qr(X)
         y = np.log(counts / size_factors + 0.1)
         beta_init = solve(R, Q.T @ y)
@@ -387,29 +400,32 @@ def irls_solver(
     dev = 1000
     dev_ratio = 1.0
 
-    D = np.diag(np.repeat(1e-6, p))
+    ridge_factor = np.diag(np.repeat(1e-6, num_vars))
     mu = np.maximum(size_factors * np.exp(X @ beta), min_mu)
 
     converged = True
+    i = 0
     while dev_ratio > beta_tol:
 
         W = mu / (1.0 + mu * disp)
         z = np.log(mu / size_factors) + (counts - mu) / mu
-        H = (X.T * W) @ X + D
+        H = (X.T * W) @ X + ridge_factor
         beta_hat = solve(H, X.T @ (W * z), assume_a="pos")
-        if sum(np.abs(beta_hat) > max_beta) > 0:
+        i += 1
+
+        if sum(np.abs(beta_hat) > max_beta) > 0 or i >= maxiter:
             # If IRLS starts diverging, use L-BFGS-B
             def f(beta):
                 # closure to minimize
                 mu_ = np.maximum(size_factors * np.exp(X @ beta), min_mu)
-                return nb_nll(counts, mu_, disp) + 0.5 * (D @ beta**2).sum()
+                return nb_nll(counts, mu_, disp) + 0.5 * (ridge_factor @ beta**2).sum()
 
             def df(beta):
                 mu_ = np.maximum(size_factors * np.exp(X @ beta), min_mu)
                 return (
                     -X.T @ counts
                     + ((1 / disp + counts) * mu_ / (1 / disp + mu_)) @ X
-                    + D @ beta
+                    + ridge_factor @ beta
                 )
 
             res = minimize(
@@ -417,7 +433,7 @@ def irls_solver(
                 beta_init,
                 jac=df,
                 method=optimizer,
-                bounds=[(min_beta, max_beta), (min_beta, max_beta)]
+                bounds=[(min_beta, max_beta)] * num_vars
                 if optimizer == "L-BFGS-B"
                 else None,
             )
@@ -426,7 +442,7 @@ def irls_solver(
             mu = np.maximum(size_factors * np.exp(X @ beta), min_mu)
             converged = res.success
 
-            if not res.success:
+            if not res.success and num_vars <= 2:
                 beta = grid_fit_beta(
                     counts,
                     size_factors,
@@ -447,7 +463,7 @@ def irls_solver(
     # Compute H diagonal (useful for Cook distance outlier filtering)
     W = mu / (1.0 + mu * disp)
     W_sq = np.sqrt(W)
-    XtWX = (X.T * W) @ X + D
+    XtWX = (X.T * W) @ X + ridge_factor
     H = W_sq * np.diag(X @ np.linalg.inv(XtWX) @ X.T) * W_sq
     # Return an UNthresholded mu (as in the R code)
     # Previous quantities are estimated with a threshold though
@@ -456,8 +472,8 @@ def irls_solver(
 
 
 def fit_alpha_mle(
-    y,
-    X,
+    counts,
+    design_matrix,
     mu,
     alpha_hat,
     min_disp,
@@ -469,15 +485,15 @@ def fit_alpha_mle(
 ):
     """Estimate the dispersion parameter of a negative binomial GLM.
 
-    Note: it is possible to pass pandas Series as y, X and mu arguments but using numpy
-    arrays makes the code significantly faster.
+    Note: it is possible to pass counts, design_matrix and mu arguments in the form of
+    pandas Series, but using numpy arrays makes the code significantly faster.
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Raw counts for a given gene.
 
-    X : ndarray
+    design_matrix : ndarray
         Design matrix.
 
     mu : ndarray
@@ -527,10 +543,10 @@ def fit_alpha_mle(
         W = mu / (1 + mu * alpha)
         reg = 0
         if cr_reg:
-            reg += 0.5 * np.linalg.slogdet((X.T * W) @ X)[1]
+            reg += 0.5 * np.linalg.slogdet((design_matrix.T * W) @ design_matrix)[1]
         if prior_reg:
             reg += (np.log(alpha) - np.log(alpha_hat)) ** 2 / (2 * prior_disp_var)
-        return nb_nll(y, mu, alpha) + reg
+        return nb_nll(counts, mu, alpha) + reg
 
     def dloss(log_alpha):
         # gradient closure
@@ -539,10 +555,16 @@ def fit_alpha_mle(
         dW = -(W**2)
         reg_grad = 0
         if cr_reg:
-            reg_grad += 0.5 * (np.linalg.inv((X.T * W) @ X) * ((X.T * dW) @ X)).sum()
+            reg_grad += (
+                0.5
+                * (
+                    np.linalg.inv((design_matrix.T * W) @ design_matrix)
+                    * ((design_matrix.T * dW) @ design_matrix)
+                ).sum()
+            )
         if prior_reg:
             reg_grad += (np.log(alpha) - np.log(alpha_hat)) / (alpha * prior_disp_var)
-        return dnb_nll(y, mu, alpha) + reg_grad
+        return dnb_nll(counts, mu, alpha) + reg_grad
 
     res = minimize(
         lambda x: loss(x[0]),
@@ -558,7 +580,9 @@ def fit_alpha_mle(
         return np.exp(res.x[0]), res.success
     else:
         return (
-            np.exp(grid_fit_alpha(y, X, mu, alpha_hat, min_disp, max_disp)),
+            np.exp(
+                grid_fit_alpha(counts, design_matrix, mu, alpha_hat, min_disp, max_disp)
+            ),
             res.success,
         )
 
@@ -675,20 +699,20 @@ def trimmed_variance(x, trim=0.125, axis=1):
     return 1.51 * trimmed_mean(sqerror, trim=trim, axis=axis)
 
 
-def fit_lin_mu(y, size_factors, X, min_mu=0.5):
+def fit_lin_mu(counts, size_factors, design_matrix, min_mu=0.5):
     """Estimate mean of negative binomial model using a linear regression.
 
     Used to initialize genewise dispersion models.
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Raw counts for a given gene.
 
     size_factors : ndarray
         Sample-wise scaling factors (obtained from median-of-ratios).
 
-    X : ndarray
+    design_matrix : ndarray
         Design matrix.
 
     min_mu : float
@@ -701,13 +725,13 @@ def fit_lin_mu(y, size_factors, X, min_mu=0.5):
     """
 
     reg = LinearRegression(fit_intercept=False)
-    reg.fit(X, y / size_factors)
-    mu_hat = size_factors * reg.predict(X)
+    reg.fit(design_matrix, counts / size_factors)
+    mu_hat = size_factors * reg.predict(design_matrix)
     # Threshold mu_hat as 1/mu_hat will be used later on.
     return np.maximum(mu_hat, min_mu)
 
 
-def wald_test(X, disp, lfc, mu, D, idx=-1):
+def wald_test(design_matrix, disp, lfc, mu, ridge_factor, idx=-1):
     """Run Wald test for differential expression.
 
     Computes Wald statistics, standard error and p-values from
@@ -715,7 +739,7 @@ def wald_test(X, disp, lfc, mu, D, idx=-1):
 
     Parameters
     ----------
-    X : ndarray
+    design_matrix : ndarray
         Design matrix.
 
     disp : float
@@ -727,7 +751,7 @@ def wald_test(X, disp, lfc, mu, D, idx=-1):
     mu : float
         Mean estimation for the NB model.
 
-    D : ndarray
+    ridge_factor : ndarray
         Regularization factors.
 
     idx : int
@@ -747,14 +771,12 @@ def wald_test(X, disp, lfc, mu, D, idx=-1):
 
     # Build covariance matrix estimator
     W = np.diag(mu / (1 + mu * disp))
-    M = X.T @ W @ X
-    H = np.linalg.inv(M + D)
+    M = design_matrix.T @ W @ design_matrix
+    H = np.linalg.inv(M + ridge_factor)
     S = H @ M @ H
     # Evaluate standard error and Wald statistic
-    c = np.zeros(lfc.shape)
-    c[idx] = 1
-    wald_se = np.sqrt(c.T @ S @ c)
-    wald_statistic = c.T @ lfc / wald_se
+    wald_se = np.sqrt(S[idx, idx])
+    wald_statistic = lfc[idx] / wald_se
     wald_p_value = 2 * norm.sf(np.abs(wald_statistic))
     return wald_p_value, wald_statistic, wald_se
 
@@ -782,7 +804,7 @@ def fit_rough_dispersions(counts, size_factors, design_matrix):
         Estimated dispersion parameter for each gene.
     """
 
-    m, p = design_matrix.shape
+    num_samples, num_vars = design_matrix.shape
     normed_counts = counts.div(size_factors, 0)
     # Exclude genes with all zeroes
     normed_counts = normed_counts.loc[:, ~(normed_counts == 0).all()]
@@ -790,7 +812,9 @@ def fit_rough_dispersions(counts, size_factors, design_matrix):
     reg.fit(design_matrix, normed_counts)
     y_hat = reg.predict(design_matrix)
     y_hat = np.maximum(y_hat, 1)
-    alpha_rde = (((normed_counts - y_hat) ** 2 - y_hat) / ((m - p) * y_hat**2)).sum(0)
+    alpha_rde = (
+        ((normed_counts - y_hat) ** 2 - y_hat) / ((num_samples - num_vars) * y_hat**2)
+    ).sum(0)
     return np.maximum(alpha_rde, 0)
 
 
@@ -941,18 +965,25 @@ def nbinomGLM(
     converged: bool
         Whether L-BFGS-B converged.
     """
-    beta_init = np.array([0.1, -0.1])
-    no_shrink_index = 1 - shrink_index
+
+    num_vars = design_matrix.shape[-1]
+
+    shrink_mask = np.zeros(num_vars)
+    shrink_mask[shrink_index] = 1
+    no_shrink_mask = np.ones(num_vars) - shrink_mask
+
+    beta_init = np.ones(num_vars) * 0.1 * (-1) ** (np.arange(num_vars))
 
     # Set optimization scale
     scale_cnst = nbinomFn(
-        np.array([0, 0]),
+        np.zeros(num_vars),
         design_matrix,
         counts,
         size,
         offset,
         prior_no_shrink_scale,
         prior_scale,
+        shrink_index,
     )
     scale_cnst = np.maximum(scale_cnst, 1)
 
@@ -967,6 +998,7 @@ def nbinomGLM(
                 offset,
                 prior_no_shrink_scale,
                 prior_scale,
+                shrink_index,
             )
             / cnst
         )
@@ -974,11 +1006,9 @@ def nbinomGLM(
     def df(beta, cnst=scale_cnst):
         # Gradient of the function to optimize
         xbeta = design_matrix @ beta
-        d_neg_prior = np.array(
-            [
-                beta[no_shrink_index] / prior_no_shrink_scale**2,
-                2 * beta[shrink_index] / (prior_scale**2 + beta[shrink_index] ** 2),
-            ]
+        d_neg_prior = (
+            beta * no_shrink_mask / prior_no_shrink_scale**2
+            + 2 * beta * shrink_mask / (prior_scale**2 + beta[shrink_index] ** 2),
         )
 
         d_nll = (
@@ -989,18 +1019,21 @@ def nbinomGLM(
 
     def ddf(beta, cnst=scale_cnst):
         # Hessian of the function to optimize
+        # Note: will only work if there is a single shrink index
         xbeta = design_matrix @ beta
         exp_xbeta_off = np.exp(xbeta + offset)
         frac = (counts + size) * size * exp_xbeta_off / (size + exp_xbeta_off) ** 2
+        # Build diagonal
         h11 = 1 / prior_no_shrink_scale**2
         h22 = (
             2
             * (prior_scale**2 - beta[shrink_index] ** 2)
             / (prior_scale**2 + beta[shrink_index] ** 2) ** 2
         )
-        return (
-            1 / cnst * ((design_matrix.T * frac) @ design_matrix + np.diag([h11, h22]))
-        )
+
+        h = np.diag(no_shrink_mask * h11 + shrink_mask * h22)
+
+        return 1 / cnst * ((design_matrix.T * frac) @ design_matrix + np.diag(h))
 
     res = minimize(
         f,
@@ -1013,8 +1046,9 @@ def nbinomGLM(
     beta = res.x
     converged = res.success
 
-    if not converged:
+    if not converged and num_vars == 2:
         # If the solver failed, fit using grid search (slow)
+        # Only for single-factor analysis
         beta = grid_fit_shrink_beta(
             counts,
             offset,
@@ -1079,11 +1113,16 @@ def nbinomFn(
         Sum of the NB negative likelihood and apeGLM prior.
     """
 
-    no_shrink_index = 1 - shrink_index
+    num_vars = design_matrix.shape[-1]
+
+    shrink_mask = np.zeros(num_vars)
+    shrink_mask[shrink_index] = 1
+    no_shrink_mask = np.ones(num_vars) - shrink_mask
+
     xbeta = design_matrix @ beta
-    prior = beta[no_shrink_index] ** 2 / (2 * prior_no_shrink_scale**2) + np.log1p(
-        (beta[shrink_index] / prior_scale) ** 2
-    )
+    prior = (
+        (beta * no_shrink_mask) ** 2 / (2 * prior_no_shrink_scale**2)
+    ).sum() + np.log1p((beta[shrink_index] / prior_scale) ** 2)
 
     nll = (
         counts * xbeta - (counts + size) * np.logaddexp(xbeta + offset, np.log(size))
