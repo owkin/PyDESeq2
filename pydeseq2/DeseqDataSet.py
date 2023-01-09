@@ -289,10 +289,10 @@ class DeseqDataSet:
                         batch_size=self.batch_size,
                     )(
                         delayed(fit_lin_mu)(
-                            counts_nonzero[:, i],
-                            size_factors,
-                            X,
-                            self.min_mu,
+                            counts=counts_nonzero[:, i],
+                            size_factors=size_factors,
+                            design_matrix=X,
+                            min_mu=self.min_mu,
                         )
                         for i in range(num_genes)
                     )
@@ -305,12 +305,12 @@ class DeseqDataSet:
                     batch_size=self.batch_size,
                 )(
                     delayed(irls_solver)(
-                        counts_nonzero[:, i],
-                        size_factors,
-                        X,
-                        rough_disps[i],
-                        self.min_mu,
-                        self.beta_tol,
+                        counts=counts_nonzero[:, i],
+                        size_factors=size_factors,
+                        design_matrix=X,
+                        disp=rough_disps[i],
+                        min_mu=self.min_mu,
+                        beta_tol=self.beta_tol,
                     )
                     for i in range(num_genes)
                 )
@@ -329,12 +329,12 @@ class DeseqDataSet:
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(n_jobs=self.n_processes, batch_size=self.batch_size)(
                 delayed(fit_alpha_mle)(
-                    counts_nonzero[:, i],
-                    X,
-                    mu_hat_[i, :],
-                    rough_disps[i],
-                    self.min_disp,
-                    self.max_disp,
+                    counts=counts_nonzero[:, i],
+                    design_matrix=X,
+                    mu=mu_hat_[i, :],
+                    alpha_hat=rough_disps[i],
+                    min_disp=self.min_disp,
+                    max_disp=self.max_disp,
                 )
                 for i in range(num_genes)
             )
@@ -478,15 +478,15 @@ class DeseqDataSet:
                 batch_size=self.batch_size,
             )(
                 delayed(fit_alpha_mle)(
-                    counts_nonzero[:, i],
-                    X,
-                    mu_hat[:, i],
-                    fit_disps[i],
-                    self.min_disp,
-                    self.max_disp,
-                    self.prior_disp_var,
-                    True,
-                    True,
+                    counts=counts_nonzero[:, i],
+                    design_matrix=X,
+                    mu=mu_hat[:, i],
+                    alpha_hat=fit_disps[i],
+                    min_disp=self.min_disp,
+                    max_disp=self.max_disp,
+                    prior_disp_var=self.prior_disp_var,
+                    cr_reg=True,
+                    prior_reg=True,
                 )
                 for i in range(num_genes)
             )
@@ -539,12 +539,12 @@ class DeseqDataSet:
                 batch_size=self.batch_size,
             )(
                 delayed(irls_solver)(
-                    counts_nonzero[:, i],
-                    size_factors,
-                    X,
-                    disps[i],
-                    self.min_mu,
-                    self.beta_tol,
+                    counts=counts_nonzero[:, i],
+                    size_factors=size_factors,
+                    design_matrix=X,
+                    disp=disps[i],
+                    min_mu=self.min_mu,
+                    beta_tol=self.beta_tol,
                 )
                 for i in range(num_genes)
             )

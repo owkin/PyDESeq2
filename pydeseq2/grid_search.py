@@ -4,14 +4,14 @@ from scipy.special import gammaln
 import pydeseq2.utils
 
 
-def vec_nb_nll(y, mu, alpha):
+def vec_nb_nll(counts, mu, alpha):
     """Return the negative log-likelihood of a negative binomial.
 
     Vectorized version.
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Observations.
 
     mu : float
@@ -24,33 +24,35 @@ def vec_nb_nll(y, mu, alpha):
     Returns
     -------
     float
-        Negative log likelihood of the observations y following
+        Negative log likelihood of the observations counts following
         :math:`NB(\\mu, \\alpha)`.
     """
 
-    n = len(y)
+    n = len(counts)
     alpha_neg1 = 1 / alpha
     logbinom = (
-        gammaln(y[:, None] + alpha_neg1) - gammaln(y + 1)[:, None] - gammaln(alpha_neg1)
+        gammaln(counts[:, None] + alpha_neg1)
+        - gammaln(counts + 1)[:, None]
+        - gammaln(alpha_neg1)
     )
 
     if len(mu.shape) == 1:
         return n * alpha_neg1 * np.log(alpha) + (
             -logbinom
-            + (y[:, None] + alpha_neg1) * np.log(mu[:, None] + alpha_neg1)
-            - (y * np.log(mu))[:, None]
+            + (counts[:, None] + alpha_neg1) * np.log(mu[:, None] + alpha_neg1)
+            - (counts * np.log(mu))[:, None]
         ).sum(0)
     else:
         return n * alpha_neg1 * np.log(alpha) + (
             -logbinom
-            + (y[:, None] + alpha_neg1) * np.log(mu + alpha_neg1)
-            - (y[:, None] * np.log(mu))
+            + (counts[:, None] + alpha_neg1) * np.log(mu + alpha_neg1)
+            - (counts[:, None] * np.log(mu))
         ).sum(0)
 
 
 def grid_fit_alpha(
-    y,
-    X,
+    counts,
+    design_matrix,
     mu,
     alpha_hat,
     min_disp,
@@ -66,10 +68,10 @@ def grid_fit_alpha(
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Raw counts for a given gene.
 
-    X : ndarray
+    design_matrix : ndarray
         Design matrix.
 
     mu : ndarray
@@ -113,11 +115,14 @@ def grid_fit_alpha(
         reg = 0
         if cr_reg:
             reg += (
-                0.5 * np.linalg.slogdet((X.T[:, :, None] * W).transpose(2, 0, 1) @ X)[1]
+                0.5
+                * np.linalg.slogdet(
+                    (design_matrix.T[:, :, None] * W).transpose(2, 0, 1) @ design_matrix
+                )[1]
             )
         if prior_reg:
             reg += (np.log(alpha) - np.log(alpha_hat)) ** 2 / (2 * prior_disp_var)
-        return vec_nb_nll(y, mu, alpha) + reg
+        return vec_nb_nll(counts, mu, alpha) + reg
 
     ll_grid = loss(grid)
 
@@ -135,7 +140,7 @@ def grid_fit_alpha(
 def grid_fit_beta(
     counts,
     size_factors,
-    X,
+    design_matrix,
     disp,
     min_mu=0.5,
     grid_length=60,
@@ -155,7 +160,7 @@ def grid_fit_beta(
     size_factors : pandas.Series
         DESeq2 normalization factors.
 
-    X : ndarray
+    design_matrix : ndarray
         Design matrix.
 
     disp : float
@@ -184,7 +189,7 @@ def grid_fit_beta(
 
     def loss(beta):
         # closure to minimize
-        mu = np.maximum(size_factors[:, None] * np.exp(X @ beta.T), min_mu)
+        mu = np.maximum(size_factors[:, None] * np.exp(design_matrix @ beta.T), min_mu)
         return vec_nb_nll(counts, mu, disp) + 0.5 * (1e-6 * beta**2).sum(1)
 
     for i, x in enumerate(x_grid):

@@ -234,14 +234,14 @@ def dispersion_trend(normed_mean, coeffs):
         return coeffs[0] + coeffs[1] / normed_mean
 
 
-def nb_nll(y, mu, alpha):
+def nb_nll(counts, mu, alpha):
     """Negative log-likelihood of a negative binomial.
 
     Unvectorized version.
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Observations.
 
     mu : float
@@ -254,27 +254,31 @@ def nb_nll(y, mu, alpha):
     Returns
     -------
     float
-        Negative log likelihood of the observations y
+        Negative log likelihood of the observations counts
         following :math:`NB(\\mu, \\alpha)`.
     """
 
-    n = len(y)
+    n = len(counts)
     alpha_neg1 = 1 / alpha
-    logbinom = gammaln(y + alpha_neg1) - gammaln(y + 1) - gammaln(alpha_neg1)
+    logbinom = gammaln(counts + alpha_neg1) - gammaln(counts + 1) - gammaln(alpha_neg1)
     return (
         n * alpha_neg1 * np.log(alpha)
-        + (-logbinom + (y + alpha_neg1) * np.log(alpha_neg1 + mu) - y * np.log(mu)).sum()
+        + (
+            -logbinom
+            + (counts + alpha_neg1) * np.log(alpha_neg1 + mu)
+            - counts * np.log(mu)
+        ).sum()
     )
 
 
-def dnb_nll(y, mu, alpha):
+def dnb_nll(counts, mu, alpha):
     """Gradient of the negative log-likelihood of a negative binomial.
 
     Unvectorized.
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Observations.
 
     mu : float
@@ -295,9 +299,9 @@ def dnb_nll(y, mu, alpha):
         alpha_neg1**2
         * (
             polygamma(0, alpha_neg1)
-            - polygamma(0, y + alpha_neg1)
+            - polygamma(0, counts + alpha_neg1)
             + np.log(1 + mu * alpha)
-            + (y - mu) / (mu + alpha_neg1)
+            + (counts - mu) / (mu + alpha_neg1)
         ).sum()
     )
 
@@ -364,7 +368,7 @@ def irls_solver(
 
     mu: ndarray
         Means estimated from size factors and beta:
-        :math:`\\mu = s_{ij} \\exp(\\beta^t X)`.
+        :math:`\\mu = s_{ij} \\exp(\\beta^t design_matrix)`.
 
     H: ndarray
         Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}` covariance matrix.
@@ -466,8 +470,8 @@ def irls_solver(
 
 
 def fit_alpha_mle(
-    y,
-    X,
+    counts,
+    design_matrix,
     mu,
     alpha_hat,
     min_disp,
@@ -479,15 +483,15 @@ def fit_alpha_mle(
 ):
     """Estimate the dispersion parameter of a negative binomial GLM.
 
-    Note: it is possible to pass pandas Series as y, X and mu arguments but using numpy
-    arrays makes the code significantly faster.
+    Note: it is possible to pass counts, design_matrix and mu arguments in the form of
+    pandas Series, but using numpy arrays makes the code significantly faster.
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Raw counts for a given gene.
 
-    X : ndarray
+    design_matrix : ndarray
         Design matrix.
 
     mu : ndarray
@@ -537,10 +541,10 @@ def fit_alpha_mle(
         W = mu / (1 + mu * alpha)
         reg = 0
         if cr_reg:
-            reg += 0.5 * np.linalg.slogdet((X.T * W) @ X)[1]
+            reg += 0.5 * np.linalg.slogdet((design_matrix.T * W) @ design_matrix)[1]
         if prior_reg:
             reg += (np.log(alpha) - np.log(alpha_hat)) ** 2 / (2 * prior_disp_var)
-        return nb_nll(y, mu, alpha) + reg
+        return nb_nll(counts, mu, alpha) + reg
 
     def dloss(log_alpha):
         # gradient closure
@@ -549,10 +553,16 @@ def fit_alpha_mle(
         dW = -(W**2)
         reg_grad = 0
         if cr_reg:
-            reg_grad += 0.5 * (np.linalg.inv((X.T * W) @ X) * ((X.T * dW) @ X)).sum()
+            reg_grad += (
+                0.5
+                * (
+                    np.linalg.inv((design_matrix.T * W) @ design_matrix)
+                    * ((design_matrix.T * dW) @ design_matrix)
+                ).sum()
+            )
         if prior_reg:
             reg_grad += (np.log(alpha) - np.log(alpha_hat)) / (alpha * prior_disp_var)
-        return dnb_nll(y, mu, alpha) + reg_grad
+        return dnb_nll(counts, mu, alpha) + reg_grad
 
     res = minimize(
         lambda x: loss(x[0]),
@@ -568,7 +578,9 @@ def fit_alpha_mle(
         return np.exp(res.x[0]), res.success
     else:
         return (
-            np.exp(grid_fit_alpha(y, X, mu, alpha_hat, min_disp, max_disp)),
+            np.exp(
+                grid_fit_alpha(counts, design_matrix, mu, alpha_hat, min_disp, max_disp)
+            ),
             res.success,
         )
 
@@ -685,20 +697,20 @@ def trimmed_variance(x, trim=0.125, axis=1):
     return 1.51 * trimmed_mean(sqerror, trim=trim, axis=axis)
 
 
-def fit_lin_mu(y, size_factors, X, min_mu=0.5):
+def fit_lin_mu(counts, size_factors, design_matrix, min_mu=0.5):
     """Estimate mean of negative binomial model using a linear regression.
 
     Used to initialize genewise dispersion models.
 
     Parameters
     ----------
-    y : ndarray
+    counts : ndarray
         Raw counts for a given gene.
 
     size_factors : ndarray
         Sample-wise scaling factors (obtained from median-of-ratios).
 
-    X : ndarray
+    design_matrix : ndarray
         Design matrix.
 
     min_mu : float
@@ -711,13 +723,13 @@ def fit_lin_mu(y, size_factors, X, min_mu=0.5):
     """
 
     reg = LinearRegression(fit_intercept=False)
-    reg.fit(X, y / size_factors)
-    mu_hat = size_factors * reg.predict(X)
+    reg.fit(design_matrix, counts / size_factors)
+    mu_hat = size_factors * reg.predict(design_matrix)
     # Threshold mu_hat as 1/mu_hat will be used later on.
     return np.maximum(mu_hat, min_mu)
 
 
-def wald_test(X, disp, lfc, mu, ridge_factor, idx=-1):
+def wald_test(design_matrix, disp, lfc, mu, ridge_factor, idx=-1):
     """Run Wald test for differential expression.
 
     Computes Wald statistics, standard error and p-values from
@@ -725,7 +737,7 @@ def wald_test(X, disp, lfc, mu, ridge_factor, idx=-1):
 
     Parameters
     ----------
-    X : ndarray
+    design_matrix : ndarray
         Design matrix.
 
     disp : float
@@ -757,7 +769,7 @@ def wald_test(X, disp, lfc, mu, ridge_factor, idx=-1):
 
     # Build covariance matrix estimator
     W = np.diag(mu / (1 + mu * disp))
-    M = X.T @ W @ X
+    M = design_matrix.T @ W @ design_matrix
     H = np.linalg.inv(M + ridge_factor)
     S = H @ M @ H
     # Evaluate standard error and Wald statistic

@@ -256,7 +256,12 @@ class DeseqStats:
                 batch_size=self.batch_size,
             )(
                 delayed(wald_test)(
-                    X, disps[i], LFCs[i], mu[:, i], ridge_factor, self.contrast_idx
+                    design_matrix=X,
+                    disp=disps[i],
+                    lfc=LFCs[i],
+                    mu=mu[:, i],
+                    ridge_factor=ridge_factor,
+                    idx=self.contrast_idx,
                 )
                 for i in range(num_genes)
             )
@@ -313,14 +318,14 @@ class DeseqStats:
                 batch_size=self.batch_size,
             )(
                 delayed(nbinomGLM)(
-                    X,
-                    counts_nonzero[:, i],
-                    size[i],
-                    offset,
-                    prior_no_shrink_scale,
-                    prior_scale,
-                    "L-BFGS-B",
-                    self.contrast_idx,
+                    design_matrix=X,
+                    counts=counts_nonzero[:, i],
+                    size=size[i],
+                    offset=offset,
+                    prior_no_shrink_scale=prior_no_shrink_scale,
+                    prior_scale=prior_scale,
+                    optimizer="L-BFGS-B",
+                    shrink_index=self.contrast_idx,
                 )
                 for i in range(num_genes)
             )
