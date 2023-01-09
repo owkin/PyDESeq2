@@ -19,7 +19,7 @@ from pydeseq2.grid_search import grid_fit_shrink_beta
 
 def load_example_data(
     modality="raw_counts",
-    cancer_type="synthetic",
+    dataset="synthetic",
     debug=False,
     debug_seed=42,
 ):
@@ -33,10 +33,13 @@ def load_example_data(
     modality : str
         Data modality. "raw_counts" or "clinical".
 
-    cancer_type : str
-        The cancer type for which to return gene expression data.
-        If "synthetic", will return the synthetic data that is used for CI unit tests.
-        Otherwise, must be a valid TCGA dataset. (default: "synthetic").
+    dataset : str
+        The dataset from which to return gene expression data.
+        If "synthetic" or "multifactor_synthetic", will return the synthetic data that is
+        used for CI unit tests. Otherwise, must be a valid TCGA dataset.
+        Accepted values: ["synthetic", "multifactor_synthetic", "TCGA-BRCA", "TCGA-COAD",
+        "TCGA-LUAD", "TCGA-LUSC", "TCGA-PAAD", "TCGA-PRAD", "TCGA-READ", "TCGA-SKCM"]
+        (default: "synthetic").
 
     debug : bool
         If true, subsample 10 samples and 100 genes at random.
@@ -55,8 +58,9 @@ def load_example_data(
         "The modality argument must be one of the following: " "raw_counts, clinical"
     )
 
-    assert cancer_type in [
+    assert dataset in [
         "synthetic",
+        "multifactor_synthetic",
         "TCGA-BRCA",
         "TCGA-COAD",
         "TCGA-LUAD",
@@ -66,14 +70,18 @@ def load_example_data(
         "TCGA-READ",
         "TCGA-SKCM",
     ], (
-        "The cancer_type argument must be one of the following: "
-        "syntetic, TCGA-BRCA, TCGA-COAD, TCGA-LUAD, TCGA-LUSC, "
+        "The dataset argument must be one of the following: "
+        "synthetic, multifactor_synthetic, TCGA-BRCA, TCGA-COAD, TCGA-LUAD, TCGA-LUSC, "
         "TCGA-PAAD, TCGA-PRAD, TCGA-READ, TCGA-SKCM"
     )
     # Load data
-    if cancer_type == "synthetic":
+    if dataset in ["synthetic", "multifactor_synthetic"]:
         datasets_path = Path(pydeseq2.__file__).parent.parent / "tests"
-        path_to_data = datasets_path / "data/single_factor/"
+        path_to_data = (
+            datasets_path / "data/single_factor/"
+            if dataset == "synthetic"
+            else datasets_path / "data/multi_factor/"
+        )
 
         if modality == "raw_counts":
             df = pd.read_csv(
@@ -93,14 +101,14 @@ def load_example_data(
 
         if modality == "raw_counts":
             df = pd.read_csv(
-                path_to_data / "Gene_expressions" / f"{cancer_type}_raw_RNAseq.tsv.gz",
+                path_to_data / "Gene_expressions" / f"{dataset}_raw_RNAseq.tsv.gz",
                 compression="gzip",
                 sep="\t",
                 index_col=0,
             ).T
         elif modality == "clinical":
             df = pd.read_csv(
-                path_to_data / "Clinical" / f"{cancer_type}_clinical.tsv.gz",
+                path_to_data / "Clinical" / f"{dataset}_clinical.tsv.gz",
                 compression="gzip",
                 sep="\t",
                 index_col=0,
