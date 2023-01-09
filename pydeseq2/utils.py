@@ -152,7 +152,7 @@ def build_design_matrix(
         DataFrame containing clinical information.
         Must be indexed by sample barcodes, and contain a "high_grade" column.
 
-    design : str or list
+    design : str or list[str]
         Name of the columns of clinical_df to be used as design_matrix variables.
         (default: "high_grade").
 
