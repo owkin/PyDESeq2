@@ -192,8 +192,8 @@ class DeseqStats:
         Get gene-wise p-values for gene over/under-expression.`
         """
 
-        n = len(self.LFCs)
-        p = self.dds.design_matrix.shape[1]
+        num_genes = len(self.LFCs)
+        num_vars = self.dds.design_matrix.shape[1]
 
         # Raise a warning if LFCs are shrunk.
         if self.shrunk_LFCs:
@@ -230,9 +230,9 @@ class DeseqStats:
 
         # Set regularization factors.
         if self.prior_disp_var is not None:
-            D = np.diag(1 / self.prior_disp_var**2)
+            ridge_factor = np.diag(1 / self.prior_disp_var**2)
         else:
-            D = np.diag(np.repeat(1e-6, p))
+            ridge_factor = np.diag(np.repeat(1e-6, num_vars))
 
         X = self.dds.design_matrix.values
         disps = self.dds.dispersions.values
@@ -246,8 +246,10 @@ class DeseqStats:
                 verbose=self.joblib_verbosity,
                 batch_size=self.batch_size,
             )(
-                delayed(wald_test)(X, disps[i], LFCs[i], mu[:, i], D, self.contrast_idx)
-                for i in range(n)
+                delayed(wald_test)(
+                    X, disps[i], LFCs[i], mu[:, i], ridge_factor, self.contrast_idx
+                )
+                for i in range(num_genes)
             )
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
@@ -281,7 +283,7 @@ class DeseqStats:
         # Filter genes with all zero counts
         nonzero = self.dds.counts.sum(0) > 0
         counts_nonzero = self.dds.counts.loc[:, nonzero].values
-        m = counts_nonzero.shape[1]
+        num_genes = counts_nonzero.shape[1]
 
         size = (1.0 / self.dds.dispersions[nonzero]).values
         offset = np.log(self.dds.size_factors).values
@@ -311,7 +313,7 @@ class DeseqStats:
                     "L-BFGS-B",
                     self.contrast_idx,
                 )
-                for i in range(m)
+                for i in range(num_genes)
             )
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
@@ -425,13 +427,13 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        m, p = self.dds.design_matrix.shape
-        cooks_cutoff = f.ppf(0.99, p, m - p)
+        num_samples, num_vars = self.dds.design_matrix.shape
+        cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
 
         # If for a gene there are 3 samples or more that have more counts than the
         # maximum cooks sample, don't count this gene as an outlier.
         # Do this only if there are 2 cohorts.
-        if p == 2:
+        if num_vars == 2:
             # Check whether cohorts have enough samples to allow refitting
             # Only consider conditions with 3 or more samples (same as in R)
             n_or_more = (

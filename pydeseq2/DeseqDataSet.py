@@ -256,7 +256,7 @@ class DeseqDataSet:
         Fits a negative binomial per gene, independently.
         """
 
-        p = self.design_matrix.shape[-1]
+        num_vars = self.design_matrix.shape[-1]
 
         # Check that size factors are available. If not, compute them.
         if not hasattr(self, "size_factors"):
@@ -269,7 +269,7 @@ class DeseqDataSet:
         non_zero = ~(self.counts == 0).all()
         self.non_zero_genes = non_zero[non_zero].index
         counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
-        m = counts_nonzero.shape[1]
+        num_genes = counts_nonzero.shape[1]
 
         # Convert design_matrix to numpy for speed
         X = self.design_matrix.values
@@ -280,7 +280,7 @@ class DeseqDataSet:
         # groups. If there are as many different factor combinations as design factors
         # (intercept included), it is fitted with a linear model, otherwise it is fitted
         # with a GLM (using rough dispersion estimates).
-        if len(self.design_matrix.value_counts()) == p:
+        if len(self.design_matrix.value_counts()) == num_vars:
             with parallel_backend("loky", inner_max_num_threads=1):
                 mu_hat_ = np.array(
                     Parallel(
@@ -294,7 +294,7 @@ class DeseqDataSet:
                             X,
                             self.min_mu,
                         )
-                        for i in range(m)
+                        for i in range(num_genes)
                     )
                 )
         else:
@@ -312,7 +312,7 @@ class DeseqDataSet:
                         self.min_mu,
                         self.beta_tol,
                     )
-                    for i in range(m)
+                    for i in range(num_genes)
                 )
 
                 _, mu_hat_, _, _ = zip(*res)
@@ -336,7 +336,7 @@ class DeseqDataSet:
                     self.min_disp,
                     self.max_disp,
                 )
-                for i in range(m)
+                for i in range(num_genes)
             )
         end = time.time()
         print(f"... done in {end - start:.2f} seconds.\n")
@@ -431,8 +431,8 @@ class DeseqDataSet:
             self.fit_dispersion_trend()
 
         # Exclude genes with all zeroes
-        m = len(self.non_zero_genes)
-        p = self.design_matrix.shape[1]
+        num_genes = len(self.non_zero_genes)
+        num_vars = self.design_matrix.shape[1]
 
         # Fit dispersions to the curve, and compute log residuals
         disp_residuals = np.log(self.genewise_dispersions) - np.log(
@@ -448,7 +448,7 @@ class DeseqDataSet:
             disp_residuals.loc[self.non_zero_genes][above_min_disp]
         ).median() ** 2 / norm.ppf(0.75)
         self.prior_disp_var = np.maximum(
-            self._squared_logres - polygamma(1, (m - p) / 2), 0.25
+            self._squared_logres - polygamma(1, (num_genes - num_vars) / 2), 0.25
         )
 
     def fit_MAP_dispersions(self):
@@ -463,7 +463,7 @@ class DeseqDataSet:
 
         # Exclude genes with all zeroes
         counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
-        m = counts_nonzero.shape[1]
+        num_genes = counts_nonzero.shape[1]
 
         X = self.design_matrix.values
         mu_hat = self._mu_hat.values
@@ -488,7 +488,7 @@ class DeseqDataSet:
                     True,
                     True,
                 )
-                for i in range(m)
+                for i in range(num_genes)
             )
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
@@ -524,7 +524,7 @@ class DeseqDataSet:
 
         # Exclude genes with all zeroes
         counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
-        m = counts_nonzero.shape[1]
+        num_genes = counts_nonzero.shape[1]
 
         X = self.design_matrix.values
         size_factors = self.size_factors.values
@@ -546,7 +546,7 @@ class DeseqDataSet:
                     self.min_mu,
                     self.beta_tol,
                 )
-                for i in range(m)
+                for i in range(num_genes)
             )
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
@@ -593,7 +593,7 @@ class DeseqDataSet:
         if not hasattr(self, "dispersions"):
             self.fit_MAP_dispersions()
 
-        p = self.design_matrix.shape[1]
+        num_vars = self.design_matrix.shape[1]
         # Keep only non-zero genes
         normed_counts = self.counts.loc[:, self.non_zero_genes].div(self.size_factors, 0)
         dispersions = robust_method_of_moments_disp(normed_counts, self.design_matrix)
@@ -603,7 +603,7 @@ class DeseqDataSet:
         ) ** 2 / V
         self.cooks = (
             squared_pearson_res
-            / p
+            / num_vars
             * (self._hat_diagonals / (1 - self._hat_diagonals) ** 2)
         ).T
 
@@ -644,7 +644,7 @@ class DeseqDataSet:
         if not hasattr(self, "cooks"):
             self.calculate_cooks()
 
-        m, p = self.design_matrix.shape
+        num_samples, num_vars = self.design_matrix.shape
 
         # Check whether cohorts have enough samples to allow refitting
         n_or_more = (
@@ -657,7 +657,7 @@ class DeseqDataSet:
         self.replaceable.index = self.design_matrix.index
 
         # Get positions of counts with cooks above threshold
-        cooks_cutoff = f.ppf(0.99, p, m - p)
+        cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
         idx = (self.cooks > cooks_cutoff).T
         self.replaced = idx.any(axis=0)
 
