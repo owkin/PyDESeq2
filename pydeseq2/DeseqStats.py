@@ -33,6 +33,9 @@ class DeseqStats:
         A list of three strings, in the following format:
         ['variable_of_interest', 'tested_level', 'reference_level'].
         Names must correspond to the clinical data passed to the DeseqDataSet.
+        E.g., ['condition', 'B', 'A'] will measure the LFC of 'condition B' compared to
+        'condition A'. If None, the last variable from the design matrix is chosen
+        as the variable of interest, and the reference level is picked alphabetically.
         (default: None).
 
     alpha : float
