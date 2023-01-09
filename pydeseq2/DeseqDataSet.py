@@ -188,7 +188,7 @@ class DeseqDataSet:
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
         )
-        if self.clinical[self.design_factors].isna().any():
+        if self.clinical[self.design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factor.")
         self.clinical[self.design_factors] = self.clinical[self.design_factors].astype(
             str
