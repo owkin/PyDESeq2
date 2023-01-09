@@ -17,7 +17,7 @@ from pydeseq2.grid_search import grid_fit_beta
 from pydeseq2.grid_search import grid_fit_shrink_beta
 
 
-def load_data(
+def load_example_data(
     modality="raw_counts",
     cancer_type="synthetic",
     debug=False,
@@ -138,7 +138,7 @@ def test_valid_counts(counts_df):
 
 
 def build_design_matrix(
-    clinical_df, design="high_grade", ref=None, expanded=False, intercept=True
+    clinical_df, design_factors="high_grade", ref=None, expanded=False, intercept=True
 ):
     """Build design_matrix matrix for DEA.
 
@@ -152,7 +152,7 @@ def build_design_matrix(
         DataFrame containing clinical information.
         Must be indexed by sample barcodes, and contain a "high_grade" column.
 
-    design : str or list[str]
+    design_factors : str or list[str]
         Name of the columns of clinical_df to be used as design_matrix variables.
         (default: "high_grade").
 
@@ -175,19 +175,21 @@ def build_design_matrix(
         Indexed by sample barcodes.
     """
 
-    if isinstance(design, str):  # if there is a single factor, convert to singleton list
-        design = [design]
+    if isinstance(
+        design_factors, str
+    ):  # if there is a single factor, convert to singleton list
+        design_factors = [design_factors]
 
-    design_matrix = pd.get_dummies(clinical_df[design])
+    design_matrix = pd.get_dummies(clinical_df[design_factors])
 
-    for factor in design:
+    for factor in design_factors:
         # Check that each factor has exactly 2 levels
         if len(np.unique(clinical_df[factor])) != 2:
             raise ValueError(
                 f"Factors should take exactly two values, but {factor} "
                 f"takes values {np.unique(clinical_df[factor])}."
             )
-    factor = design[-1]
+    factor = design_factors[-1]
     if ref is None:
         ref = "_".join([factor, np.sort(np.unique(clinical_df[factor]).astype(str))[0]])
         ref_level = design_matrix.pop(ref)
