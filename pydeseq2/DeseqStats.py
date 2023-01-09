@@ -125,6 +125,7 @@ class DeseqStats:
         self.dds = dds
 
         if contrast is not None:  # Test contrast if provided
+            assert len(contrast) == 3, "The contrast should contain three strings."
             assert (
                 contrast[0] in self.dds.design_factors
             ), "The contrast variable should be one of the design factors."
