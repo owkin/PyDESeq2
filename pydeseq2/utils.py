@@ -38,7 +38,7 @@ def load_example_data(
         If "synthetic" or "multifactor_synthetic", will return the synthetic data that is
         used for CI unit tests. Otherwise, must be a valid TCGA dataset.
         Accepted values: ["synthetic", "multifactor_synthetic", "TCGA-BRCA", "TCGA-COAD",
-        "TCGA-LUAD", "TCGA-LUSC", "TCGA-PAAD", "TCGA-PRAD", "TCGA-READ", "TCGA-SKCM"]
+        "TCGA-LUAD", "TCGA-LUSC", "TCGA-PAAD", "TCGA-PRAD", "TCGA-READ", "TCGA-SKCM"].
         (default: "synthetic").
 
     debug : bool
