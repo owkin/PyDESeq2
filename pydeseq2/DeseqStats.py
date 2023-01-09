@@ -124,11 +124,16 @@ class DeseqStats:
 
         self.dds = dds
 
-        # Build contrast if None
-        if contrast is not None:
-            # TODO : tests on the contrast
+        if contrast is not None:  # Test contrast if provided
+            assert (
+                contrast[0] in self.dds.design_factors
+            ), "The contrast variable should be one of the design factors."
+            assert (
+                contrast[1] in self.dds.clinical[contrast[0]].values
+                and contrast[2] in self.dds.clinical[contrast[0]].values
+            ), "The contrast levels should correspond to design factors levels."
             self.contrast = contrast
-        else:
+        else:  # Build contrast if None
             factor = self.dds.design_factors[-1]
             levels = np.unique(self.dds.clinical[factor]).astype(str)
             if "_".join([factor, levels[0]]) == self.dds.design_matrix.columns[-1]:
