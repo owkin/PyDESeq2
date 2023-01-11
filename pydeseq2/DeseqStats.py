@@ -70,6 +70,12 @@ class DeseqStats:
     contrast_idx : int
         Index of the LFC column corresponding to the variable being tested.
 
+    design_matrix : pandas.DataFrame
+        A DataFrame with experiment design information (to split cohorts).
+        Indexed by sample barcodes. Depending on the contrast that is provided to the
+        DeseqStats object, it may differ from the DeseqDataSet design matrix, as the
+        reference level may need to be adapted.
+
     LFCs : pandas.DataFrame
         Estimated log-fold change between conditions and intercept, in natural log scale.
 
@@ -147,7 +153,39 @@ class DeseqStats:
         self.independent_filter = independent_filter
         self.prior_disp_var = prior_disp_var
         self.base_mean = self.dds._normed_means
+
+        # Initialize the design matrix and LFCs. If the chosen reference level are the
+        # same as in dds, keep them unchanged. Otherwise, change reference level.
+        self.design_matrix = self.dds.design_matrix.copy()
         self.LFCs = self.dds.LFCs.copy()
+        if self.contrast is None:
+            alternative_level = self.design_matrix.columns[-1]
+        else:
+            alternative_level = "_".join([self.contrast[0], self.contrast[1]])
+
+        if alternative_level in self.design_matrix.columns:
+            self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
+        else:  # The reference level is not the same as in dds: change it
+            reference_level = "_".join([self.contrast[0], self.contrast[2]])
+            self.contrast_idx = self.LFCs.columns.get_loc(reference_level)
+            # Change the design matrix reference level
+            self.design_matrix.rename(
+                columns={
+                    self.design_matrix.columns[self.contrast_idx]: alternative_level
+                },
+                inplace=True,
+            )
+            self.design_matrix.iloc[:, self.contrast_idx] = (
+                1 - self.design_matrix.iloc[:, self.contrast_idx]
+            )
+            # Rename and update LFC coefficients accordingly
+            self.LFCs.rename(
+                columns={self.LFCs.columns[self.contrast_idx]: alternative_level},
+                inplace=True,
+            )
+            self.LFCs.iloc[:, 0] += self.LFCs.iloc[:, self.contrast_idx]
+            self.LFCs.iloc[:, self.contrast_idx] *= -1
+            print(self.LFCs.columns[self.contrast_idx])
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
         self.n_processes = get_num_processes(n_cpus)
@@ -202,7 +240,7 @@ class DeseqStats:
         """
 
         num_genes = len(self.LFCs)
-        num_vars = self.dds.design_matrix.shape[1]
+        num_vars = self.design_matrix.shape[1]
 
         # Raise a warning if LFCs are shrunk.
         if self.shrunk_LFCs:
@@ -212,30 +250,17 @@ class DeseqStats:
                 "separated from the use of the LFC prior."
             )
 
-        # Get the LFC column corresponding to the design variable.
-        if self.contrast is None:
-            self.contrast_idx = self.LFCs.columns.get_loc(
-                self.dds.design_matrix.columns[-1]
-            )
-        else:
-            # If the design matrix of dds is unexpanded, only one of the two levels
-            # will have a corresponding column
-            alternative_level = "_".join([self.contrast[0], self.contrast[1]])
-            try:
-                self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
-            except KeyError:
-                alternative_level = "_".join([self.contrast[0], self.contrast[2]])
-                self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
-                self.LFCs.iloc[:, self.contrast_idx] *= -1
-                self._change_lfc_sign = True
-                pass
-
-        # Compute means according to the LFC model.
         mu = (
-            np.exp(self.dds.design_matrix @ self.LFCs.T)
+            np.exp(self.design_matrix @ self.LFCs.T)
             .multiply(self.dds.size_factors, 0)
             .values
         )
+
+        # If the contrast implies a different reference level than the one from the
+        # design matrix, change lfc signs. Do this *after* the means were computed
+        # (otherwise we would need)
+        if self._change_lfc_sign:
+            self.LFCs.iloc[:, self.contrast_idx] *= -1
 
         # Set regularization factors.
         if self.prior_disp_var is not None:
@@ -243,7 +268,7 @@ class DeseqStats:
         else:
             ridge_factor = np.diag(np.repeat(1e-6, num_vars))
 
-        X = self.dds.design_matrix.values
+        X = self.design_matrix.values
         disps = self.dds.dispersions.values
         LFCs = self.LFCs.values
 
@@ -307,7 +332,7 @@ class DeseqStats:
         prior_var = self._fit_prior_var()
         prior_scale = np.minimum(np.sqrt(prior_var), 1)
 
-        X = self.dds.design_matrix.values
+        X = self.design_matrix.values
 
         print("Fitting MAP LFCs...")
         start = time.time()
@@ -350,10 +375,6 @@ class DeseqStats:
         self._lcf_shrink_converged = pd.Series(
             np.array(l_bfgs_b_converged_), index=self.dds.dispersions[nonzero].index
         )
-
-        # Change sign to comply with contrast, if needed
-        if self._change_lfc_sign:
-            self.LFCs.iloc[:, self.contrast_idx] *= -1
 
         # Set a flag to indicate that LFCs were shrunk
         self.shrunk_LFCs = True
@@ -441,7 +462,7 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        num_samples, num_vars = self.dds.design_matrix.shape
+        num_samples, num_vars = self.design_matrix.shape
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
 
         # If for a gene there are 3 samples or more that have more counts than the
@@ -450,16 +471,14 @@ class DeseqStats:
         if num_vars == 2:
             # Check whether cohorts have enough samples to allow refitting
             # Only consider conditions with 3 or more samples (same as in R)
-            n_or_more = (
-                self.dds.design_matrix.iloc[:, self.contrast_idx].value_counts() >= 3
-            )
+            n_or_more = self.design_matrix.iloc[:, self.contrast_idx].value_counts() >= 3
             use_for_max = pd.Series(
-                n_or_more[self.dds.design_matrix.iloc[:, self.contrast_idx]]
+                n_or_more[self.design_matrix.iloc[:, self.contrast_idx]]
             )
-            use_for_max.index = self.dds.design_matrix.index
+            use_for_max.index = self.design_matrix.index
 
         else:
-            use_for_max = pd.Series(True, index=self.dds.design_matrix.index)
+            use_for_max = pd.Series(True, index=self.design_matrix.index)
 
         # Take into account whether we already replaced outliers
         if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
