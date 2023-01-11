@@ -205,3 +205,48 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
         abs(r_shrunk_res.log2FoldChange - shrunk_res.log2FoldChange)
         / abs(r_shrunk_res.log2FoldChange)
     ).max() < tol
+
+
+def test_contrast():
+    """
+    Check that the contrasts ['condition', 'B', 'A'] and ['condition', 'A', 'B'] give
+    coherent results (change of sign in LFCs and Wald stats, same (adjusted p-values).
+    """
+
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    dds = DeseqDataSet(counts_df, clinical_df, design_factors=["group", "condition"])
+    dds.deseq2()
+
+    res_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"])
+    res_A_vs_B = DeseqStats(dds, contrast=["condition", "A", "B"])
+    res_B_vs_A.summary()
+    res_A_vs_B.summary()
+
+    # Check that all values correspond, up to signs
+    for col in res_B_vs_A.results_df.columns:
+        np.testing.assert_almost_equal(
+            res_B_vs_A.results_df[col].abs().values,
+            res_A_vs_B.results_df[col].abs().values,
+            decimal=8,
+        )
+
+    # Check that the sign of LFCs and stats are inverted
+    np.testing.assert_almost_equal(
+        res_B_vs_A.results_df.log2FoldChange.values,
+        -res_A_vs_B.results_df.log2FoldChange.values,
+        decimal=8,
+    )
+    np.testing.assert_almost_equal(
+        res_B_vs_A.results_df.stat.values, -res_A_vs_B.results_df.stat.values, decimal=8
+    )
