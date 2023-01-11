@@ -95,7 +95,7 @@ counts_df = counts_df[genes_to_keep]
 dds = DeseqDataSet(
     counts_df,
     clinical_df,
-    design_factor="condition" if CANCER == "synthetic" else "high_grade",
+    design_factors="condition" if CANCER == "synthetic" else "high_grade",
     refit_cooks=True,
     n_cpus=8,
 )
