@@ -28,7 +28,7 @@ import pickle as pkl
 
 from pydeseq2.DeseqDataSet import DeseqDataSet
 from pydeseq2.DeseqStats import DeseqStats
-from pydeseq2.utils import load_data
+from pydeseq2.utils import load_example_data
 
 SAVE = False  # whether to save the outputs of this notebook
 
@@ -44,13 +44,13 @@ CANCER = "synthetic"  # or 'TCGA-BRCA', 'TCGA-COAD', etc.
 OUTPUT_PATH = f"../output_files/{CANCER}"
 os.makedirs(OUTPUT_PATH, exist_ok=True)  # Create path if it doesn't exist
 
-counts_df = load_data(
+counts_df = load_example_data(
     modality="raw_counts",
     cancer_type=CANCER,
     debug=False,
 )
 
-clinical_df = load_data(
+clinical_df = load_example_data(
     modality="clinical",
     cancer_type=CANCER,
     debug=False,
