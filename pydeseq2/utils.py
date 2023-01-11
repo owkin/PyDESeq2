@@ -19,7 +19,7 @@ from pydeseq2.grid_search import grid_fit_shrink_beta
 
 def load_example_data(
     modality="raw_counts",
-    cancer_type="synthetic",
+    dataset="synthetic",
     debug=False,
     debug_seed=42,
 ):
@@ -33,7 +33,7 @@ def load_example_data(
     modality : str
         Data modality. "raw_counts" or "clinical".
 
-    cancer_type : str
+    dataset : str
         The cancer type for which to return gene expression data.
         If "synthetic", will return the synthetic data that is used for CI unit tests.
         Otherwise, must be a valid TCGA dataset. (default: "synthetic").
@@ -55,7 +55,7 @@ def load_example_data(
         "The modality argument must be one of the following: " "raw_counts, clinical"
     )
 
-    assert cancer_type in [
+    assert dataset in [
         "synthetic",
         "TCGA-BRCA",
         "TCGA-COAD",
@@ -66,14 +66,16 @@ def load_example_data(
         "TCGA-READ",
         "TCGA-SKCM",
     ], (
-        "The cancer_type argument must be one of the following: "
-        "syntetic, TCGA-BRCA, TCGA-COAD, TCGA-LUAD, TCGA-LUSC, "
+        "The dataset argument must be one of the following: "
+        "synthetic, TCGA-BRCA, TCGA-COAD, TCGA-LUAD, TCGA-LUSC, "
         "TCGA-PAAD, TCGA-PRAD, TCGA-READ, TCGA-SKCM"
     )
+
     # Load data
-    if cancer_type == "synthetic":
-        datasets_path = Path(pydeseq2.__file__).parent.parent / "tests"
-        path_to_data = datasets_path / "data/single_factor/"
+    datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
+
+    if dataset == "synthetic":
+        path_to_data = datasets_path / "synthetic"
 
         if modality == "raw_counts":
             df = pd.read_csv(
@@ -87,20 +89,19 @@ def load_example_data(
                 sep=",",
                 index_col=0,
             )
-    else:
-        datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
-        path_to_data = datasets_path / "tcga_data"
 
+    else:
+        path_to_data = datasets_path / "tcga_data"
         if modality == "raw_counts":
             df = pd.read_csv(
-                path_to_data / "Gene_expressions" / f"{cancer_type}_raw_RNAseq.tsv.gz",
+                path_to_data / "Gene_expressions" / f"{dataset}_raw_RNAseq.tsv.gz",
                 compression="gzip",
                 sep="\t",
                 index_col=0,
             ).T
         elif modality == "clinical":
             df = pd.read_csv(
-                path_to_data / "Clinical" / f"{cancer_type}_clinical.tsv.gz",
+                path_to_data / "Clinical" / f"{dataset}_clinical.tsv.gz",
                 compression="gzip",
                 sep="\t",
                 index_col=0,
@@ -138,7 +139,7 @@ def test_valid_counts(counts_df):
 
 
 def build_design_matrix(
-    clinical_df, design_factors="high_grade", ref=None, expanded=False, intercept=True
+    clinical_df, design_factors="condition", ref=None, expanded=False, intercept=True
 ):
     """Build design_matrix matrix for DEA.
 
@@ -150,11 +151,11 @@ def build_design_matrix(
     ----------
     clinical_df : pandas.DataFrame
         DataFrame containing clinical information.
-        Must be indexed by sample barcodes, and contain a "high_grade" column.
+        Must be indexed by sample barcodes.
 
     design_factors : str or list[str]
         Name of the columns of clinical_df to be used as design_matrix variables.
-        (default: "high_grade").
+        (default: "condition").
 
     ref : str
         The factor to use as a reference. Must be one of the values taken by the design.

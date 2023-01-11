@@ -46,7 +46,7 @@ class DeseqDataSet:
     design_factors : str or list[str]
         Name of the columns of clinical to be used as design variables. If a list,
         the last factor will be considered the variable of interest by default.
-        Only bi-level factors are supported. (default: 'high_grade').
+        Only bi-level factors are supported. (default: 'condition').
 
     reference_level : str
         The factor to use as a reference. Must be one of the values taken by the design.
@@ -156,7 +156,7 @@ class DeseqDataSet:
         self,
         counts,
         clinical,
-        design_factors="high_grade",
+        design_factors="condition",
         reference_level=None,
         min_mu=0.5,
         min_disp=1e-8,

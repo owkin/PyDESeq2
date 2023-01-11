@@ -1,13 +1,10 @@
-import os
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import pytest
 
-import tests
 from pydeseq2.DeseqDataSet import DeseqDataSet
 from pydeseq2.DeseqStats import DeseqStats
+from pydeseq2.utils import load_example_data
 
 
 def test_zero_genes():
@@ -15,13 +12,16 @@ def test_zero_genes():
     and that NaNs are returned.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
 
-    counts_df = pd.read_csv(
-        os.path.join(test_path, "data/single_factor/test_counts.csv"), index_col=0
-    ).T
-    clinical_df = pd.read_csv(
-        os.path.join(test_path, "data/single_factor/test_clinical.csv"), index_col=0
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
     )
 
     n, m = counts_df.shape

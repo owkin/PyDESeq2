@@ -7,6 +7,7 @@ import pandas as pd
 import tests
 from pydeseq2.DeseqDataSet import DeseqDataSet
 from pydeseq2.DeseqStats import DeseqStats
+from pydeseq2.utils import load_example_data
 
 # Single-factor tests
 
@@ -18,11 +19,16 @@ def test_deseq(tol=0.02):
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
-    counts_df = pd.read_csv(
-        os.path.join(test_path, "data/single_factor/test_counts.csv"), index_col=0
-    ).T
-    clinical_df = pd.read_csv(
-        os.path.join(test_path, "data/single_factor/test_clinical.csv"), index_col=0
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
     )
 
     r_res = pd.read_csv(
@@ -62,12 +68,16 @@ def test_lfc_shrinkage(tol=0.02):
         index_col=0,
     )
 
-    counts_df = pd.read_csv(
-        os.path.join(test_path, "data/single_factor/test_counts.csv"), index_col=0
-    ).T
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
 
-    clinical_df = pd.read_csv(
-        os.path.join(test_path, "data/single_factor/test_clinical.csv"), index_col=0
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
     )
 
     r_size_factors = pd.read_csv(
@@ -108,11 +118,16 @@ def test_multifactor_deseq(tol=0.02):
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
-    counts_df = pd.read_csv(
-        os.path.join(test_path, "data/multi_factor/test_counts.csv"), index_col=0
-    ).T
-    clinical_df = pd.read_csv(
-        os.path.join(test_path, "data/multi_factor/test_clinical.csv"), index_col=0
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
     )
 
     r_res = pd.read_csv(
@@ -152,12 +167,16 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
         index_col=0,
     )
 
-    counts_df = pd.read_csv(
-        os.path.join(test_path, "data/multi_factor/test_counts.csv"), index_col=0
-    ).T
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
 
-    clinical_df = pd.read_csv(
-        os.path.join(test_path, "data/multi_factor/test_clinical.csv"), index_col=0
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
     )
 
     r_size_factors = pd.read_csv(
