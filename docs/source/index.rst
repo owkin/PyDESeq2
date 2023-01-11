@@ -31,6 +31,12 @@ We plan to implement more in the near future. In case there is a feature you wou
 
    api/index
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Examples
+
+   auto_examples/index.rst
+
 
 Documentation
 -------------
