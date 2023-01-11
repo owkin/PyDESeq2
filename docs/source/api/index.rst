@@ -1,4 +1,3 @@
-import PyDESeq2 as pydeseq2
 
 PyDESeq2
 ========
