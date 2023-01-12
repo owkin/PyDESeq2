@@ -190,7 +190,6 @@ class DeseqStats:
         self.n_processes = get_num_processes(n_cpus)
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
-        self._change_lfc_sign = False
 
     def summary(self):
         """Run the statistical analysis.
@@ -254,12 +253,6 @@ class DeseqStats:
             .multiply(self.dds.size_factors, 0)
             .values
         )
-
-        # If the contrast implies a different reference level than the one from the
-        # design matrix, change lfc signs. Do this *after* the means were computed
-        # (otherwise we would need)
-        if self._change_lfc_sign:
-            self.LFCs.iloc[:, self.contrast_idx] *= -1
 
         # Set regularization factors.
         if self.prior_disp_var is not None:
