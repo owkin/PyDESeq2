@@ -185,7 +185,6 @@ class DeseqStats:
             )
             self.LFCs.iloc[:, 0] += self.LFCs.iloc[:, self.contrast_idx]
             self.LFCs.iloc[:, self.contrast_idx] *= -1
-            print(self.LFCs.columns[self.contrast_idx])
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
         self.n_processes = get_num_processes(n_cpus)
