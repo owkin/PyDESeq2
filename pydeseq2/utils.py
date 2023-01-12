@@ -672,7 +672,7 @@ def trimmed_cell_variance(counts, cells):
     return varEst.max(axis=1)
 
 
-def trimmed_variance(x, trim=0.125, axis=1):
+def trimmed_variance(x, trim=0.125, axis=0):
     """Return trimmed variance.
 
      Compute the variance after trimming data of its smallest and largest quantiles.
@@ -683,10 +683,10 @@ def trimmed_variance(x, trim=0.125, axis=1):
         Data whose trimmed variance to compute.
 
     trim : float
-        Fraction of data to trim at each end. (default: 0.1).
+        Fraction of data to trim at each end. (default: 0.125).
 
     axis : int
-        Dimension along which to compute variance.
+        Dimension along which to compute variance. (default: 0).
 
     Returns
     -------
