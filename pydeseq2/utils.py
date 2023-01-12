@@ -39,8 +39,7 @@ def load_example_data(
         Otherwise, must be a valid TCGA dataset. (default: "synthetic").
 
     debug : bool
-        If true, subsample 10 samples and 100 genes at random.
-        Only supported in "pooled" mode for now. (default: False).
+        If true, subsample 10 samples and 100 genes at random. (default: False).
 
     debug_seed : int
         Seed for the debug mode. (default: 42).
