@@ -23,7 +23,7 @@ def load_example_data(
     debug=False,
     debug_seed=42,
 ):
-    """Load synthetic or TCGA data (gene raw counts or clinical) for a given cancer type.
+    """Load synthetic or TCGA data (gene raw counts or clinical) for a given dataset.
 
     May load either clinical or rna-seq data.The synthetic data is part of this
     repo, but TCGA data should be downloaded as per the instructions in `datasets/`.
@@ -34,7 +34,7 @@ def load_example_data(
         Data modality. "raw_counts" or "clinical".
 
     dataset : str
-        The cancer type for which to return gene expression data.
+        The dataset for which to return gene expression data.
         If "synthetic", will return the synthetic data that is used for CI unit tests.
         Otherwise, must be a valid TCGA dataset. (default: "synthetic").
 

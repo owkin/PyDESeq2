@@ -39,20 +39,20 @@ SAVE = False  # whether to save the outputs of this notebook
 # See the `datasets` readme for the required data organization.
 #
 
-CANCER = "synthetic"  # or 'TCGA-BRCA', 'TCGA-COAD', etc.
+DATASET = "synthetic"  # or 'TCGA-BRCA', 'TCGA-COAD', etc.
 
-OUTPUT_PATH = f"../output_files/{CANCER}"
+OUTPUT_PATH = f"../output_files/{DATASET}"
 os.makedirs(OUTPUT_PATH, exist_ok=True)  # Create path if it doesn't exist
 
 counts_df = load_example_data(
     modality="raw_counts",
-    cancer_type=CANCER,
+    dataset=DATASET,
     debug=False,
 )
 
 clinical_df = load_example_data(
     modality="clinical",
-    cancer_type=CANCER,
+    dataset=DATASET,
     debug=False,
 )
 
@@ -61,7 +61,7 @@ print(counts_df)
 # %%
 # Remove samples for which `high_grade` is NaN.
 
-if CANCER != "synthetic":
+if DATASET != "synthetic":
     samples_to_keep = ~clinical_df.high_grade.isna()
     samples_to_keep.sum()
     counts_df = counts_df.loc[samples_to_keep]
@@ -95,7 +95,7 @@ counts_df = counts_df[genes_to_keep]
 dds = DeseqDataSet(
     counts_df,
     clinical_df,
-    design_factors="condition" if CANCER == "synthetic" else "high_grade",
+    design_factors="condition" if DATASET == "synthetic" else "high_grade",
     refit_cooks=True,
     n_cpus=8,
 )
