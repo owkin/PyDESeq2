@@ -151,7 +151,7 @@ def test_indexes():
 
 
 def test_cooks_not_refitted():
-    """Test that an AssertionError is thrown when a `DeseqStats` object is initialized
+    """Test that an AttributeError is thrown when a `DeseqStats` object is initialized
     from a `DeseqDataSet` whose `refit_cooks` attribute is set to True, but whose
     Cooks outliers were not actually refitted."""
 
