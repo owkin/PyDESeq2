@@ -23,20 +23,15 @@ SAVE = False  # whether to save the outputs of this notebook
 # See the `datasets` readme for the required data organization.
 #
 
-DATASET = "synthetic"  # or 'TCGA-BRCA', 'TCGA-COAD', etc.
-
-OUTPUT_PATH = f"../output_files/{DATASET}"
-os.makedirs(OUTPUT_PATH, exist_ok=True)  # Create path if it doesn't exist
-
 counts_df = load_example_data(
     modality="raw_counts",
-    dataset=DATASET,
+    dataset="synthetic",
     debug=False,
 )
 
 clinical_df = load_example_data(
     modality="clinical",
-    dataset=DATASET,
+    dataset="synthetic",
     debug=False,
 )
 
