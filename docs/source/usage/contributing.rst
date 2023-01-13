@@ -4,56 +4,61 @@ Contributing
 PyDESeq2 is a living project and any contributions are welcome!
 The project is hosted on `Github <https://github.com/owkin/PyDESeq2>`_.
 
-The simplest way to help us is to star our repository on github or talk about
+You can help us by adding a star to `pydeseq` repository on github or talk about
 our repository on the social media or on your blog or article.
 
-Follow code of conduct.
+We also kindly ask you to follow `Python code of conduct <https://www.python.org/psf/codeofconduct/>`_.
 
-If you find any bugs in the code report them to the issue tracker (link). There
-are some rules that apply (link).
+If you find any bugs in the code report them to the
+`issue tracker <https://github.com/owkin/PyDESeq2/issues>`_.
 
 How can I contribute?
 =====================
-- submit a bug or ask for a new feature
-- contribute to the code
-- improving the documentation
-- PR reviews
-- answering questions on issues
+- :ref:`bug`
+- :ref:`code_contrib`
+- :ref:`doc_contrib`
+- :ref:`answers`
+
+.. _bug:
 
 Submit a bug or ask for a new feature
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 First check if the issue which you are facing or a feature you would like to
 have added is not already described in the
-issue tracker (link). If this is the case you can give a thumb up to that
-issue / feature. If there are multiple thumbs ups to a given issue it makes us to
+`issue tracker <https://github.com/owkin/PyDESeq2/issues>`_.
+If this is the case you can give a thumb up to that
+issue / feature. If there are multiple thumbs ups to a given issue it makes us
 prioritize it higher. You can also add a comment if you think there is something
-you would like to add.
+you would like to add to what have been said.
 
 If the issue / feature is not yet described make sure to give precise details on
 how you reached that issue (if possible giving code snippets) or precisely
 describe how the new feature should function. If it's an issue you should also
 mention which version of `pydeseq2` you are using. If you don't know which
-version you are using you can check it by running the following code:
+version you are using you can check it by running the following python code:
 
 .. code-block:: python
 
     import pydeseq2
     pydeseq2.__version__
 
+.. _code_contrib:
+
 Contribute with the code
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Thanks for willing to help us out with the `pydeseq2` development.
 
-TODO: if you are contributing to the existing issue add in the comment that you
-plan to contribute on it to avoid duplicate work. Once you start working on your
-pull request, link it to the issue by adding `#issue_number`
+If you are contributing to the existing issue add in the comment of that issue
+that you plan to contribute on it to avoid duplicate work. Once you start
+working on your pull request, link it to the issue by adding `#issue_number`
 
-1. To contribute you will first need to fork the `pydeseq2` (link) repository using
-the fork button. This will create a copy of `pydeseq2` on your github account
-(you must be logged in to github).
-2. clone the `pydeseq2` version from your account:
+1. To contribute you will first need to fork the `Github <https://github.com/owkin/PyDESeq2>`_
+repository using the fork button in github. This will create a copy of
+`pydeseq2` on your github account (you must be logged in to github).
+
+1. clone the `pydeseq2` version from your account:
 
 .. code-block:: python
 
@@ -74,7 +79,7 @@ the required dependencies.
 
     pip install -e ."[dev]"
 
-The pre-commit tool will automatically run black and isort, and check flake8
+The pre-commit tool will automatically run `black` and `isort`, and check `flake8`
 compatibility
 
 3. Add the upstream remote:
@@ -134,11 +139,13 @@ the pre-commit will check for style in your code.
 9. You will need to respond to all the comments before your PR can be merged.
    Thanks for your contribution.
 
-Improving the documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _doc_contrib:
+
+Improve the documentation
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you wish to contribute to the documentation you need to follow the same
-guidelines as for the code PR (TODO: link) and additionaly install the
+guidelines as for the code PR (:ref:`code_contrib`) and additionaly install the
 dependencies required for building the documentation.
 Once you have your environment for development ready navigate to docs directory
 and install required libraries
@@ -158,9 +165,11 @@ correctly by running (in the docs directory):
 If the build was correct you can now view the new document in the
 `docs/build/html` directory.
 
+.. _answers:
+
 PR reviews and answering questions on issues
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You can also help us by reviewing an existing PR or by answering questions posed
-on the issue borad (TODO: link).
+on the issue borad `issue tracker <https://github.com/owkin/PyDESeq2/issues>`_.
 
 Thanks again and happy contributing!
