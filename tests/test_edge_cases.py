@@ -150,6 +150,40 @@ def test_indexes():
         )
 
 
+def test_cooks_not_refitted():
+    """Test that an AttributeError is thrown when a `DeseqStats` object is initialized
+    from a `DeseqDataSet` whose `refit_cooks` attribute is set to True, but whose
+    Cooks outliers were not actually refitted."""
+
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Run analysis
+    dds = DeseqDataSet(
+        counts_df,
+        clinical_df,
+        refit_cooks=False,
+        design_factors="condition",
+    )
+    dds.deseq2()
+
+    # Set refit_cooks to True even though outliers were not refitted
+    dds.refit_cooks = True
+
+    with pytest.raises(AttributeError):
+        stat_res = DeseqStats(dds)
+        stat_res.summary()
+
+
 def test_few_samples():
     """Test that PyDESeq2 runs bug-free on cohorts with less than 3 samples.
     (Check in particular that DeseqDataSet.calculate_cooks() runs).
