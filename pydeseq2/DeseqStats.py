@@ -185,13 +185,11 @@ class DeseqStats:
             )
             self.LFCs.iloc[:, 0] += self.LFCs.iloc[:, self.contrast_idx]
             self.LFCs.iloc[:, self.contrast_idx] *= -1
-            print(self.LFCs.columns[self.contrast_idx])
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
         self.n_processes = get_num_processes(n_cpus)
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
-        self._change_lfc_sign = False
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
@@ -264,12 +262,6 @@ class DeseqStats:
             .multiply(self.dds.size_factors, 0)
             .values
         )
-
-        # If the contrast implies a different reference level than the one from the
-        # design matrix, change lfc signs. Do this *after* the means were computed
-        # (otherwise we would need)
-        if self._change_lfc_sign:
-            self.LFCs.iloc[:, self.contrast_idx] *= -1
 
         # Set regularization factors.
         if self.prior_disp_var is not None:

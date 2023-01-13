@@ -39,8 +39,7 @@ def load_example_data(
         Otherwise, must be a valid TCGA dataset. (default: "synthetic").
 
     debug : bool
-        If true, subsample 10 samples and 100 genes at random.
-        Only supported in "pooled" mode for now. (default: False).
+        If true, subsample 10 samples and 100 genes at random. (default: False).
 
     debug_seed : int
         Seed for the debug mode. (default: 42).
@@ -672,7 +671,7 @@ def trimmed_cell_variance(counts, cells):
     return varEst.max(axis=1)
 
 
-def trimmed_variance(x, trim=0.125, axis=1):
+def trimmed_variance(x, trim=0.125, axis=0):
     """Return trimmed variance.
 
      Compute the variance after trimming data of its smallest and largest quantiles.
@@ -683,10 +682,10 @@ def trimmed_variance(x, trim=0.125, axis=1):
         Data whose trimmed variance to compute.
 
     trim : float
-        Fraction of data to trim at each end. (default: 0.1).
+        Fraction of data to trim at each end. (default: 0.125).
 
     axis : int
-        Dimension along which to compute variance.
+        Dimension along which to compute variance. (default: 0).
 
     Returns
     -------
