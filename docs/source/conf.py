@@ -41,9 +41,11 @@ extensions = [
     "sphinx_rtd_theme",
     "sphinx.ext.ifconfig",
     "myst_parser",
+    "sphinx.ext.autosummary",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.intersphinx",
 ]
+
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
@@ -58,8 +60,12 @@ autodoc_default_options = {
     "show-inheritance": True,
     "members": True,
 }
+
 autoclass_content = "both"
 autodoc_typehints = "both"
+autosummary_generate = True
+autodoc_member_order = "groupwise"
+autodoc_docstring_signature = True
 
 
 # Napoleon settings

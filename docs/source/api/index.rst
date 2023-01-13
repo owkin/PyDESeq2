@@ -1,12 +1,16 @@
-PyDESeq2 package
-================
 
-.. toctree::
-   :glob:
-   :maxdepth: 2
+PyDESeq2
+========
 
-   DeseqDataSet
-   DeseqStats
-   grid_search
-   preprocessing
-   utils
+.. currentmodule:: pydeseq2
+
+
+.. autosummary::
+    :toctree: docstrings
+    :recursive:
+
+    DeseqDataSet.DeseqDataSet
+    DeseqStats.DeseqStats
+    ~utils
+    ~grid_search
+    ~preprocessing
