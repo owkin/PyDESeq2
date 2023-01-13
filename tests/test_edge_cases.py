@@ -179,7 +179,7 @@ def test_cooks_not_refitted():
     # Set refit_cooks to True even though outliers were not refitted
     dds.refit_cooks = True
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(AttributeError):
         stat_res = DeseqStats(dds)
         stat_res.summary()
 

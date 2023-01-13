@@ -193,8 +193,10 @@ class DeseqStats:
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
-        if dds.refit_cooks:
-            assert hasattr(dds, "replaced"), (
+        try:
+            dds.replaced
+        except AttributeError:
+            raise AttributeError(
                 "dds has 'refit_cooks' set to True but Cooks outliers have not been "
                 "refitted. Please run 'dds.refit()' first or set 'dds.refit_cooks' "
                 "to False."
