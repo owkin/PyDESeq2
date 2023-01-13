@@ -126,6 +126,8 @@ the pre-commit will check for style in your code.
 
 8. Now create a pull request from your fork by following those
    [guidelines](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork)
+   Ensure that the description of your PR is sufficient to understand what you
+   are doing in the code.
    The core developers of `pydeseq2` will receive a message that your PR is
    ready for reviews.
 
@@ -135,7 +137,30 @@ the pre-commit will check for style in your code.
 Improving the documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you 
+If you wish to contribute to the documentation you need to follow the same
+guidelines as for the code PR (TODO: link) and additionaly install the
+dependencies required for building the documentation.
+Once you have your environment for development ready navigate to docs directory
+and install required libraries
 
+.. code-block:: bash
 
+    cd docs
+    pip install -r requirements.txt
 
+After you make the changes in the documentation you can check if it builds
+correctly by running (in the docs directory):
+
+.. code-block:: bash
+
+    make clean html
+
+If the build was correct you can now view the new document in the
+`docs/build/html` directory.
+
+PR reviews and answering questions on issues
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+You can also help us by reviewing an existing PR or by answering questions posed
+on the issue borad (TODO: link).
+
+Thanks again and happy contributing!
