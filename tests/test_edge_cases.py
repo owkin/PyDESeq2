@@ -151,7 +151,7 @@ def test_indexes():
 
 
 def test_few_samples():
-    """Test that PyDESeq2 runs bug-free on a cohorts with less than 3 samples.
+    """Test that PyDESeq2 runs bug-free on cohorts with less than 3 samples.
     (Check in particular that DeseqDataSet.calculate_cooks() runs).
     TODO: refine this test to check the correctness of the output?
     """
@@ -174,7 +174,9 @@ def test_few_samples():
     clinical_df = clinical_df.loc[samples_to_keep]
 
     # Run analysis. Should not throw an error.
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+    dds = DeseqDataSet(
+        counts_df, clinical_df, refit_cooks=True, design_factors="condition"
+    )
     dds.deseq2()
 
     res = DeseqStats(dds)
