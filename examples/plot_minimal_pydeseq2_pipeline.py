@@ -4,23 +4,7 @@ PyDESeq 2 pipeline
 
 This notebook gives a minimalistic example of how to perform DEA using PyDESeq2.
 
-It allows you to run the PyDESeq2 pipeline either on synthetic data or on one of
-the following TCGA datasets:
-
-- TCGA-BRCA
-- TCGA-COAD
-- TCGA-LUAD
-- TCGA-LUSC
-- TCGA-PAAD
-- TCGA-PRAD
-- TCGA-READ
-- TCGA-SKCM.
-
-While the synthetic data is part of this repository, TCGA data should be
-downloaded as per the instructions in `datasets/`.
-
-Running this pipeline may take a few minutes (~5-10 min for TCGA) depending on
-your setup and on the chosen dataset.
+It allows you to run the PyDESeq2 pipeline on synthetic data provided as part of this repository.
 """
 
 import os
