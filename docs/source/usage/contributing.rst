@@ -4,7 +4,7 @@ Contributing
 PyDESeq2 is a living project and any contributions are welcome!
 The project is hosted on `Github <https://github.com/owkin/PyDESeq2>`_.
 
-You can help us by adding a star to `pydeseq` repository on github or talk about
+You can help us by adding a star to the `PyDESeq2 repository <https://github.com/owkin/PyDESeq2>`_ on github or talk about
 our repository on the social media or on your blog or article.
 
 We also kindly ask you to follow `Python code of conduct <https://www.python.org/psf/codeofconduct/>`_.
