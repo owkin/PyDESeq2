@@ -24,7 +24,7 @@ How can I contribute?
 Submit a bug or ask for a new feature
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-First check if the issue which you are facing or a feature you would like to
+First, check if the issue which you are facing or the feature you would like to
 have added is not already described in the
 `issue tracker <https://github.com/owkin/PyDESeq2/issues>`_.
 If this is the case you can give a thumb up to that
