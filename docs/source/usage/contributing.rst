@@ -22,7 +22,7 @@ How can I contribute?
 .. _bug:
 
 Submitting a bug or asking for a new feature
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 First, check if the issue which you are facing or the feature you would like to
 have added is not already described in the
@@ -77,6 +77,7 @@ the required dependencies.
 .. code-block:: bash
 
     pip install -e ."[dev]"
+    pre-commit install
 
 The pre-commit tool will automatically run `black` and `isort`, and check `flake8`
 compatibility
@@ -141,7 +142,7 @@ the pre-commit will check for style in your code.
 .. _doc_contrib:
 
 Improving the documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you wish to contribute to the documentation you need to follow the same
 guidelines as for the code PR (:ref:`code_contrib`) and additionally install the
