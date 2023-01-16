@@ -8,7 +8,7 @@
     - [Requirements](#requirements)
   - [Getting started](#getting-started)
     - [Documentation](#documentation)
-    - [TCGA Data](#tcga-data)
+    - [Data](#data)
   - [Contributing](#contributing)
     - [1 - Download the repository](#1---download-the-repository)
     - [2 - Create a conda environment](#2---create-a-conda-environment)
@@ -72,11 +72,13 @@ You can also try them from your browser (on synthetic data only):
 
 The documentation is hosted [here on ReadTheDocs](https://pydeseq2.readthedocs.io/en/latest/). If you want to have the latest version of the documentation, you can build it from source. Please go to the dedicated [README.md](https://github.com/owkin/PyDESeq2/blob/main/docs/README.md) for information on how to do so.
 
-### TCGA Data
+### Data
 
-The quick start notebooks either use synthetic data (provided in this repo) or data from [The Cancer Genome Atlas](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga). 
+The quick start notebooks use synthetic data, provided in this repo (see [datasets](https://github.com/owkin/PyDESeq2/blob/main/datasets/README.md).)
 
-For more information on how to obtain and organize TCGA data, see [datasets](https://github.com/owkin/PyDESeq2/blob/main/datasets/README.md).
+The experiments described in our [preprint](https://www.biorxiv.org/content/10.1101/2022.12.14.520412v1) rely on data
+from [The Cancer Genome Atlas](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga),
+which may be obtained from this [portal](https://portal.gdc.cancer.gov/).
 
 ## Contributing
 
