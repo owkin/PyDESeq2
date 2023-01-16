@@ -130,7 +130,7 @@ the pre-commit will check for style in your code.
     git push -u origin my_feature
 
 8. Now create a pull request from your fork by following those
-   [guidelines](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork)
+   `guidelines <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork>`_.
    Ensure that the description of your PR is sufficient to understand what you
    are doing in the code.
    The core developers of `pydeseq2` will receive a message that your PR is
