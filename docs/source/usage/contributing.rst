@@ -140,7 +140,7 @@ the pre-commit will check for style in your code.
 
 .. _doc_contrib:
 
-Improve the documentation
+Improving the documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you wish to contribute to the documentation you need to follow the same
