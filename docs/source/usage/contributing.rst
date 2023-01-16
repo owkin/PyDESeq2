@@ -35,8 +35,7 @@ you would like to add to what have been said.
 If the issue / feature is not yet described make sure to give precise details on
 how you reached that issue (if possible giving code snippets) or precisely
 describe how the new feature should function. If it's an issue you should also
-mention which version of `pydeseq2` you are using. If you don't know which
-version you are using you can check it by running the following python code:
+mention which version of `pydeseq2` you are using. You can check this by running the following python code:
 
 .. code-block:: python
 
