@@ -146,7 +146,7 @@ Improving the documentation
 If you wish to contribute to the documentation you need to follow the same
 guidelines as for the code PR (:ref:`code_contrib`) and additionally install the
 dependencies required for building the documentation.
-Once you have your environment for development ready navigate to docs directory
+Once you have your environment for development ready, navigate to docs directory
 and install required libraries
 
 .. code-block:: bash
