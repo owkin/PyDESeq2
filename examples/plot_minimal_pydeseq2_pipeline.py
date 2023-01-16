@@ -1,10 +1,12 @@
 """
-PyDESeq 2 pipeline
-===========================
+Getting started
+===============
 
+Pydeseq2 pipeline:
 This notebook gives a minimalistic example of how to perform DEA using PyDESeq2.
 
-It allows you to run the PyDESeq2 pipeline on synthetic data provided as part of this repository.
+It allows you to run the PyDESeq2 pipeline on synthetic data provided as part of
+this repository.
 """
 
 import os
@@ -17,7 +19,7 @@ from pydeseq2.utils import load_example_data
 SAVE = False  # whether to save the outputs of this notebook
 
 if SAVE:
-    OUTPUT_PATH = f"../output_files/synthetic_example"
+    OUTPUT_PATH = "../output_files/synthetic_example"
     os.makedirs(OUTPUT_PATH, exist_ok=True)  # Create path if it doesn't exist
 
 # %%
@@ -26,6 +28,8 @@ if SAVE:
 #
 # See the `datasets` readme for the required data organization.
 #
+# Here we are loading a synthetic dataset available within `pydeseq2`. You can
+# load your dataset instead.
 
 counts_df = load_example_data(
     modality="raw_counts",
@@ -40,6 +44,14 @@ clinical_df = load_example_data(
 )
 
 print(counts_df)
+
+# %%
+# Remove samples for which `high_grade` is NaN.
+
+samples_to_keep = ~clinical_df.condition.isna()
+samples_to_keep.sum()
+counts_df = counts_df.loc[samples_to_keep]
+clinical_df = clinical_df.loc[samples_to_keep]
 
 # %%
 # Filter out genes that have less than 10 counts in total
@@ -66,10 +78,15 @@ counts_df = counts_df[genes_to_keep]
 #  outliers.
 #
 # Start by creating a DeseqDataSet
+#
+# .. note::
+#   "condition" is a column in `clinical_df`. You might need to update it if you
+#   use different dataset.
+
 dds = DeseqDataSet(
     counts_df,
     clinical_df,
-    design_factors="condition" if DATASET == "synthetic" else "high_grade",
+    design_factors="condition",
     refit_cooks=True,
     n_cpus=8,
 )
