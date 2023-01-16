@@ -21,7 +21,7 @@ How can I contribute?
 
 .. _bug:
 
-Submit a bug or ask for a new feature
+Submitting a bug or asking for a new feature
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 First, check if the issue which you are facing or the feature you would like to
