@@ -42,15 +42,6 @@ clinical_df = load_example_data(
 print(counts_df)
 
 # %%
-# Remove samples for which `high_grade` is NaN.
-
-if DATASET != "synthetic":
-    samples_to_keep = ~clinical_df.high_grade.isna()
-    samples_to_keep.sum()
-    counts_df = counts_df.loc[samples_to_keep]
-    clinical_df = clinical_df.loc[samples_to_keep]
-
-# %%
 # Filter out genes that have less than 10 counts in total
 
 genes_to_keep = counts_df.columns[counts_df.sum(axis=0) >= 10]
