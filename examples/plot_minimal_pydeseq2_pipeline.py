@@ -46,7 +46,8 @@ clinical_df = load_example_data(
 print(counts_df)
 
 # %%
-# Remove samples for which `high_grade` is NaN.
+# Remove samples for which `high_grade` is NaN. If you are using another dataset
+# do not forget to change the "condition" for the column in `clinical_df`
 
 samples_to_keep = ~clinical_df.condition.isna()
 samples_to_keep.sum()
