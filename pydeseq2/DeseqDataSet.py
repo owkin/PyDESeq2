@@ -1,6 +1,7 @@
 import time
 import warnings
 
+import anndata as ad
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -27,6 +28,12 @@ from pydeseq2.utils import trimmed_mean
 
 # Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
 warnings.simplefilter("ignore", DomainWarning)
+
+
+# TODO: support loading / saving DeseqDataSets from annData objects.
+# TODO : Should check which fields are present and add relevant attributes
+# TODO : should a DeseqDataSet inherit from AnnData?
+# TODO: check who should be an obs, an obsm, etc.
 
 
 class DeseqDataSet:
@@ -160,7 +167,7 @@ class DeseqDataSet:
         reference_level=None,
         min_mu=0.5,
         min_disp=1e-8,
-        max_disp=10,
+        max_disp=10.0,
         refit_cooks=True,
         min_replicates=7,
         beta_tol=1e-8,
@@ -172,31 +179,42 @@ class DeseqDataSet:
         the number of multiprocessing threads.
         """
 
+        # TODO : we should support several ways of loading counts / clinical
+        # (from DataFrames, csv, AnnData directly...)
+
+        # TODO : implement getters? (for counts, clinical, etc.)
+
         # Test counts before going further
         test_valid_counts(counts)
-        self.counts = counts
+        self.adata = ad.AnnData(X=counts, dtype=int)
+        self.adata.obs_names = counts.index
+        self.adata.var_names = counts.columns
 
-        if set(self.counts.index) != set(clinical.index):
+        if set(self.adata.obs_names) != set(
+            clinical.index
+        ):  # TODO : is this necessary ?
             raise KeyError(
                 "The count matrix and clinical data "
                 "should contain the same sample indexes."
             )
 
         # Import clinical data and convert design_column to string
-        self.clinical = clinical.loc[self.counts.index]
+        self.adata.obs = clinical.loc[self.adata.obs_names]  # TODO : is this necessary ?
+
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
         )
-        if self.clinical[self.design_factors].isna().any().any():
+        if self.adata.obs[self.design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
-        self.clinical[self.design_factors] = self.clinical[self.design_factors].astype(
+        self.adata.obs[self.design_factors] = self.adata.obs[self.design_factors].astype(
             str
         )
 
-        # Build the design matrix (splits the dataset in cohorts)
-        self.design_matrix = build_design_matrix(
-            clinical_df=self.clinical,
+        # Build the design matrix
+        # Stored in the obsm attribute of the dataset (TODO : check + add alias / getter)
+        self.adata.obsm["design_matrix"] = build_design_matrix(
+            clinical_df=self.adata.obs,
             design_factors=self.design_factors,
             ref=reference_level,
             expanded=False,
@@ -204,7 +222,7 @@ class DeseqDataSet:
         )
         self.min_mu = min_mu
         self.min_disp = min_disp
-        self.max_disp = np.maximum(max_disp, len(self.counts))
+        self.max_disp = np.maximum(max_disp, self.adata.n_obs)
         self.refit_cooks = refit_cooks
         self.min_replicates = min_replicates
         self.beta_tol = beta_tol
@@ -246,7 +264,7 @@ class DeseqDataSet:
         """
         print("Fitting size factors...")
         start = time.time()
-        _, self.size_factors = deseq2_norm(self.counts)
+        _, self.adata.obsm["size_factors"] = deseq2_norm(self.adata.X)
         end = time.time()
         print(f"... done in {end - start:.2f} seconds.\n")
 
@@ -255,32 +273,29 @@ class DeseqDataSet:
 
         Fits a negative binomial per gene, independently.
         """
-
-        num_vars = self.design_matrix.shape[-1]
-
         # Check that size factors are available. If not, compute them.
-        if not hasattr(self, "size_factors"):
+        if "size_factors" not in self.adata.obsm:
             self.fit_size_factors()
 
         # Finit init "method of moments" dispersion estimates
         self._fit_MoM_dispersions()
 
         # Exclude genes with all zeroes
-        non_zero = ~(self.counts == 0).all()
-        self.non_zero_genes = non_zero[non_zero].index
-        counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
-        num_genes = counts_nonzero.shape[1]
+        non_zero = ~(self.adata.X == 0).all(axis=0)
+        self.non_zero_genes = self.adata.var_names[non_zero]
+        nz_data = self.adata[:, self.non_zero_genes]
+        num_genes = nz_data.n_vars
 
         # Convert design_matrix to numpy for speed
-        X = self.design_matrix.values
-        rough_disps = self._rough_dispersions.loc[self.non_zero_genes].values
-        size_factors = self.size_factors.values
+        X = nz_data.obsm["design_matrix"].values
+        rough_disps = nz_data.varm["_rough_dispersions"]
+        size_factors = nz_data.obsm["size_factors"]
 
         # mu_hat is initialized differently depending on the number of different factor
         # groups. If there are as many different factor combinations as design factors
         # (intercept included), it is fitted with a linear model, otherwise it is fitted
         # with a GLM (using rough dispersion estimates).
-        if len(self.design_matrix.value_counts()) == num_vars:
+        if len(nz_data.obsm["design_matrix"].value_counts()) == self.adata.n_vars:
             with parallel_backend("loky", inner_max_num_threads=1):
                 mu_hat_ = np.array(
                     Parallel(
@@ -289,7 +304,7 @@ class DeseqDataSet:
                         batch_size=self.batch_size,
                     )(
                         delayed(fit_lin_mu)(
-                            counts=counts_nonzero[:, i],
+                            counts=nz_data.X[:, i],
                             size_factors=size_factors,
                             design_matrix=X,
                             min_mu=self.min_mu,
@@ -305,7 +320,7 @@ class DeseqDataSet:
                     batch_size=self.batch_size,
                 )(
                     delayed(irls_solver)(
-                        counts=counts_nonzero[:, i],
+                        counts=nz_data.X[:, i],
                         size_factors=size_factors,
                         design_matrix=X,
                         disp=rough_disps[i],
@@ -318,18 +333,16 @@ class DeseqDataSet:
                 _, mu_hat_, _, _ = zip(*res)
                 mu_hat_ = np.array(mu_hat_)
 
-        self._mu_hat = pd.DataFrame(
-            mu_hat_.T,
-            index=self.counts.index,
-            columns=self.non_zero_genes,
-        )
+        self.adata.layers[
+            "_mu_hat"
+        ] = mu_hat_.T  # TODO : this is not going to work if some genes are all zero
 
         print("Fitting dispersions...")
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(n_jobs=self.n_processes, batch_size=self.batch_size)(
                 delayed(fit_alpha_mle)(
-                    counts=counts_nonzero[:, i],
+                    counts=nz_data.X[:, i],
                     design_matrix=X,
                     mu=mu_hat_[i, :],
                     alpha_hat=rough_disps[i],
@@ -342,15 +355,17 @@ class DeseqDataSet:
         print(f"... done in {end - start:.2f} seconds.\n")
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
-        self.genewise_dispersions = pd.Series(np.NaN, index=self.counts.columns)
-        self.genewise_dispersions.update(
+        self.adata.varm["genewise_dispersions"] = pd.Series(
+            np.NaN, index=self.adata.var_names
+        )
+        self.adata.varm["genewise_dispersions"].update(
             pd.Series(dispersions_, index=self.non_zero_genes).clip(
                 self.min_disp, self.max_disp
             )
         )
-        self._genewise_converged = pd.Series(
-            l_bfgs_b_converged_, index=self.non_zero_genes
-        )
+        self.adata.varm["_genewise_converged"] = pd.Series(
+            l_bfgs_b_converged_, index=self.adata.var_names
+        )  # TODO : this is not going to work if some genes are all zero
 
     def fit_dispersion_trend(self):
         r"""Fit the dispersion trend coefficients.
@@ -630,10 +645,16 @@ class DeseqDataSet:
         if not hasattr(self, "size_factors"):
             self.fit_size_factors()
 
-        rde = fit_rough_dispersions(self.counts, self.size_factors, self.design_matrix)
-        mde = fit_moments_dispersions(self.counts, self.size_factors)
+        rde = fit_rough_dispersions(
+            self.adata.X,
+            self.adata.obsm["size_factors"],
+            self.adata.obsm["design_matrix"],
+        )
+        mde = fit_moments_dispersions(self.adata.X, self.adata.obsm["size_factors"])
         alpha_hat = np.minimum(rde, mde)
-        self._rough_dispersions = np.clip(alpha_hat, self.min_disp, self.max_disp)
+        self.adata.varm["_rough_dispersions"] = np.clip(
+            alpha_hat, self.min_disp, self.max_disp
+        )
 
     def _replace_outliers(self):
         """Replace values that are filtered out based
