@@ -53,7 +53,7 @@ If you are contributing to an existing issue, add in the comment of that issue
 that you plan to contribute on it to avoid duplicate work. Once you start
 working on your pull request, link it to the issue by adding `#issue_number`
 
-1. To contribute you will first need to fork the `Github <https://github.com/owkin/PyDESeq2>`_
+1. To contribute, you will first need to fork the `Github <https://github.com/owkin/PyDESeq2>`_
 repository using the fork button in github. This will create a copy of
 `pydeseq2` on your github account (you must be logged in to github).
 
