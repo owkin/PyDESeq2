@@ -45,7 +45,7 @@ version you are using you can check it by running the following python code:
 
 .. _code_contrib:
 
-Contribute with the code
+Contributing to the code
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Thanks for willing to help us out with the `pydeseq2` development.
