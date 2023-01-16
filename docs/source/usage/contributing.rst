@@ -9,7 +9,7 @@ our repository on the social media or on your blog or article.
 
 We also kindly ask you to follow the `Python code of conduct <https://www.python.org/psf/codeofconduct/>`_.
 
-If you find any bugs in the code report them to the
+If you find any bugs in the code please report them to the
 `issue tracker <https://github.com/owkin/PyDESeq2/issues>`_.
 
 How can I contribute?
