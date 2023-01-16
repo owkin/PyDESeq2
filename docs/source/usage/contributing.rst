@@ -7,7 +7,7 @@ The project is hosted on `Github <https://github.com/owkin/PyDESeq2>`_.
 You can help us by adding a star to the `PyDESeq2 repository <https://github.com/owkin/PyDESeq2>`_ on github or talk about
 our repository on the social media or on your blog or article.
 
-We also kindly ask you to follow `Python code of conduct <https://www.python.org/psf/codeofconduct/>`_.
+We also kindly ask you to follow the `Python code of conduct <https://www.python.org/psf/codeofconduct/>`_.
 
 If you find any bugs in the code report them to the
 `issue tracker <https://github.com/owkin/PyDESeq2/issues>`_.
