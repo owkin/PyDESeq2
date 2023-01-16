@@ -23,10 +23,11 @@ def load_example_data(
     debug=False,
     debug_seed=42,
 ):
-    """Load synthetic or TCGA data (gene raw counts or clinical) for a given dataset.
+    """Load synthetic example data.
 
-    May load either clinical or rna-seq data.The synthetic data is part of this
-    repo, but TCGA data should be downloaded as per the instructions in `datasets/`.
+    May load either clinical or rna-seq data. For now, this function may only return the
+    synthetic data provided as part of this repo, but new datasets might be added in the
+    future.
 
     Parameters
     ----------
@@ -36,10 +37,11 @@ def load_example_data(
     dataset : str
         The dataset for which to return gene expression data.
         If "synthetic", will return the synthetic data that is used for CI unit tests.
-        Otherwise, must be a valid TCGA dataset. (default: "synthetic").
+        (default: "synthetic").
 
     debug : bool
-        If true, subsample 10 samples and 100 genes at random. (default: False).
+        If true, subsample 10 samples and 100 genes at random.
+        (Note that the "synthetic" dataset is already 10 x 100.) (default: False).
 
     debug_seed : int
         Seed for the debug mode. (default: 42).
@@ -55,20 +57,8 @@ def load_example_data(
     )
 
     assert dataset in [
-        "synthetic",
-        "TCGA-BRCA",
-        "TCGA-COAD",
-        "TCGA-LUAD",
-        "TCGA-LUSC",
-        "TCGA-PAAD",
-        "TCGA-PRAD",
-        "TCGA-READ",
-        "TCGA-SKCM",
-    ], (
-        "The dataset argument must be one of the following: "
-        "synthetic, TCGA-BRCA, TCGA-COAD, TCGA-LUAD, TCGA-LUSC, "
-        "TCGA-PAAD, TCGA-PRAD, TCGA-READ, TCGA-SKCM"
-    )
+        "synthetic"
+    ], "The dataset argument must be one of the following: synthetic."
 
     # Load data
     datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
@@ -101,24 +91,8 @@ def load_example_data(
                 index_col=0,
             )
 
-    else:
-        path_to_data = datasets_path / "tcga_data"
-        if modality == "raw_counts":
-            df = pd.read_csv(
-                path_to_data / "Gene_expressions" / f"{dataset}_raw_RNAseq.tsv.gz",
-                compression="gzip",
-                sep="\t",
-                index_col=0,
-            ).T
-        elif modality == "clinical":
-            df = pd.read_csv(
-                path_to_data / "Clinical" / f"{dataset}_clinical.tsv.gz",
-                compression="gzip",
-                sep="\t",
-                index_col=0,
-            )
-
     if debug:
+        # TODO: until we provide a larger dataset, this option is useless
         # subsample 10 samples and 100 genes
         df = df.sample(n=10, axis=0, random_state=debug_seed)
         if modality == "raw_counts":
