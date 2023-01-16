@@ -50,7 +50,7 @@ Contributing to the code
 
 Thanks for willing to help us out with the `pydeseq2` development.
 
-If you are contributing to the existing issue add in the comment of that issue
+If you are contributing to an existing issue, add in the comment of that issue
 that you plan to contribute on it to avoid duplicate work. Once you start
 working on your pull request, link it to the issue by adding `#issue_number`
 
