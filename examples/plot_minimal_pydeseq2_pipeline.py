@@ -16,6 +16,10 @@ from pydeseq2.utils import load_example_data
 
 SAVE = False  # whether to save the outputs of this notebook
 
+if SAVE:
+    OUTPUT_PATH = f"../output_files/synthetic_example"
+    os.makedirs(OUTPUT_PATH, exist_ok=True)  # Create path if it doesn't exist
+
 # %%
 # Data loading
 # ------------
