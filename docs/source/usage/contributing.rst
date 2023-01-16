@@ -119,7 +119,7 @@ You are now all set and ready to start on your pull request (PR).
 
     git checkout -b my_new_branch
 
-You can now make the changes commiting to your new branch. Each time you commit
+You can now make the changes commiting to your new branch. Each time you commit,
 the pre-commit will check for style in your code.
 
 7. Once you are ready to submit your PR, first make sure that all the changes
