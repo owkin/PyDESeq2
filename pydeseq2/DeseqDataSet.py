@@ -355,17 +355,25 @@ class DeseqDataSet:
         print(f"... done in {end - start:.2f} seconds.\n")
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
-        self.adata.varm["genewise_dispersions"] = pd.Series(
-            np.NaN, index=self.adata.var_names
-        )
-        self.adata.varm["genewise_dispersions"].update(
+
+        # TODO : this might not be the best way to add data to an anndata...
+        # TODO : use np.where and such to do data allocations?
+        genewise_dispersions = pd.Series(np.NaN, index=self.adata.var_names)
+        genewise_dispersions.update(
             pd.Series(dispersions_, index=self.non_zero_genes).clip(
                 self.min_disp, self.max_disp
             )
         )
-        self.adata.varm["_genewise_converged"] = pd.Series(
-            l_bfgs_b_converged_, index=self.adata.var_names
-        )  # TODO : this is not going to work if some genes are all zero
+
+        self.adata.varm["genewise_dispersions"] = genewise_dispersions.values
+
+        _genewise_converged = pd.Series(np.NaN, index=self.adata.var_names)
+
+        _genewise_converged.update(
+            pd.Series(l_bfgs_b_converged_, index=self.non_zero_genes)
+        )
+
+        self.adata.varm["_genewise_converged"] = _genewise_converged.values
 
     def fit_dispersion_trend(self):
         r"""Fit the dispersion trend coefficients.
@@ -374,18 +382,33 @@ class DeseqDataSet:
         """
 
         # Check that genewise dispersions are available. If not, compute them.
-        if not hasattr(self, "genewise_dispersions"):
+        # if not hasattr(self, "genewise_dispersions"):
+        if not "genewise_dispersions" not in self.adata.varm:
             self.fit_genewise_dispersions()
 
         print("Fitting dispersion trend curve...")
         start = time.time()
-        self._normed_means = self.counts.div(self.size_factors, 0).mean(0)
+        self.adata.varm["_normed_means"] = (
+            self.adata.X / self.adata.obsm["size_factors"][:, None]
+        ).mean(0)
 
+        # TODO : not a very good way to use pandas and annData (array to pandas)
         # Exclude all-zero counts
-        targets = self.genewise_dispersions.loc[self.non_zero_genes].copy()
-        covariates = sm.add_constant(1 / self._normed_means.loc[self.non_zero_genes])
+        # targets = self.genewise_dispersions.loc[self.non_zero_genes].copy()
+        # covariates = sm.add_constant(1 / self._normed_means.loc[self.non_zero_genes])
 
-        for gene in targets.index:
+        targets = pd.Series(
+            self.adata[:, self.non_zero_genes].varm["genewise_dispersions"].copy(),
+            index=self.non_zero_genes,
+        )
+        covariates = sm.add_constant(
+            pd.Series(
+                1 / self.adata[:, self.non_zero_genes].varm["_normed_means"],
+                index=self.non_zero_genes,
+            )
+        )
+
+        for gene in self.non_zero_genes:
             if (
                 np.isinf(covariates.loc[gene]).any()
                 or np.isnan(covariates.loc[gene]).any()
@@ -411,7 +434,11 @@ class DeseqDataSet:
 
             # Filter out genes that are too far away from the curve before refitting
             predictions = covariates.values @ coeffs
-            pred_ratios = self.genewise_dispersions.loc[covariates.index] / predictions
+            # pred_ratios = self.genewise_dispersions.loc[covariates.index] / predictions
+            pred_ratios = (
+                self.adata[:, covariates.index].varm["genewise_dispersions"]
+                / predictions
+            )
 
             targets.drop(
                 targets[(pred_ratios < 1e-4) | (pred_ratios >= 15)].index,
@@ -425,15 +452,31 @@ class DeseqDataSet:
         end = time.time()
         print(f"... done in {end - start:.2f} seconds.\n")
 
-        self.trend_coeffs = pd.Series(coeffs, index=["a0", "a1"])
-        self.fitted_dispersions = pd.Series(
-            np.NaN, index=self.genewise_dispersions.index
-        )
-        self.fitted_dispersions.update(
-            dispersion_trend(
-                self._normed_means.loc[self.non_zero_genes], self.trend_coeffs
+        # self.trend_coeffs = pd.Series(coeffs, index=["a0", "a1"])
+        # self.fitted_dispersions = pd.Series(
+        #     np.NaN, index=self.genewise_dispersions.index
+        # )
+        # self.fitted_dispersions.update(
+        #     dispersion_trend(
+        #         self._normed_means.loc[self.non_zero_genes], self.trend_coeffs
+        #     )
+        # )
+
+        self.adata.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
+
+        # TODO : again, maybe not the best way to add data
+        fitted_dispersions = pd.Series(np.NaN, index=self.adata.var_names)
+        fitted_dispersions.update(
+            pd.Series(
+                dispersion_trend(
+                    self.adata[:, self.non_zero_genes].varm["_normed_means"],
+                    self.adata.uns["trend_coeffs"],
+                ),
+                index=self.non_zero_genes,
             )
         )
+
+        self.adata.varm["fitted_dispersions"] = fitted_dispersions.values
 
     def fit_dispersion_prior(self):
         """Fit dispersion variance priors and standard deviation of log-residuals.
