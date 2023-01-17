@@ -5,6 +5,8 @@ Getting started
 Pydeseq2 pipeline:
 This notebook gives a minimalistic example of how to perform DEA using PyDESeq2.
 
+TODO : expand introduction
+
 It allows you to run the PyDESeq2 pipeline on synthetic data provided as part of
 this repository.
 """
@@ -28,6 +30,8 @@ if SAVE:
 #
 # See the `datasets` readme for the required data organization.
 #
+# TODO : explain what data should look like and how to load it
+#
 # Here we are loading a synthetic dataset available within `pydeseq2`. You can
 # load your dataset instead.
 
@@ -46,7 +50,12 @@ clinical_df = load_example_data(
 print(counts_df)
 
 # %%
-# Remove samples for which `high_grade` is NaN. If you are using another dataset
+
+print(counts_df)
+
+# %%
+
+# Remove samples for which condition is NaN. If you are using another dataset
 # do not forget to change the "condition" for the column in `clinical_df`.
 
 samples_to_keep = ~clinical_df.condition.isna()
