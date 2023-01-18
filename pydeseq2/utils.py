@@ -568,8 +568,8 @@ def fit_alpha_mle(
 
     res = minimize(
         lambda x: loss(x[0]),
-        x0=[np.log(alpha_hat)],
-        jac=dloss,
+        x0=np.log(alpha_hat),
+        jac=lambda x: dloss(x[0]),
         method=optimizer,
         bounds=[(np.log(min_disp), np.log(max_disp))]
         if optimizer == "L-BFGS-B"

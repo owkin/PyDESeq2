@@ -333,9 +333,17 @@ class DeseqDataSet:
                 _, mu_hat_, _, _ = zip(*res)
                 mu_hat_ = np.array(mu_hat_)
 
-        self.adata.layers[
-            "_mu_hat"
-        ] = mu_hat_.T  # TODO : this is not going to work if some genes are all zero
+        _mu_hat = pd.DataFrame(
+            np.NaN, index=self.adata.obs_names, columns=self.adata.var_names
+        )
+
+        _mu_hat.update(
+            pd.DataFrame(
+                mu_hat_.T, index=self.adata.obs_names, columns=self.non_zero_genes
+            )
+        )
+
+        self.adata.layers["_mu_hat"] = _mu_hat.values
 
         print("Fitting dispersions...")
         start = time.time()
@@ -485,28 +493,32 @@ class DeseqDataSet:
         """
 
         # Check that the dispersion trend curve was fitted. If not, fit it.
-        if not hasattr(self, "trend_coeffs"):
+        # if not hasattr(self, "trend_coeffs"):
+        #     self.fit_dispersion_trend()
+
+        if "trend_coeffs" not in self.adata.uns:
             self.fit_dispersion_trend()
 
         # Exclude genes with all zeroes
         num_genes = len(self.non_zero_genes)
-        num_vars = self.design_matrix.shape[1]
+        num_vars = self.adata.n_vars
 
         # Fit dispersions to the curve, and compute log residuals
-        disp_residuals = np.log(self.genewise_dispersions) - np.log(
-            self.fitted_dispersions
-        )
+        disp_residuals = np.log(
+            self.adata[:, self.non_zero_genes].varm["genewise_dispersions"]
+        ) - np.log(self.adata[:, self.non_zero_genes].varm["fitted_dispersions"])
 
         # Compute squared log-residuals and prior variance based on genes whose
         # dispersions are above 100 * min_disp. This is to reproduce DESeq2's behaviour.
-        above_min_disp = self.genewise_dispersions.loc[self.non_zero_genes] >= (
-            100 * self.min_disp
-        )
-        self._squared_logres = np.abs(
-            disp_residuals.loc[self.non_zero_genes][above_min_disp]
-        ).median() ** 2 / norm.ppf(0.75)
-        self.prior_disp_var = np.maximum(
-            self._squared_logres - polygamma(1, (num_genes - num_vars) / 2), 0.25
+        above_min_disp = self.adata[:, self.non_zero_genes].varm[
+            "genewise_dispersions"
+        ] >= (100 * self.min_disp)
+        self.adata.uns["_squared_logres"] = np.median(
+            np.abs(disp_residuals[above_min_disp])
+        ) ** 2 / norm.ppf(0.75)
+        self.adata.uns["prior_disp_var"] = np.maximum(
+            self.adata.uns["_squared_logres"] - polygamma(1, (num_genes - num_vars) / 2),
+            0.25,
         )
 
     def fit_MAP_dispersions(self):
@@ -516,16 +528,19 @@ class DeseqDataSet:
         """
 
         # Check that the dispersion prior variance is available. If not, compute it.
-        if not hasattr(self, "prior_disp_var"):
+        # if not hasattr(self, "prior_disp_var"):
+        #     self.fit_dispersion_prior()
+
+        if "prior_disp_var" not in self.adata.uns:
             self.fit_dispersion_prior()
 
         # Exclude genes with all zeroes
-        counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
-        num_genes = counts_nonzero.shape[1]
+        nz_data = self.adata[:, self.non_zero_genes]
+        num_genes = nz_data.n_vars
 
-        X = self.design_matrix.values
-        mu_hat = self._mu_hat.values
-        fit_disps = self.fitted_dispersions.loc[self.non_zero_genes].values
+        X = nz_data.obsm["design_matrix"].values
+        mu_hat = nz_data.layers["_mu_hat"]
+        fit_disps = nz_data.varm["fitted_dispersions"]
 
         print("Fitting MAP dispersions...")
         start = time.time()
@@ -536,13 +551,13 @@ class DeseqDataSet:
                 batch_size=self.batch_size,
             )(
                 delayed(fit_alpha_mle)(
-                    counts=counts_nonzero[:, i],
+                    counts=nz_data.X[:, i],
                     design_matrix=X,
                     mu=mu_hat[:, i],
                     alpha_hat=fit_disps[i],
                     min_disp=self.min_disp,
                     max_disp=self.max_disp,
-                    prior_disp_var=self.prior_disp_var,
+                    prior_disp_var=self.adata.uns["prior_disp_var"].item(),
                     cr_reg=True,
                     prior_reg=True,
                 )
@@ -552,22 +567,29 @@ class DeseqDataSet:
         print(f"... done in {end-start:.2f} seconds.\n")
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
-        self.MAP_dispersions = pd.Series(np.NaN, index=self.fitted_dispersions.index)
-        self.MAP_dispersions.update(
+        MAP_dispersions = pd.Series(np.NaN, index=self.adata.var_names)
+        MAP_dispersions.update(
             pd.Series(dispersions_, index=self.non_zero_genes).clip(
                 self.min_disp, self.max_disp
             )
         )
-        self._MAP_converged = pd.Series(l_bfgs_b_converged_, index=self.non_zero_genes)
+        self.adata.varm["MAP_dispersions"] = MAP_dispersions.values
+
+        _MAP_converged = pd.Series(np.NaN, index=self.adata.var_names)
+        _MAP_converged.update(pd.Series(l_bfgs_b_converged_, index=self.non_zero_genes))
+
+        self.adata.varm["_MAP_converged"] = _MAP_converged.values
 
         # Filter outlier genes for which we won't apply shrinkage
-        self.dispersions = self.MAP_dispersions.copy()
-        self._outlier_genes = np.log(self.dispersions) > np.log(
-            self.fitted_dispersions
-        ) + 2 * np.sqrt(self._squared_logres)
-        self.dispersions[self._outlier_genes] = self.genewise_dispersions[
-            self._outlier_genes
-        ]
+        self.adata.varm["dispersions"] = self.adata.varm["MAP_dispersions"].copy()
+        self.adata.varm["_outlier_genes"] = np.log(
+            self.adata.varm["dispersions"]
+        ) > np.log(self.adata.varm["fitted_dispersions"]) + 2 * np.sqrt(
+            self.adata.uns["_squared_logres"]
+        )
+        self.adata.varm["dispersions"][
+            self.adata.varm["_outlier_genes"]
+        ] = self.adata.varm["genewise_dispersions"][self.adata.varm["_outlier_genes"]]
 
     def fit_LFC(self):
         """Fit log fold change (LFC) coefficients.
@@ -577,16 +599,16 @@ class DeseqDataSet:
         """
 
         # Check that MAP dispersions are available. If not, compute them.
-        if not hasattr(self, "dispersions"):
+        if "dispersions" not in self.adata.varm:
             self.fit_MAP_dispersions()
 
         # Exclude genes with all zeroes
-        counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
-        num_genes = counts_nonzero.shape[1]
+        nz_data = self.adata[:, self.non_zero_genes]
+        num_genes = nz_data.n_vars
 
-        X = self.design_matrix.values
-        size_factors = self.size_factors.values
-        disps = self.dispersions.loc[self.non_zero_genes].values
+        X = nz_data.obsm["design_matrix"].values
+        size_factors = nz_data.obsm["size_factors"]
+        disps = nz_data.varm["dispersions"]
 
         print("Fitting LFCs...")
         start = time.time()
@@ -597,7 +619,7 @@ class DeseqDataSet:
                 batch_size=self.batch_size,
             )(
                 delayed(irls_solver)(
-                    counts=counts_nonzero[:, i],
+                    counts=nz_data.X[:, i],
                     size_factors=size_factors,
                     design_matrix=X,
                     disp=disps[i],
@@ -609,37 +631,52 @@ class DeseqDataSet:
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
 
-        MAP_lfcs_, mu_, hat_diagonals_, converged_ = zip(*res)
+        MLE_lfcs_, mu_, hat_diagonals_, converged_ = zip(*res)
 
-        self.LFCs = pd.DataFrame(
-            np.NaN, index=self.dispersions.index, columns=self.design_matrix.columns
+        self.adata.varm["LFC"] = pd.DataFrame(
+            np.NaN,
+            index=self.adata.var_names,
+            columns=self.adata.obsm["design_matrix"].columns,
         )
 
-        self.LFCs.update(
+        self.adata.varm["LFC"].update(
             pd.DataFrame(
-                MAP_lfcs_, index=self.non_zero_genes, columns=self.design_matrix.columns
+                MLE_lfcs_,
+                index=self.non_zero_genes,
+                columns=self.adata.obsm["design_matrix"].columns,
             )
         )
 
-        self._mu_LFC = pd.DataFrame(
-            np.array(mu_).T, index=self.counts.index, columns=self.non_zero_genes
+        _mu_LFC = pd.DataFrame(
+            np.NaN, index=self.adata.obs_names, columns=self.adata.var_names
         )
-
-        self._hat_diagonals = pd.DataFrame(
-            np.NaN,
-            index=self.dispersions.index,
-            columns=self.design_matrix.index,
-        ).T
-
-        self._hat_diagonals.update(
+        _mu_LFC.update(
             pd.DataFrame(
-                hat_diagonals_,
-                index=self.non_zero_genes,
-                columns=self.design_matrix.index,
-            ).T
+                np.array(mu_).T, index=self.adata.obs_names, columns=self.non_zero_genes
+            )
         )
 
-        self._LFC_converged = pd.DataFrame(converged_, index=self.non_zero_genes)
+        self.adata.layers["_mu_LFC"] = _mu_LFC.values
+
+        _hat_diagonals = pd.DataFrame(
+            np.NaN,
+            index=self.adata.obs_names,
+            columns=self.adata.var_names,
+        )
+        _hat_diagonals.update(
+            pd.DataFrame(
+                np.array(hat_diagonals_).T,
+                index=self.adata.obs_names,
+                columns=self.non_zero_genes,
+            )
+        )
+
+        self.adata.layers["_hat_diagonals"] = _hat_diagonals.values
+
+        _LFC_converged = pd.Series(np.NaN, index=self.adata.var_names)
+        _LFC_converged.update(pd.Series(converged_, index=self.non_zero_genes))
+
+        self.adata.varm["_LFC_converged"] = _LFC_converged.values
 
     def calculate_cooks(self):
         """Compute Cook's distance for outlier detection.
@@ -648,22 +685,50 @@ class DeseqDataSet:
         """
 
         # Check that MAP dispersions are available. If not, compute them.
-        if not hasattr(self, "dispersions"):
+        if "dispersions" not in self.adata.varm:
             self.fit_MAP_dispersions()
 
-        num_vars = self.design_matrix.shape[1]
+        num_vars = self.adata.n_vars
         # Keep only non-zero genes
-        normed_counts = self.counts.loc[:, self.non_zero_genes].div(self.size_factors, 0)
-        dispersions = robust_method_of_moments_disp(normed_counts, self.design_matrix)
-        V = self._mu_LFC + dispersions * self._mu_LFC**2
+        # TODO: used a DataFrame to avoid changing robust_method_of_moments_disp
+        # but we should be able to pass an array
+        normed_counts = pd.DataFrame(
+            self.adata[:, self.non_zero_genes].X
+            / self.adata.obsm["size_factors"][:, None],
+            index=self.adata.obs_names,
+            columns=self.non_zero_genes,
+        )
+        dispersions = robust_method_of_moments_disp(
+            normed_counts, self.adata.obsm["design_matrix"]
+        ).values
+
+        V = (
+            self.adata.layers["_mu_LFC"]
+            + dispersions[None, :] * self.adata.layers["_mu_LFC"] ** 2
+        )
         squared_pearson_res = (
-            self.counts.loc[:, self.non_zero_genes] - self._mu_LFC
+            self.adata[:, self.non_zero_genes].X - self.adata.layers["_mu_LFC"]
         ) ** 2 / V
-        self.cooks = (
-            squared_pearson_res
-            / num_vars
-            * (self._hat_diagonals / (1 - self._hat_diagonals) ** 2)
-        ).T
+
+        cooks = pd.DataFrame(
+            np.NaN, index=self.adata.obs_names, columns=self.adata.var_names
+        )
+        cooks.update(
+            pd.DataFrame(
+                squared_pearson_res
+                / num_vars
+                * (
+                    self.adata.layers[
+                        "_hat_diagonals"
+                    ]  # TODO Hat diagonals might not have the right shape (NaNs)
+                    / (1 - self.adata.layers["_hat_diagonals"]) ** 2
+                ),
+                index=self.adata.obs_names,
+                columns=self.non_zero_genes,
+            )
+        )
+
+        self.adata.layers["cooks"] = cooks.values
 
     def refit(self):
         """Refit Cook outliers.
