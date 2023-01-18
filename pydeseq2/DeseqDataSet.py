@@ -738,9 +738,9 @@ class DeseqDataSet:
         """
         # Replace outlier counts
         self._replace_outliers()
-        print(f"Refitting {self.replaced.sum()} outliers.\n")
+        print(f"Refitting {sum(self.adata.varm['replaced']) } outliers.\n")
 
-        if self.replaced.sum() > 0:
+        if sum(self.adata.varm["replaced"]) > 0:
             # Refit dispersions and LFCs for genes that had outliers replaced
             self._refit_without_outliers()
 
@@ -770,55 +770,79 @@ class DeseqDataSet:
         """
 
         # Check that cooks distances are available. If not, compute them.
-        if not hasattr(self, "cooks"):
+        if "cooks" not in self.adata.layers:
             self.calculate_cooks()
 
-        num_samples, num_vars = self.design_matrix.shape
+        num_samples = self.adata.n_obs
+        num_vars = self.adata.obsm["design_matrix"].shape[1]
 
         # Check whether cohorts have enough samples to allow refitting
         n_or_more = (
-            self.design_matrix[self.design_matrix.columns[-1]].value_counts()
+            self.adata.obsm["design_matrix"][
+                self.adata.obsm["design_matrix"].columns[-1]
+            ].value_counts()
             >= self.min_replicates
         )
-        self.replaceable = pd.Series(
-            n_or_more[self.design_matrix[self.design_matrix.columns[-1]]]
-        )
-        self.replaceable.index = self.design_matrix.index
+        # self.replaceable = pd.Series(
+        #     n_or_more[  # TODO: could this be simplified?
+        #         self.adata.obsm["design_matrix"][
+        #             self.adata.obsm["design_matrix"].columns[-1]
+        #         ]
+        #     ],
+        #     index=self.adata.obs_names,
+        # )
+
+        replaceable = n_or_more[  # TODO: could this be simplified?
+            self.adata.obsm["design_matrix"][
+                self.adata.obsm["design_matrix"].columns[-1]
+            ]
+        ]
+
+        self.adata.obsm["replaceable"] = replaceable.values
 
         # Get positions of counts with cooks above threshold
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
-        idx = (self.cooks > cooks_cutoff).T
-        self.replaced = idx.any(axis=0)
+        idx = self.adata.layers["cooks"] > cooks_cutoff
+        # self.replaced = idx.any(axis=0) # TODO remove
+        self.adata.varm["replaced"] = idx.any(axis=0)
 
         # Compute replacement counts: trimmed means * size_factors
-        self.counts_to_refit = self.counts.loc[:, self.replaced].copy()
+        # self.counts_to_refit = self.adata[:, self.adata.obsm["replaced"]].X.copy()
+        self.counts_to_refit = self.adata[:, self.adata.varm["replaced"]]
 
         trim_base_mean = pd.DataFrame(
             trimmed_mean(
-                self.counts_to_refit.divide(self.size_factors, 0),
+                self.counts_to_refit.X / self.adata.obsm["size_factors"][:, None],
                 trim=0.2,
                 axis=0,
             ),
-            index=self.counts_to_refit.columns,
+            index=self.counts_to_refit.var_names,
         )
         replacement_counts = (
             pd.DataFrame(
-                trim_base_mean.values * self.size_factors.values,
-                index=self.counts_to_refit.columns,
-                columns=self.size_factors.index,
+                trim_base_mean.values * self.adata.obsm["size_factors"],
+                index=self.counts_to_refit.var_names,
+                columns=self.adata.obs_names,
             )
             .astype(int)
             .T
         )
 
-        self.counts_to_refit[
-            idx[self.replaceable].loc[:, self.replaced]
-        ] = replacement_counts[idx[self.replaceable].loc[:, self.replaced]]
+        if sum(self.adata.varm["replaced"] > 0):
+            self.counts_to_refit[
+                idx[self.adata[:, self.adata.varm["replaced"]].obsm["replaceable"]]
+            ].X = replacement_counts[
+                idx[self.adata.obsm["replaceable"]][:, self.adata.varm["replaced"]]
+            ].values
+
+            # TODO : does this happen in place or not ?
 
     def _refit_without_outliers(
         self,
     ):
         """Re-run the whole DESeq2 pipeline with replaced outliers."""
+
+        # TODO : update this function for AnnData
 
         assert (
             self.refit_cooks
