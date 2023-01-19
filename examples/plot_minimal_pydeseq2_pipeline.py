@@ -31,6 +31,7 @@ if SAVE:
 #
 # To perform differential expression analysis (DEA), PyDESeq2 requires two types of
 # inputs:
+#
 #   * A count matrix of shape #samples x #genes, containing read counts
 #     (non-negative integers),
 #   * Clinical data (or "column" data), containing sample annotations that will be used
@@ -65,7 +66,7 @@ print(clinical_df)
 # bi-level annotations. In the first part, we will only use the `condition` factor.
 # Later on, we'll see how to use both the `condition` and the `group` factors in our
 # analysis (see :ref:`multifactor_ref`).
-#
+
 # %%
 # Data filtering
 # ^^^^^^^^^^^^^^
