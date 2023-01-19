@@ -2,10 +2,7 @@
 Getting started
 ===============
 
-Pydeseq2 pipeline:
-This notebook gives a minimalistic example of how to perform DEA using PyDESeq2.
-
-TODO : expand introduction
+TODO: introduction
 
 .. contents:: Contents
     :local:
@@ -25,6 +22,7 @@ from pydeseq2.utils import load_example_data
 SAVE = False  # whether to save the outputs of this notebook
 
 if SAVE:
+    # Replace this with the path to directory where you would like results to be saved
     OUTPUT_PATH = "../output_files/synthetic_example"
     os.makedirs(OUTPUT_PATH, exist_ok=True)  # Create path if it doesn't exist
 
@@ -32,12 +30,18 @@ if SAVE:
 # Data loading
 # ------------
 #
-# See the `datasets` readme for the required data organization.
+# To perform differential expression analysis (DEA), PyDESeq2 requires two types of
+# inputs:
+#   * A count matrix of shape #samples x #genes, containing read counts
+#     (non-negative integers),
+#   * Clinical data (or "column" data), containing sample annotations that will be used
+#     to split the data in cohorts.
 #
-# TODO : explain what data should look like and how to load it
+# Both should be provided as `pandas dataframes
+# <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_.
 #
-# Here we are loading a synthetic dataset available within `pydeseq2`. You can
-# load your dataset instead.
+# To illustrate the required data format, we load a synthetic example dataset that may be
+# obtained through PyDESeq2's API. You may replace it with your own dataset.
 
 counts_df = load_example_data(
     modality="raw_counts",
@@ -54,32 +58,53 @@ clinical_df = load_example_data(
 print(counts_df)
 
 # %%
+print(clinical_df)
 
-print(counts_df)
 
 # %%
+# In this example, the clinical data contains two columns, representing two types of
+# bi-level annotations. In the first part, we will only use the `condition` factor.
+# Later on, we'll see how to use both the `condition` and the `group` factors in our
+# analysis (see :ref:`multifactor_ref`).
 
-# Remove samples for which condition is NaN. If you are using another dataset
-# do not forget to change the "condition" for the column in `clinical_df`.
+# %%
+# Data filtering
+# ^^^^^^^^^^^^^^
+#
+# Before proceeding with DEA, it is good practice to preprocess your data, e.g. to remove
+# samples for which annotations are missing and exclude genes with very low levels of
+# expression. This is not necessary in the case of the synthetic data we provide, but we
+# provide example code snippets to show how we could do this with real data.
+#
+# We start by removing samples for which "condition" is NaN. If you are using another
+# dataset, do not forget to change "condition" for the column of `clinical_df` you wish
+# to as a design factro in your analysis.
 
 samples_to_keep = ~clinical_df.condition.isna()
-samples_to_keep.sum()
 counts_df = counts_df.loc[samples_to_keep]
 clinical_df = clinical_df.loc[samples_to_keep]
 
 # %%
-# Filter out genes that have less than 10 counts in total
+# .. note::
+#  In the case where the design factor contains NaNs, PyDESeq2 will throw an error when
+#  intializing a `DeseqDataSet`
+
+# %%
+# Next, we filter out genes that have less than 10 counts in total. Again, there are no
+# such genes in this synthetic dataset.
 
 genes_to_keep = counts_df.columns[counts_df.sum(axis=0) >= 10]
-len(genes_to_keep)
-
 counts_df = counts_df[genes_to_keep]
 
 # %%
-# 1 - Read counts modeling with the `DeseqDataSet`
-# -------------------------------------------------
+# Now that we have loaded and filtered our data, we may proceed with the differential
+# analysis.
+
+# %%
+# 1 - Read counts modeling with the `DeseqDataSet` class
+# -------------------------------------------------------
 #
-# We start by creating a `DeseqDataSet` object with the count and clinical data.
+# We start by creating a `DeseqDataSet` object from the count and clinical data.
 # Here, we use 8 threads, feel free to adapt this to your setup or to set
 # to `None` to use all available CPUs.
 #
@@ -95,7 +120,7 @@ counts_df = counts_df[genes_to_keep]
 #
 # .. note::
 #   "condition" is a column in `clinical_df`. You might need to update it if you
-#   use different dataset.
+#   use a different dataset.
 
 dds = DeseqDataSet(
     counts_df,
@@ -156,6 +181,8 @@ if SAVE:
         pkl.dump(stat_res, f)
 
 # %%
+# .. _multifactor_ref:
+#
 # Multifactor analysis
 # ---------------------
 #
