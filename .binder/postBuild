@@ -8,10 +8,10 @@ set -ex
 pip uninstall -y -r docs/requirements.txt
 
 # move examples to the notebooks folder
-mv docs/build/html/notebooks .
+mv docs/build/html/jupyter_notebooks .
 
-# delete everything but the notebooks folder and the substra dependencies
+# delete everything but the notebooks folder and the pydeseq2 dependencies
 shopt -s extglob
 rm -rf .[!.]*
-rm -rf !(notebooks|docs)
+rm -rf !(jupyter_notebooks|docs)
 (cd docs && rm -rf !(src))

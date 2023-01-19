@@ -222,7 +222,7 @@ sphinx_gallery_conf = {
         # Use a branch that hosts your docs.
         "binderhub_url": "https://mybinder.org",  # public binderhub url
         "dependencies": str(Path(__file__).parents[2] / "environment.yml"),
-        "notebooks_dir": "notebooks",
+        "notebooks_dir": "jupyter_notebooks",
         "use_jupyter_lab": True,
     },
 }
