@@ -1,2 +1,2 @@
-.
 -r docs/requirements.txt
+.
