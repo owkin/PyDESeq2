@@ -7,6 +7,10 @@ This notebook gives a minimalistic example of how to perform DEA using PyDESeq2.
 
 TODO : expand introduction
 
+.. contents:: Contents
+    :local:
+    :depth: 3
+
 It allows you to run the PyDESeq2 pipeline on synthetic data provided as part of
 this repository.
 """
@@ -72,8 +76,8 @@ len(genes_to_keep)
 counts_df = counts_df[genes_to_keep]
 
 # %%
-# 1 - Read counts modeling with the `DeseqDataSet` class
-# ------------------------------------------------------
+# 1 - Read counts modeling with the `DeseqDataSet`
+# -------------------------------------------------
 #
 # We start by creating a `DeseqDataSet` object with the count and clinical data.
 # Here, we use 8 threads, feel free to adapt this to your setup or to set
@@ -150,3 +154,8 @@ stat_res.lfc_shrink()
 if SAVE:
     with open(os.path.join(OUTPUT_PATH, "shrunk_stat_results.pkl"), "wb") as f:
         pkl.dump(stat_res, f)
+
+# %%
+# Multifactor analysis
+# ---------------------
+#
