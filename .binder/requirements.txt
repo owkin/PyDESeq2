@@ -1,1 +1,1 @@
--r ../setup.py
+-r ../requirements.txt
