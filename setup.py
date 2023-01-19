@@ -33,6 +33,7 @@ setup(
         "scikit-learn>=1.1.0",
         "scipy>=1.8.0",
         "statsmodels",
+        "gitpython==3.1.27",
     ],  # external packages as dependencies
     extras_require={
         "dev": ["pytest>=6.2.4", "pre-commit>=2.13.0", "numpydoc"],
