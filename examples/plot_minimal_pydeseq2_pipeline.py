@@ -2,14 +2,13 @@
 Getting started
 ===============
 
-TODO: introduction
+In this example, we show how to perform a simple differential expression analysis on bulk
+RNAseq data, using PyDESeq2.
 
 .. contents:: Contents
     :local:
     :depth: 3
 
-It allows you to run the PyDESeq2 pipeline on synthetic data provided as part of
-this repository.
 """
 
 import os
@@ -66,7 +65,7 @@ print(clinical_df)
 # bi-level annotations. In the first part, we will only use the `condition` factor.
 # Later on, we'll see how to use both the `condition` and the `group` factors in our
 # analysis (see :ref:`multifactor_ref`).
-
+#
 # %%
 # Data filtering
 # ^^^^^^^^^^^^^^
@@ -101,12 +100,10 @@ counts_df = counts_df[genes_to_keep]
 # analysis.
 
 # %%
-# 1 - Read counts modeling with the `DeseqDataSet` class
+# Read counts modeling with the `DeseqDataSet` class
 # -------------------------------------------------------
 #
 # We start by creating a `DeseqDataSet` object from the count and clinical data.
-# Here, we use 8 threads, feel free to adapt this to your setup or to set
-# to `None` to use all available CPUs.
 #
 # Another option of interest is the `refit_cooks` argument
 # (set to `True` by default), which controls whether Cooks outlier
@@ -115,6 +112,9 @@ counts_df = counts_df[genes_to_keep]
 # .. note::
 #  in the case of the provided synthetic data, there won't be any Cooks
 #  outliers.
+#
+# Here, we use 8 threads, feel free to adapt this to your setup or to set
+# to `None` to use all available CPUs.
 #
 # Start by creating a DeseqDataSet
 #
@@ -139,7 +139,7 @@ if SAVE:
         pkl.dump(dds, f)
 
 # %%
-# 2 - Statistical analysis with the `DeseqStats` class
+# Statistical analysis with the `DeseqStats` class
 # ----------------------------------------------------
 #
 # The `DeseqDataSet` class has a unique mandatory arguments, `dds`, which should
