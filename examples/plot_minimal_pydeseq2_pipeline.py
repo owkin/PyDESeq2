@@ -76,8 +76,8 @@ counts_df = counts_df[genes_to_keep]
 # should be refitted – this is advised, in general.
 #
 # .. note::
-#  in the case of the provided synthetic data, there won't be any Cooks
-#  outliers.
+#   in the case of the provided synthetic data, there won't be any Cooks
+#   outliers.
 #
 # Start by creating a DeseqDataSet
 
