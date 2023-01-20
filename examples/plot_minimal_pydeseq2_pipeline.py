@@ -9,6 +9,7 @@ RNAseq data, using PyDESeq2.
     :local:
     :depth: 3
 
+We start by importing required packages and setting up an optional path to save results.
 """
 
 import os
@@ -62,10 +63,10 @@ print(clinical_df)
 
 
 # %%
-# In this example, the clinical data contains two columns, representing two types of
-# bi-level annotations. In the first part, we will only use the `condition` factor.
-# Later on, we'll see how to use both the `condition` and the `group` factors in our
-# analysis (see :ref:`multifactor_ref`).
+# In this example, the clinical data contains two columns, `condition` and `group`,
+# representing two types of bi-level annotations. In the first part, we will only use the
+# `condition` factor. Later on, we'll see how to use both the `condition` and the `group`
+# factors in our analysis (see :ref:`multifactor_ref`).
 
 # %%
 # Data filtering
@@ -100,9 +101,14 @@ counts_df = counts_df[genes_to_keep]
 # Now that we have loaded and filtered our data, we may proceed with the differential
 # analysis.
 
+
+# %%
+# Single factor analysis
+# --------------------------
+
 # %%
 # Read counts modeling with the `DeseqDataSet` class
-# -------------------------------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We start by creating a `DeseqDataSet` object from the count and clinical data.
 #
@@ -141,7 +147,7 @@ if SAVE:
 
 # %%
 # Statistical analysis with the `DeseqStats` class
-# ----------------------------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The `DeseqDataSet` class has a unique mandatory arguments, `dds`, which should
 # be a *fitted* `DeseqDataSet` object, as well as a set of optional keyword
@@ -157,7 +163,7 @@ stat_res = DeseqStats(dds, n_cpus=8)
 
 # %%
 # Wald test
-# ^^^^^^^^^
+# """"""""""
 #
 # The `summary` function runs the statistical analysis (multiple testing
 # adjustement included) and returns a summary DataFrame.
@@ -170,7 +176,7 @@ if SAVE:
 
 # %%
 # LFC shrinkage
-# ^^^^^^^^^^^^^
+# """""""""""""
 #
 # For visualization or post-processing purposes, it might be suitable to perform
 # LFC shrinkage. This is implemented by the `lfc_shrink` method.
