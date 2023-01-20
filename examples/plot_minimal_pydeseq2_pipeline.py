@@ -2,8 +2,6 @@
 Getting started
 ===============
 
-.. currentmodule:: pydeseq2
-
 In this example, we show how to perform a simple differential expression analysis on bulk
 RNAseq data, using PyDESeq2.
 
@@ -42,6 +40,8 @@ if SAVE:
 #
 # Both should be provided as `pandas dataframes
 # <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_.
+#
+# .. currentmodule:: pydeseq2
 #
 # To illustrate the required data format, we load a synthetic example dataset that may be
 # obtained through PyDESeq2's API using :func:`utils.load_example_data`.
@@ -118,7 +118,7 @@ counts_df = counts_df[genes_to_keep]
 # .. currentmodule:: pydeseq2.DeseqDataSet
 #
 # Read counts modeling with the :class:`DeseqDataSet` class
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We start by creating a :class:`DeseqDataSet`
 # object from the count and clinical data.
@@ -182,28 +182,41 @@ print(dds.dispersions)
 print(dds.LFCs)
 
 # %%
-# Statistical analysis with the ``DeseqStats`` class
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# .. currentmodule:: pydeseq2.DeseqStats
 #
-# The ``DeseqStats`` class has a unique mandatory arguments, ``dds``, which should
-# be a *fitted* :py:class:`DeseqDataSet <pydeseq2.DeseqDataSet.DeseqDataSet>`
-# object, as well as a set of optional keyword
-# arguments, among which:
+# Statistical analysis with the :class:`DeseqStats` class
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# - `alpha`: the p-value and adjusted p-value significance threshold (0.05 by default),
-# - `cooks_filter`: whether to filter p-values based on cooks outliers (True by default),
-# - `independent_filter`: whether to perform independent filtering to correct
-#   p-value trends (True by default).
-#
+# Now that dispersions and LFCs were fitted, we may proceed with statistical tests to
+# compute p-values and adjusted p-values for differential expresion. This is the role of
+# the :class:`DeseqStats` class. It has a unique mandatory argument, ``dds``, which
+# should be a *fitted* :class:`DeseqDataSet <pydeseq2.DeseqDataSet.DeseqDataSet>`
+# object.
 
 stat_res = DeseqStats(dds, n_cpus=8)
+
+# %%
+# It also has a set of optional keyword arguments (see the :doc:`API documentation
+# </api/docstrings/pydeseq2.DeseqStats.DeseqStats>`), among which:
+#
+# - ``alpha``: the p-value and adjusted p-value significance threshold (``0.05``
+#   by default),
+# - ``cooks_filter``: whether to filter p-values based on cooks outliers
+#   (``True`` by default),
+# - ``independent_filter``: whether to perform independent filtering to correct
+#   p-value trends (``True`` by default).
+#
+# In the :ref:`section on multifactor analysis<multifactor_ref>`, we will also see how
+# to use the ``contrast`` argument to specify according to which variable samples should
+# be compared.
 
 # %%
 # Wald test
 # """"""""""
 #
-# The ``summary()`` method runs the statistical analysis (multiple testing
-# adjustement included) and returns a summary DataFrame.
+# PyDESeq2 computes p-values using Wald tests. This can be done using the
+# :meth:`summary() <DeseqStats.summary>` method, which runs the whole statistical
+# analysis, cooks filtering and multiple testing adjustement included.
 
 stat_res.summary()
 
@@ -212,17 +225,30 @@ if SAVE:
         pkl.dump(stat_res, f)
 
 # %%
+# The results are then stored in ``stat_res.results_df``.
+
+# %%
 # LFC shrinkage
 # """""""""""""
 #
 # For visualization or post-processing purposes, it might be suitable to perform
-# LFC shrinkage. This is implemented by the ``lfc_shrink()`` method.
+# LFC shrinkage. This is implemented by the :meth:`lfc_shrink() <DeseqStats.lfc_shrink>`
+# method.
 
 stat_res.lfc_shrink()
 
 if SAVE:
     with open(os.path.join(OUTPUT_PATH, "shrunk_stat_results.pkl"), "wb") as f:
         pkl.dump(stat_res, f)
+
+# %%
+# .. note::
+#   Running :meth:`lfc_shrink() <DeseqStats.lfc_shrink>` will overwrite a
+#   :class:`DeseqStats`' log fold changes (and standard errors) with shrunk values.
+#   This can be checked using the ``shrunk_LFCs`` flag.
+#
+
+print(stat_res.shrunk_LFCs)  # Will be True only if lfc_shrink() was run.
 
 # %%
 # .. _multifactor_ref:
