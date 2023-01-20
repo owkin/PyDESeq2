@@ -7,6 +7,7 @@ This notebook gives a minimalistic example of how to perform DEA using PyDESeq2.
 
 It allows you to run the PyDESeq2 pipeline on synthetic data provided as part of
 this repository.
+
 """
 
 import os
@@ -79,7 +80,8 @@ counts_df = counts_df[genes_to_keep]
 #  outliers.
 #
 # Start by creating a DeseqDataSet
-#
+
+# %%
 # .. note::
 #   "condition" is a column in `clinical_df`. You might need to update it if you
 #   use different dataset.
