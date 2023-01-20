@@ -211,6 +211,8 @@ stat_res = DeseqStats(dds, n_cpus=8)
 # be compared.
 
 # %%
+# .. _wald_ref:
+#
 # Wald test
 # """"""""""
 #
@@ -256,3 +258,101 @@ print(stat_res.shrunk_LFCs)  # Will be True only if lfc_shrink() was run.
 # Multifactor analysis
 # ---------------------
 #
+# .. currentmodule:: pydeseq2.DeseqDataSet
+#
+# So far, we have only used the ``condition`` column of ``clinical_df``, which divides
+# samples between conditions ``A`` and ``B``. Yet, ``clinical_df`` contains second
+# column, which separates samples according to ``group`` ``X`` and ``Y``.
+
+print(clinical_df)
+
+# %%
+# The goal of multifactor analysis is to use *both* variables to fit LFCs.
+#
+# Read counts modeling
+# ^^^^^^^^^^^^^^^^^^^^^
+#
+# To perform multifactor analysis with PyDESeq2, we start by inializing a
+# :class:`DeseqDataSet` as previously, but we provide the list of variables we would like
+# to use in the ``design_factors`` argument.
+#
+
+dds = DeseqDataSet(
+    counts_df,
+    clinical_df,
+    design_factors=["group", "condition"],
+    refit_cooks=True,
+    n_cpus=8,
+)
+# %%
+# .. note::
+#   By default, the last variable in the list (here, ``"condition"``) will be the one for
+#   which LFCs and p-values will be displayed, but this may be changed later on when
+#   performing the statistical analysis.
+#
+# As for the single-factor analysis, we fit dispersions and LFCs using the
+# :meth:`deseq2() <DeseqDataSet.deseq2>` method.
+
+dds.deseq2()
+
+# %%
+# Now, if we print log fold changes, we will have two columns in addition to the
+# intercept: one corresponding to the ``group`` variable, and the other to ``condition``.
+
+print(dds.LFCs)
+
+# %%
+# .. currentmodule:: pydeseq2.DeseqStats
+#
+# Statistical analysis
+# ^^^^^^^^^^^^^^^^^^^^
+#
+# P-values are computed as earlier from a :class:`DeseqStats` object with the
+# :meth:`summary() <DeseqStats.summary>` method, with a new important argument:
+# the ``contrast``.
+# It is a list of three strings of the form
+# ``["variable", "tested level", "reference level"]`` which determines which
+# variable we want to compute LFCs and pvalues for.
+# As an example, to compare the condition B to the condition A, we set
+# ``contrast=["condition", "B", "A"]``.
+#
+
+stat_res_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"], n_cpus=8)
+
+# %%
+# .. note::
+#   If left blank, the variable of interest will be the last one provided in
+#   the ``design_factors`` attribute of the corresponding
+#   :class:`DeseqDataSet <pydeseq2.DeseqDataSet.DeseqDataSet>` object,
+#   and the reference level will be picked alphabetically.
+#   In any case, *both variables are still used*. This is due to the fact that ``dds``
+#   was fit with both as design factors.
+#
+# Let us fit p-values:
+#
+
+stat_res_B_vs_A.summary()
+
+
+# %%
+# As we can see, although we are comparing the same cohorts (condition B vs A), the
+# results differ from the :ref:`single-factor analysis <wald_ref>`. This is because the
+# model uses information from both the ``condition`` and ``group`` variables.
+#
+# Let us now evaluate differential expression according to group Y vs X. To do so,
+# we create a new :class:`DeseqStats` from the same
+# :class:`DeseqDataSet <pydeseq2.DeseqDataSet.DeseqDataSet>`
+# with ``contrast=["group", "Y", "X"]``, and run the analysis again.
+
+stat_res_Y_vs_X = DeseqStats(dds, contrast=["group", "Y", "X"], n_cpus=8)
+stat_res_Y_vs_X.summary()
+
+# %%
+# LFC shrinkage (multifactor)
+# """""""""""""""""""""""""""
+#
+# In a multifactor setting, LFC shrinkage works as in the single-factor case, but will
+# only shrink the LFCs of a :class:`DeseqStats` object based on its
+# ``contrast`` argument.
+
+stat_res_B_vs_A.lfc_shrink()
