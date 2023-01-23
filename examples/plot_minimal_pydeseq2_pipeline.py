@@ -82,7 +82,7 @@ print(clinical_df)
 #
 # We start by removing samples for which ``condition`` is ``NaN``. If you are using
 # another dataset, do not forget to change "condition" for the column of ``clinical_df``
-# you wish to as a design factor in your analysis.
+# you wish to use as a design factor in your analysis.
 
 samples_to_keep = ~clinical_df.condition.isna()
 counts_df = counts_df.loc[samples_to_keep]
