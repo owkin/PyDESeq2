@@ -69,9 +69,11 @@ clinical_df = load_example_data(
 # %%
 # 1. Read counts modeling
 # -----------------------
-# Read counts modeling with the :class:`DeseqDataSet class
+# Read counts modeling with the :class:`DeseqDataSet
+# <DeseqDataSet.DeseqDataSet>` class
 #
-# The :class:`DeseqDataSet` class has two mandatory arguments, `counts_df` and
+# The :class:`DeseqDataSet <DeseqDataSet.DeseqDataSet>` class has two mandatory
+# arguments, `counts_df` and
 # `clinical_df`, as well as a set of optional keyword arguments, among which:
 #
 # - `design_factor`: the name of the column of clinical to be used as a design
