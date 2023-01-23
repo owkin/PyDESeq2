@@ -7,7 +7,7 @@ PyDESeq2 documentation
 ======================
 
 This package is a python implementation of the
-`DESeq2 <https://bioconductor.org/packages/release/bioc/html/DESeq2.html>`_ method [1]_
+`DESeq2 <https://bioconductor.org/packages/release/bioc/html/DESeq2.html>`_ method [LHA14]_
 for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
 It aims to facilitate DEA experiments for python users.
 
@@ -16,7 +16,7 @@ from scratch, you may experience some differences in terms of retrieved values o
 
 Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor and
 paired multi-factor analysis (with bi-level factors), with an
-optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage step [2]_.
+optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage step [ZIL19]_.
 We plan to implement more in the near future. In case there is a feature you would particularly like to be implemented,
 feel free to open an issue on GitHub.
 
@@ -64,15 +64,15 @@ Citing this work
 References
 ----------
 
-.. [1] Love, M. I., Huber, W., & Anders, S. (2014). "Moderated estimation of fold
+.. [LHA14] Love, M. I., Huber, W., & Anders, S. (2014). "Moderated estimation of fold
         change and dispersion for RNA-seq data with DESeq2." Genome biology, 15(12), 1-21.
-        <https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8>
+        https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8
 
-..  [2] Zhu, A., Ibrahim, J. G., & Love, M. I. (2019).
+..  [ZIL19] Zhu, A., Ibrahim, J. G., & Love, M. I. (2019).
         "Heavy-tailed prior distributions for sequence count data:
         removing the noise and preserving large differences."
         Bioinformatics, 35(12), 2084-2092.
-        <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>
+        https://academic.oup.com/bioinformatics/article/35/12/2084/5159452
 
 License
 -------
