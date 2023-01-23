@@ -1,6 +1,6 @@
 """
-Step-by-step
-============
+Step-by-step PyDESeq2 workflow
+===============================
 
 This notebook details all the steps of the PyDESeq2 pipeline.
 
