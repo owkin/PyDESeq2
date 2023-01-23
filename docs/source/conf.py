@@ -77,6 +77,8 @@ autosummary_generate = True
 autodoc_member_order = "groupwise"
 autodoc_docstring_signature = True
 
+suppress_warnings = ["ref.citation"]  # use citation style instead of footnote style in
+# API docs looks nicer but raisers duplicate citation warnings.
 
 # Napoleon settings
 # https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html
