@@ -1,2 +1,2 @@
-Examples
-========
+Getting Started
+===============
