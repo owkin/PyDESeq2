@@ -78,7 +78,8 @@ print(clinical_df)
 #
 # Before proceeding with DEA, it is good practice to preprocess your data, e.g. to remove
 # samples for which annotations are missing and exclude genes with very low levels of
-# expression. This is not necessary in the case of our synthetic data, but don't forget this step if you are using a real data. To this end you can use the code below.
+# expression. This is not necessary in the case of our synthetic data, but don't forget
+# this step if you are using real data. To this end you can use the code below.
 #
 # We start by removing samples for which ``condition`` is ``NaN``. If you are using
 # another dataset, do not forget to change "condition" for the column of ``clinical_df``
@@ -228,7 +229,7 @@ if SAVE:
         pkl.dump(stat_res, f)
 
 # %%
-# The results are then stored in ``stat_res.results_df``.
+# The results are then stored in the ``results_df`` attribute (``stat_res.results_df``).
 
 # %%
 # LFC shrinkage
