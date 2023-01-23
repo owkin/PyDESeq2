@@ -1,5 +1,6 @@
 import time
 
+# import anndata as ad
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -124,11 +125,16 @@ class DeseqStats:
         batch_size=128,
         joblib_verbosity=0,
     ):
-        assert hasattr(
-            dds, "LFCs"
+        assert (
+            "LFC" in dds.adata.varm
         ), "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
 
         self.dds = dds
+        # TODO here it should be the dds object itself, once it inherits from anndata?
+        # TODO At any rate we should find a way to avoid making copies and to avoid
+        # unwanted modifications of the dds object
+
+        self.adata = dds.adata
 
         if contrast is not None:  # Test contrast if provided
             assert len(contrast) == 3, "The contrast should contain three strings."
@@ -136,14 +142,17 @@ class DeseqStats:
                 contrast[0] in self.dds.design_factors
             ), "The contrast variable should be one of the design factors."
             assert (
-                contrast[1] in self.dds.clinical[contrast[0]].values
-                and contrast[2] in self.dds.clinical[contrast[0]].values
+                contrast[1] in self.dds.adata.obs[contrast[0]].values
+                and contrast[2] in self.dds.adata.obs[contrast[0]].values
             ), "The contrast levels should correspond to design factors levels."
             self.contrast = contrast
         else:  # Build contrast if None
             factor = self.dds.design_factors[-1]
-            levels = np.unique(self.dds.clinical[factor]).astype(str)
-            if "_".join([factor, levels[0]]) == self.dds.design_matrix.columns[-1]:
+            levels = np.unique(self.dds.adata.obs[factor]).astype(str)
+            if (
+                "_".join([factor, levels[0]])
+                == self.dds.adata.obsm["design_matrix"].columns[-1]
+            ):
                 self.contrast = [factor, levels[0], levels[1]]
             else:
                 self.contrast = [factor, levels[1], levels[0]]
@@ -151,20 +160,29 @@ class DeseqStats:
         self.alpha = alpha
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
-        self.prior_disp_var = prior_disp_var
-        self.base_mean = self.dds._normed_means
+        # self.prior_disp_var = prior_disp_var
+        self.adata.uns["prior_disp_var"] = prior_disp_var
+        # self.base_mean = self.dds._normed_means
+        self.adata.varm["_normed_means"] = self.dds.adata.varm["_normed_means"]
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
-        self.design_matrix = self.dds.design_matrix.copy()
-        self.LFCs = self.dds.LFCs.copy()
+        # self.design_matrix = self.dds.design_matrix.copy() # TODO
+        # self.LFCs = self.dds.LFCs.copy() # TODO
+        self.adata.obsm["design_matrix"] = self.dds.adata.obsm["design_matrix"].copy()
+        self.adata.varm["LFC"] = self.dds.adata.varm["LFC"].copy()
         if self.contrast is None:
-            alternative_level = self.design_matrix.columns[-1]
+            # alternative_level = self.design_matrix.columns[-1] # TODO
+            alternative_level = self.adata.obsm["design_matrix"].columns[-1]
         else:
             alternative_level = "_".join([self.contrast[0], self.contrast[1]])
 
-        if alternative_level in self.design_matrix.columns:
-            self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
+        # if alternative_level in self.design_matrix.columns:
+        if alternative_level in self.adata.obsm["design_matrix"].columns:
+            # self.contrast_idx = self.LFCs.columns.get_loc(alternative_level) # TODO
+            self.contrast_idx = self.LFCs.columns.get_loc(
+                alternative_level
+            )  # TODO here LFC is no longer a pandas dataframe but an array?
         else:  # The reference level is not the same as in dds: change it
             reference_level = "_".join([self.contrast[0], self.contrast[2]])
             self.contrast_idx = self.LFCs.columns.get_loc(reference_level)

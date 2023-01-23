@@ -40,6 +40,7 @@ class DeseqDataSet:
     r"""A class to implement dispersion and log fold-change (LFC) estimation.
 
     Follows the DESeq2 pipeline [1]_.
+    TODO : update docstring
 
     Parameters
     ----------
