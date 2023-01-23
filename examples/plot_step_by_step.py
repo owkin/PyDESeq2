@@ -169,7 +169,7 @@ if SAVE:
 # %%
 # 1. Statistical analysis
 # -----------------------
-# Statistical analysis with the :class:`DeseqStats` class.
+# Statistical analysis with the :class:`DeseqStats <DeseqStats.DeseqStats>` class.
 # The `DeseqDataSet` class has a unique mandatory arguments, `dds`, which should
 # be a *fitted* `DeseqDataSet` object, as well as a set of optional keyword
 # arguments, among which:
