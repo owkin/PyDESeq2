@@ -167,7 +167,7 @@ if SAVE:
         pkl.dump(dds, f)
 
 # %%
-# 1. Statistical analysis
+# 2. Statistical analysis
 # -----------------------
 # Statistical analysis with the :class:`DeseqStats <DeseqStats.DeseqStats>` class.
 # The `DeseqDataSet` class has a unique mandatory arguments, `dds`, which should
