@@ -145,7 +145,8 @@ dds = DeseqDataSet(
 # :ref:`section on multifactor analysis<multifactor_ref>`.
 #
 # .. note::
-#   ``"condition"`` is a column from the ``clinical_df`` dataframe we loaded earlier.
+#   The ``"condition"`` argument passed to ``design_factors`` corresponds to a column
+#   from the ``clinical_df`` dataframe we loaded earlier.
 #   You might need to change it according to your own dataset.
 #
 # Several other arguments may be optionally specified (see the :doc:`API documentation
