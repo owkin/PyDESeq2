@@ -27,7 +27,6 @@ feel free to open an issue on GitHub.
 
    usage/installation
    usage/requirements
-   usage/getting_started
    usage/contributing
 
 .. toctree::
