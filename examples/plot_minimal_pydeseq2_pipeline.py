@@ -33,9 +33,10 @@ if SAVE:
 # To perform differential expression analysis (DEA), PyDESeq2 requires two types of
 # inputs:
 #
-#   * A count matrix of shape 'number of samples' x 'number of genes', containing read counts
-#     (non-negative integers),
-#   * Clinical data (or "column" data), containing sample annotations that will be used
+#   * A count matrix of shape 'number of samples' x 'number of genes', containing
+#     read counts (non-negative integers),
+#   * Clinical data (or "column" data) of shape 'number of samples' x
+#     'number of variables', containing sample annotations that will be used
 #     to split the data in cohorts.
 #
 # Both should be provided as `pandas dataframes
