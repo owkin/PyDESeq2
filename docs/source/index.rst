@@ -38,7 +38,7 @@ feel free to open an issue on GitHub.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Examples
+   :caption: Tutorials
 
    auto_examples/index.rst
 
