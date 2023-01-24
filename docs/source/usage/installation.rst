@@ -1,7 +1,7 @@
 Installation
 ------------
 
-`PyDESeq2` can be installed from PyPI:
+PyDESeq2 can be installed from PyPI:
 
 .. code-block:: bash
 
