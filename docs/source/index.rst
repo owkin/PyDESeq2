@@ -28,6 +28,7 @@ feel free to open an issue on GitHub.
    usage/installation
    usage/requirements
    usage/contributing
+   usage/references
 
 .. toctree::
    :maxdepth: 2
@@ -60,11 +61,6 @@ Citing this work
    doi = {10.1101/2022.12.14.520412},
    journal={bioRxiv},
    }
-
-References
-----------
-
-.. bibliography::
 
 License
 -------
