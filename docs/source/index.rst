@@ -43,13 +43,6 @@ like to be implemented, feel free to open an issue on GitHub.
    auto_examples/index.rst
 
 
-Documentation
--------------
-
-The documentation is automatically build using `Sphinx <https://www.sphinx-doc.org/en/master/>`_,
-and hosted `here on ReadTheDoc <https://pydeseq2.readthedocs.io/en/latest/>`_.
-
-
 Citing this work
 ----------------
 
