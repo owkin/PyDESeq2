@@ -73,9 +73,9 @@ clinical_df = load_example_data(
 # 1. Read counts modeling
 # -----------------------
 # Read counts modeling with the :class:`DeseqDataSet
-# <DeseqDataSet.DeseqDataSet>` class
+# <dds.DeseqDataSet>` class
 #
-# The :class:`DeseqDataSet <DeseqDataSet.DeseqDataSet>` class has two mandatory
+# The :class:`DeseqDataSet <dds.DeseqDataSet>` class has two mandatory
 # arguments, `counts_df` and
 # `clinical_df`, as well as a set of optional keyword arguments, among which:
 #
@@ -172,7 +172,7 @@ if SAVE:
 # %%
 # 2. Statistical analysis
 # -----------------------
-# Statistical analysis with the :class:`DeseqStats <DeseqStats.DeseqStats>` class.
+# Statistical analysis with the :class:`DeseqStats <ds.DeseqStats>` class.
 # The `DeseqDataSet` class has a unique mandatory arguments, `dds`, which should
 # be a *fitted* `DeseqDataSet` object, as well as a set of optional keyword
 # arguments, among which:
