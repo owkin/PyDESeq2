@@ -52,6 +52,7 @@
 .wy-menu-vertical a,
 .wy-menu-vertical li.current a {
     color: black;
+    text-align: left;
     border-right: none;
 }
 .wy-menu-vertical a:hover,
