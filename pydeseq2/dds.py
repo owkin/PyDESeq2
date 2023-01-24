@@ -326,7 +326,11 @@ class DeseqDataSet:
         print("Fitting dispersions...")
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(n_jobs=self.n_processes, batch_size=self.batch_size)(
+            res = Parallel(
+                n_jobs=self.n_processes,
+                verbose=self.joblib_verbosity,
+                batch_size=self.batch_size,
+            )(
                 delayed(fit_alpha_mle)(
                     counts=counts_nonzero[:, i],
                     design_matrix=X,
