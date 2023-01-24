@@ -54,6 +54,7 @@ extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
+    "sphinxcontrib.bibtex",
 ]
 
 
@@ -77,8 +78,11 @@ autosummary_generate = True
 autodoc_member_order = "groupwise"
 autodoc_docstring_signature = True
 
-suppress_warnings = ["ref.citation"]  # use citation style instead of footnote style in
-# API docs looks nicer but raisers duplicate citation warnings.
+# Bibliography
+bibtex_bibfiles = ["refs.bib"]
+# Workaround to cite the same paper in several places in the API docs
+suppress_warnings = ["bibtex.duplicate_label"]
+
 
 # Napoleon settings
 # https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html

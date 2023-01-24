@@ -32,7 +32,7 @@ warnings.simplefilter("ignore", DomainWarning)
 class DeseqDataSet:
     r"""A class to implement dispersion and log fold-change (LFC) estimation.
 
-    Follows the DESeq2 pipeline [LHA14]_.
+    Follows the DESeq2 pipeline :cite:p:`DeseqDataSet-love2014moderated`.
 
     Parameters
     ----------
@@ -147,10 +147,8 @@ class DeseqDataSet:
 
     References
     ----------
-    ..  [LHA14] Love, M. I., Huber, W., & Anders, S. (2014).
-        "Moderated estimation of fold change and dispersion for RNA-seq data
-        with DESeq2." Genome biology, 15(12), 1-21.
-        https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8
+    .. bibliography::
+        :keyprefix: DeseqDataSet-
     """
 
     def __init__(
