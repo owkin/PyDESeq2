@@ -20,9 +20,9 @@ class DeseqStats:
     """PyDESeq2 statistical tests for differential expression.
 
     Implements p-value estimation for differential gene expression according
-    to the DESeq2 pipeline [LHA14]_.
+    to the DESeq2 pipeline :cite:p:`DeseqStats-love2014moderated`.
 
-    Also supports apeGLM log-fold change shrinkage [ZIL19]_.
+    Also supports apeGLM log-fold change shrinkage :cite:p:`DeseqStats-zhu2019heavy`.
 
     Parameters
     ----------
@@ -103,15 +103,8 @@ class DeseqStats:
 
     References
     ----------
-    ..  [LHA14] Love, M. I., Huber, W., & Anders, S. (2014). "Moderated estimation of
-        foldchange and dispersion for RNA-seq data with DESeq2." Genome biology,
-        15(12), 1-21.
-        https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8
-    ..  [ZIL19] Zhu, A., Ibrahim, J. G., & Love, M. I. (2019).
-        "Heavy-tailed prior distributions for sequence count data:
-        removing the noise and preserving large differences."
-        Bioinformatics, 35(12), 2084-2092.
-        https://academic.oup.com/bioinformatics/article/35/12/2084/5159452
+    .. bibliography::
+        :keyprefix: DeseqStats-
     """
 
     def __init__(
@@ -314,7 +307,7 @@ class DeseqStats:
             self.p_values.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 1
 
     def lfc_shrink(self):
-        """LFC shrinkage with an apeGLM prior [ZIL19]_.
+        """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
 
@@ -401,7 +394,7 @@ class DeseqStats:
     def _independent_filtering(self):
         """Compute adjusted p-values using independent filtering.
 
-        Corrects p-value trend (see [LHA14]_)
+        Corrects p-value trend (see :cite:p:`DeseqStats-love2014moderated`)
         """
 
         # Check that p-values are available. If not, compute them.
