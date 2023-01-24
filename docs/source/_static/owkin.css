@@ -18,6 +18,7 @@ html {
 body {
     font-family: "averta", "Helvetica Neue", helvetica, arial, sans-serif;
     color: black;
+    text-align:justify;
     font-size: var(--font-size-normal);
 }
 
