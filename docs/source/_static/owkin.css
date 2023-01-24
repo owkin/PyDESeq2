@@ -39,7 +39,7 @@ h1, h2, h3,
 h1 {
     font-size: var(--font-size-xxl);
     line-height: 1.1;
-    text-transform: uppercase;
+    /*text-transform: uppercase;*/
 }
 
 h2,
@@ -95,7 +95,7 @@ p, ul, ol {
 
 
 .wy-breadcrumbs {
-    text-transform: uppercase;
+    /*text-transform: uppercase;*/
     font-weight: bold;
     font-size: var(--font-size-small);
 }
