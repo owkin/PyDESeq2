@@ -180,29 +180,33 @@ class DeseqStats:
         # if alternative_level in self.design_matrix.columns:
         if alternative_level in self.adata.obsm["design_matrix"].columns:
             # self.contrast_idx = self.LFCs.columns.get_loc(alternative_level) # TODO
-            self.contrast_idx = self.LFCs.columns.get_loc(
-                alternative_level
-            )  # TODO here LFC is no longer a pandas dataframe but an array?
+            self.contrast_idx = self.adata.varm["LFC"].columns.get_loc(alternative_level)
         else:  # The reference level is not the same as in dds: change it
             reference_level = "_".join([self.contrast[0], self.contrast[2]])
-            self.contrast_idx = self.LFCs.columns.get_loc(reference_level)
+            self.contrast_idx = self.adata.varm["LFC"].columns.get_loc(reference_level)
             # Change the design matrix reference level
-            self.design_matrix.rename(
+            self.adata.obsm["design_matrix"].rename(
                 columns={
-                    self.design_matrix.columns[self.contrast_idx]: alternative_level
+                    self.adata.obsm["design_matrix"].columns[
+                        self.contrast_idx
+                    ]: alternative_level
                 },
                 inplace=True,
             )
-            self.design_matrix.iloc[:, self.contrast_idx] = (
-                1 - self.design_matrix.iloc[:, self.contrast_idx]
+            self.adata.obsm["design_matrix"].iloc[:, self.contrast_idx] = (
+                1 - self.adata.obsm["design_matrix"].iloc[:, self.contrast_idx]
             )
             # Rename and update LFC coefficients accordingly
-            self.LFCs.rename(
-                columns={self.LFCs.columns[self.contrast_idx]: alternative_level},
+            self.adata.varm["LFC"].rename(
+                columns={
+                    self.adata.varm["LFC"].columns[self.contrast_idx]: alternative_level
+                },
                 inplace=True,
             )
-            self.LFCs.iloc[:, 0] += self.LFCs.iloc[:, self.contrast_idx]
-            self.LFCs.iloc[:, self.contrast_idx] *= -1
+            self.adata.varm["LFC"].iloc[:, 0] += self.adata.varm["LFC"].iloc[
+                :, self.contrast_idx
+            ]
+            self.adata.varm["LFC"].iloc[:, self.contrast_idx] *= -1
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
         self.n_processes = get_num_processes(n_cpus)
@@ -211,9 +215,7 @@ class DeseqStats:
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
-        try:
-            dds.replaced
-        except AttributeError:
+        if self.dds.refit_cooks and "replaced" not in self.dds.adata.varm:
             raise AttributeError(
                 "dds has 'refit_cooks' set to True but Cooks outliers have not been "
                 "refitted. Please run 'dds.refit()' first or set 'dds.refit_cooks' "
