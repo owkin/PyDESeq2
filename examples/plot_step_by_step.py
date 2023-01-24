@@ -21,8 +21,8 @@ results.
 import os
 import pickle as pkl
 
-from pydeseq2.DeseqDataSet import DeseqDataSet
-from pydeseq2.DeseqStats import DeseqStats
+from pydeseq2.dds import DeseqDataSet
+from pydeseq2.ds import DeseqStats
 from pydeseq2.utils import load_example_data
 
 SAVE = False  # whether to save the outputs of this notebook

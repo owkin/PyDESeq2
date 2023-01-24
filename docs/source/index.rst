@@ -16,9 +16,9 @@ from scratch, you may experience some differences in terms of retrieved values o
 
 Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor and
 paired multi-factor analysis (with bi-level factors), with an
-optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage step :cite:p:`zhu2019heavy`.
-We plan to implement more in the near future. In case there is a feature you would particularly like to be implemented,
-feel free to open an issue on GitHub.
+optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage step
+:cite:p:`zhu2019heavy`. We plan to implement more in the near future. In case there is a feature you would particularly
+like to be implemented, feel free to open an issue on GitHub.
 
 
 .. toctree::
@@ -32,7 +32,7 @@ feel free to open an issue on GitHub.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: API:
 
    api/index
 
