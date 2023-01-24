@@ -21,28 +21,6 @@ optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/515
 like to be implemented, feel free to open an issue on GitHub.
 
 
-.. toctree::
-   :maxdepth: 2
-   :caption: General
-
-   usage/installation
-   usage/requirements
-   usage/contributing
-   usage/references
-
-.. toctree::
-   :maxdepth: 2
-   :caption: API
-
-   api/index
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Tutorials
-
-   auto_examples/index.rst
-
-
 Citing this work
 ----------------
 
@@ -60,6 +38,32 @@ License
 -------
 
 PyDESeq2 is released under an `MIT license <https://github.com/owkin/PyDESeq2/blob/main/LICENSE>`_.
+
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: General
+
+   usage/installation
+   usage/requirements
+   usage/contributing
+   usage/references
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: API
+
+   api/index
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Tutorials
+
+   auto_examples/index.rst
+
 
 
 
