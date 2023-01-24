@@ -23,7 +23,7 @@ like to be implemented, feel free to open an issue on GitHub.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Usage:
+   :caption: General
 
    usage/installation
    usage/requirements
@@ -32,7 +32,7 @@ like to be implemented, feel free to open an issue on GitHub.
 
 .. toctree::
    :maxdepth: 2
-   :caption: API:
+   :caption: API
 
    api/index
 
@@ -46,7 +46,8 @@ like to be implemented, feel free to open an issue on GitHub.
 Documentation
 -------------
 
-The documentation is automatically build using `Sphinx <https://www.sphinx-doc.org/en/master/>`_, and hosted `here on ReadTheDoc <https://pydeseq2.readthedocs.io/en/latest/>`_.
+The documentation is automatically build using `Sphinx <https://www.sphinx-doc.org/en/master/>`_,
+and hosted `here on ReadTheDoc <https://pydeseq2.readthedocs.io/en/latest/>`_.
 
 
 Citing this work
