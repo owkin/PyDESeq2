@@ -72,11 +72,14 @@ autodoc_default_options = {
     "members": True,
 }
 
+add_module_names = False
+
 autoclass_content = "both"
 autodoc_typehints = "both"
 autosummary_generate = True
 autodoc_member_order = "groupwise"
 autodoc_docstring_signature = True
+
 
 # Bibliography
 bibtex_bibfiles = ["refs.bib"]
