@@ -35,7 +35,7 @@ you would like to add to what have been said.
 If the issue / feature is not yet described make sure to give precise details on
 how you reached that issue (if possible giving code snippets) or precisely
 describe how the new feature should function. If it's an issue you should also
-mention which version of `pydeseq2` you are using. You can check this by running the following python code:
+mention which version of ``pydeseq2`` you are using. You can check this by running the following python code:
 
 .. code-block:: python
 
@@ -47,17 +47,17 @@ mention which version of `pydeseq2` you are using. You can check this by running
 Contributing to the code
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Thanks for willing to help us out with the `pydeseq2` development.
+Thanks for willing to help us out with the development of PyDESeq2.
 
 If you are contributing to an existing issue, add in the comment of that issue
 that you plan to contribute on it to avoid duplicate work. Once you start
-working on your pull request, link it to the issue by adding `#issue_number`
+working on your pull request, link it to the issue by adding ``#{issue_number}`` in your comment.
 
 1. To contribute, you will first need to fork the `Github <https://github.com/owkin/PyDESeq2>`_
 repository using the fork button in github. This will create a copy of
-`pydeseq2` on your github account (you must be logged in to github).
+``pydeseq2`` on your github account (you must be logged in to github).
 
-1. clone the `pydeseq2` version from your account:
+1. clone the ``pydeseq2`` version from your account:
 
 .. code-block:: python
 
@@ -71,7 +71,7 @@ We recommend using conda environment, run:
     conda env create -n pydeseq2-dev python=3.8
     conda activate pydeseq2-dev
 
-and then install `pydeseq2` in the development mode. This will also install all
+and then install ``pydeseq2`` in the development mode. This will also install all
 the required dependencies.
 
 .. code-block:: bash
@@ -79,7 +79,7 @@ the required dependencies.
     pip install -e ."[dev]"
     pre-commit install
 
-The pre-commit tool will automatically run `black` and `isort`, and check `flake8`
+The pre-commit tool will automatically run ``black`` and ``isort``, and check ``flake8``
 compatibility
 
 3. Add the upstream remote:
@@ -94,7 +94,7 @@ compatibility
 
     git remote -v
 
-you should see someting like this:
+you should see something like this:
 
 .. code-block:: bash
 
@@ -119,7 +119,7 @@ You are now all set and ready to start on your pull request (PR).
 
     git checkout -b my_new_branch
 
-You can now make the changes commiting to your new branch. Each time you commit,
+You can now make the changes committing to your new branch. Each time you commit,
 the pre-commit will check for style in your code.
 
 7. Once you are ready to submit your PR, first make sure that all the changes
@@ -133,7 +133,7 @@ the pre-commit will check for style in your code.
    `guidelines <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork>`_.
    Ensure that the description of your PR is sufficient to understand what you
    are doing in the code.
-   The core developers of `pydeseq2` will receive a message that your PR is
+   The core developers of ``pydeseq2`` will receive a message that your PR is
    ready for reviews.
 
 9. You will need to respond to all the comments before your PR can be merged.
@@ -163,13 +163,13 @@ correctly by running (in the docs directory):
     make clean html
 
 If the build was correct you can now view the new document in the
-`docs/build/html` directory.
+``docs/build/html`` directory.
 
 .. _answers:
 
 PR reviews and answering questions on issues
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You can also help us by reviewing an existing PR or by answering questions posed
-on the issue borad `issue tracker <https://github.com/owkin/PyDESeq2/issues>`_.
+on the issue board `issue tracker <https://github.com/owkin/PyDESeq2/issues>`_.
 
 Thanks again and happy contributing!
