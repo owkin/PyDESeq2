@@ -163,7 +163,7 @@ class DeseqStats:
         # self.prior_disp_var = prior_disp_var
         self.adata.uns["prior_disp_var"] = prior_disp_var
         # self.base_mean = self.dds._normed_means
-        self.adata.varm["_normed_means"] = self.dds.adata.varm["_normed_means"]
+        self.adata.varm["base_mean"] = self.dds.adata.varm["_normed_means"]
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
@@ -246,15 +246,16 @@ class DeseqStats:
                 self._p_value_adjustment()
 
         # Store the results in a DataFrame, in log2 scale for LFCs.
-        self.results_df = pd.DataFrame(index=self.dds.dispersions.index)
-        self.results_df["baseMean"] = self.base_mean
-        self.results_df["log2FoldChange"] = self.LFCs.iloc[
+        # TODO : should there still be a results_df attribute? keeping it for now
+        self.results_df = pd.DataFrame(index=self.adata.var_names)
+        self.results_df["baseMean"] = self.adata.varm["base_mean"]
+        self.results_df["log2FoldChange"] = self.adata.varm["LFC"].iloc[
             :, self.contrast_idx
         ] / np.log(2)
-        self.results_df["lfcSE"] = self.SE / np.log(2)
-        self.results_df["stat"] = self.statistics
-        self.results_df["pvalue"] = self.p_values
-        self.results_df["padj"] = self.padj
+        self.results_df["lfcSE"] = self.adata.varm["SE"] / np.log(2)
+        self.results_df["stat"] = self.adata.varm["statistics"]
+        self.results_df["pvalue"] = self.adata.varm["p_values"]
+        self.results_df["padj"] = self.adata.varm["padj"]
 
         print(
             f"Log2 fold change & Wald test p-value: "
@@ -348,19 +349,19 @@ class DeseqStats:
             but unmodified stats and pvalues.
         """
         # Filter genes with all zero counts
-        nonzero = self.dds.counts.sum(0) > 0
-        counts_nonzero = self.dds.counts.loc[:, nonzero].values
-        num_genes = counts_nonzero.shape[1]
+        nonzero = self.adata.X.sum(0) > 0
+        nz_data = self.adata[:, nonzero]
+        num_genes = nz_data.n_vars
 
-        size = (1.0 / self.dds.dispersions[nonzero]).values
-        offset = np.log(self.dds.size_factors).values
+        size = 1.0 / nz_data.varm["dispersions"][nonzero]
+        offset = np.log(self.adata.obsm["size_factors"])
 
         # Set priors
         prior_no_shrink_scale = 15
         prior_var = self._fit_prior_var()
         prior_scale = np.minimum(np.sqrt(prior_var), 1)
 
-        X = self.design_matrix.values
+        X = self.adata.obsm["design_matrix"].values
 
         print("Fitting MAP LFCs...")
         start = time.time()
@@ -372,7 +373,7 @@ class DeseqStats:
             )(
                 delayed(nbinomGLM)(
                     design_matrix=X,
-                    counts=counts_nonzero[:, i],
+                    counts=nz_data.X[:, i],
                     size=size[i],
                     offset=offset,
                     prior_no_shrink_scale=prior_no_shrink_scale,
@@ -387,32 +388,43 @@ class DeseqStats:
 
         lfcs, inv_hessians, l_bfgs_b_converged_ = zip(*res)
 
-        self.LFCs.iloc[:, self.contrast_idx] = pd.Series(
-            np.array(lfcs)[:, self.contrast_idx],
-            index=self.dds.dispersions[nonzero].index,
+        # TODO : should update only the not all zero genes
+
+        self.adata.varm["LFC"].iloc[:, self.contrast_idx].update(
+            pd.Series(
+                np.array(lfcs)[:, self.contrast_idx],
+                index=nz_data.var_names,
+            )
         )
-        self.SE = pd.Series(
-            np.array(
-                [
-                    np.sqrt(np.abs(inv_hess[self.contrast_idx, self.contrast_idx]))
-                    for inv_hess in inv_hessians
-                ]
-            ),
-            index=self.dds.dispersions[nonzero].index,
+
+        self.adata.varm["SE"].update(
+            pd.Series(
+                np.array(
+                    [
+                        np.sqrt(np.abs(inv_hess[self.contrast_idx, self.contrast_idx]))
+                        for inv_hess in inv_hessians
+                    ]
+                ),
+                index=nz_data.var_names,
+            )
         )
-        self._lcf_shrink_converged = pd.Series(
-            np.array(l_bfgs_b_converged_), index=self.dds.dispersions[nonzero].index
+
+        _LFC_shrink_converged = pd.Series(np.NaN, index=self.adata.var_names)
+        _LFC_shrink_converged.update(
+            pd.Series(l_bfgs_b_converged_, index=nz_data.var_names)
         )
+
+        self.adata.varm["_LFC_shrink_converged"] = _LFC_shrink_converged.values
 
         # Set a flag to indicate that LFCs were shrunk
         self.shrunk_LFCs = True
 
         # Replace in results dataframe, if it exists
         if hasattr(self, "results_df"):
-            self.results_df["log2FoldChange"] = self.LFCs.iloc[
+            self.results_df["log2FoldChange"] = self.adata.varm["LFC"].iloc[
                 :, self.contrast_idx
             ] / np.log(2)
-            self.results_df["lfcSE"] = self.SE / np.log(2)
+            self.results_df["lfcSE"] = self.adata.varm["SE"] / np.log(2)
 
             print(
                 f"Shrunk Log2 fold change & Wald test p-value: "
@@ -431,7 +443,7 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        lower_quantile = np.mean(self.base_mean == 0)
+        lower_quantile = np.mean(self.adata.varm["base_mean"] == 0)
 
         if lower_quantile < 0.95:
             upper_quantile = 0.95
@@ -440,15 +452,17 @@ class DeseqStats:
 
         theta = np.linspace(lower_quantile, upper_quantile, 50)
 
-        cutoffs = np.quantile(self.base_mean, theta)
+        cutoffs = np.quantile(self.adata.varm["base_mean"], theta)
 
         result = pd.DataFrame(
-            np.nan, index=self.base_mean.index, columns=np.arange(len(theta))
+            np.nan, index=self.adata.var_names, columns=np.arange(len(theta))
         )
 
         for i, cutoff in enumerate(cutoffs):
-            use = (self.base_mean >= cutoff) & (~self.p_values.isna())
-            U2 = self.p_values[use]
+            use = (self.adata.varm["base_mean"] >= cutoff) & (
+                ~self.adata.varm["p_values"].isna()
+            )
+            U2 = self.adata.varm["p_values"][use]
             result.loc[use, i] = multipletests(U2, alpha=self.alpha, method="fdr_bh")[1]
 
         num_rej = (result < self.alpha).sum(0)
@@ -465,7 +479,7 @@ class DeseqStats:
             else:
                 j = 0
 
-        self.padj = result.loc[:, j]
+        self.adata.varm["padj"] = result.loc[:, j]
 
     def _p_value_adjustment(self):
         """Compute adjusted p-values using the Benjamini-Hochberg method.
@@ -478,9 +492,9 @@ class DeseqStats:
             # Estimate p-values with Wald test
             self.run_wald_test()
 
-        self.padj = pd.Series(np.nan, index=self.p_values.index)
-        self.padj.loc[~self.p_values.isna()] = multipletests(
-            self.p_values.dropna(), alpha=self.alpha, method="fdr_bh"
+        self.adata.varm["padj"] = pd.Series(np.nan, index=self.adata.var_names)
+        self.adata.varm["padj"].loc[~self.adata.varm["p_values"].isna()] = multipletests(
+            self.adata.varm["p_values"].dropna(), alpha=self.alpha, method="fdr_bh"
         )[1]
 
     def _cooks_filtering(self):
@@ -562,9 +576,9 @@ class DeseqStats:
             Estimated prior variance.
         """
 
-        keep = ~self.LFCs.iloc[:, self.contrast_idx].isna()
-        S = self.LFCs[keep].iloc[:, self.contrast_idx] ** 2
-        D = self.SE[keep] ** 2
+        keep = ~self.adata.varm["LFC"].iloc[:, self.contrast_idx].isna()
+        S = self.adata.varm["LFC"][keep].iloc[:, self.contrast_idx] ** 2
+        D = self.adata.varm["SE"][keep] ** 2
 
         def objective(a):
             # Equation to solve
