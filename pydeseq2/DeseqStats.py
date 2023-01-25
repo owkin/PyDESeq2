@@ -134,7 +134,7 @@ class DeseqStats:
         # TODO At any rate we should find a way to avoid making copies and to avoid
         # unwanted modifications of the dds object
 
-        self.adata = dds.adata
+        self.adata = dds.adata.copy()
 
         if contrast is not None:  # Test contrast if provided
             assert len(contrast) == 3, "The contrast should contain three strings."
@@ -167,10 +167,6 @@ class DeseqStats:
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
-        # self.design_matrix = self.dds.design_matrix.copy() # TODO
-        # self.LFCs = self.dds.LFCs.copy() # TODO
-        self.adata.obsm["design_matrix"] = self.dds.adata.obsm["design_matrix"].copy()
-        self.adata.varm["LFC"] = self.dds.adata.varm["LFC"].copy()
         if self.contrast is None:
             # alternative_level = self.design_matrix.columns[-1] # TODO
             alternative_level = self.adata.obsm["design_matrix"].columns[-1]

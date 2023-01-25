@@ -843,7 +843,6 @@ class DeseqDataSet:
             ] = replacement_counts.values[
                 idx[self.adata.obsm["replaceable"]][:, self.adata.varm["replaced"]]
             ]
-
             # TODO : does this happen in place or not ?
 
     def _refit_without_outliers(
