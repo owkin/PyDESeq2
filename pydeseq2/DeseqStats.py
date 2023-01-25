@@ -268,8 +268,8 @@ class DeseqStats:
         Get gene-wise p-values for gene over/under-expression.`
         """
 
-        num_genes = len(self.LFCs)
-        num_vars = self.design_matrix.shape[1]
+        num_genes = self.adata.n_vars
+        num_vars = self.adata.obsm["design_matrix"].shape[1]
 
         # Raise a warning if LFCs are shrunk.
         if self.shrunk_LFCs:
@@ -280,20 +280,20 @@ class DeseqStats:
             )
 
         mu = (
-            np.exp(self.design_matrix @ self.LFCs.T)
-            .multiply(self.dds.size_factors, 0)
+            np.exp(self.adata.obsm["design_matrix"] @ self.adata.varm["LFC"].T)
+            .multiply(self.adata.obsm["size_factors"], 0)
             .values
         )
 
         # Set regularization factors.
-        if self.prior_disp_var is not None:
-            ridge_factor = np.diag(1 / self.prior_disp_var**2)
+        if self.adata.uns["prior_disp_var"] is not None:
+            ridge_factor = np.diag(1 / self.adata.uns["prior_disp_var"] ** 2)
         else:
             ridge_factor = np.diag(np.repeat(1e-6, num_vars))
 
-        X = self.design_matrix.values
-        disps = self.dds.dispersions.values
-        LFCs = self.LFCs.values
+        X = self.adata.obsm["design_matrix"].values
+        disps = self.adata.varm["dispersions"]
+        LFCs = self.adata.varm["LFC"].values
 
         print("Running Wald tests...")
         start = time.time()
@@ -318,18 +318,23 @@ class DeseqStats:
 
         pvals, stats, se = zip(*res)
 
-        self.p_values = pd.Series(pvals, index=self.LFCs.index)
-        self.statistics = pd.Series(stats, index=self.LFCs.index)
-        self.SE = pd.Series(se, index=self.LFCs.index)
+        # TODO : should we save those as series or numpy arrays ?
+        self.adata.varm["p_values"] = pd.Series(pvals, index=self.adata.var_names)
+        self.adata.varm["statistics"] = pd.Series(stats, index=self.adata.var_names)
+        self.adata.varm["SE"] = pd.Series(se, index=self.adata.var_names)
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
-        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
+        if self.dds.refit_cooks and self.dds.adata.varm["replaced"].sum() > 0:
 
-            self.SE.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 0
-            self.statistics.loc[
+            self.adata.varm["SE"].loc[
                 self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
             ] = 0
-            self.p_values.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 1
+            self.adata.varm["statistics"].loc[
+                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
+            ] = 0
+            self.adata.varm["p_values"].loc[
+                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
+            ] = 1
 
     def lfc_shrink(self):
         """LFC shrinkage with an apeGLM prior [2]_.
@@ -485,7 +490,8 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        num_samples, num_vars = self.design_matrix.shape
+        num_samples = self.adata.n_obs
+        num_vars = self.adata.obsm["design_matrix"].shape[-1]
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
 
         # If for a gene there are 3 samples or more that have more counts than the
@@ -494,38 +500,48 @@ class DeseqStats:
         if num_vars == 2:
             # Check whether cohorts have enough samples to allow refitting
             # Only consider conditions with 3 or more samples (same as in R)
-            n_or_more = self.design_matrix.iloc[:, self.contrast_idx].value_counts() >= 3
-            use_for_max = pd.Series(
-                n_or_more[self.design_matrix.iloc[:, self.contrast_idx]]
+            n_or_more = (
+                self.adata.obsm["design_matrix"]
+                .iloc[:, self.contrast_idx]
+                .value_counts()
+                >= 3
             )
-            use_for_max.index = self.design_matrix.index
+            use_for_max = pd.Series(
+                n_or_more[self.adata.obsm["design_matrix"].iloc[:, self.contrast_idx]]
+            )
+            use_for_max.index = self.adata.obs_names
 
         else:
-            use_for_max = pd.Series(True, index=self.design_matrix.index)
+            use_for_max = pd.Series(True, index=self.adata.obs_names)
+
+        print(use_for_max)
 
         # Take into account whether we already replaced outliers
-        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
+        if self.dds.refit_cooks and self.dds.adata.varm["replaced"].sum() > 0:
             cooks_outlier = (
-                self.dds.replace_cooks.loc[:, use_for_max] > cooks_cutoff
+                self.dds.adata[:, use_for_max].layers["replace_cooks"]
+                > cooks_cutoff  # TODO : check
             ).any(axis=1)
 
         else:
-            cooks_outlier = (self.dds.cooks.loc[:, use_for_max] > cooks_cutoff).any(
-                axis=1
-            )
+            cooks_outlier = (
+                self.dds.adata[:, use_for_max].layers["cooks"] > cooks_cutoff
+            ).any(axis=1)
 
-        pos = self.dds.cooks[cooks_outlier].to_numpy().argmax(1)
+        pos = (
+            self.dds.adata[cooks_outlier].layers["cooks"].to_numpy().argmax(1)
+        )  # TODO : why the to_numpy() ?
         cooks_outlier.update(
             (
-                self.dds.counts.loc[:, cooks_outlier]
-                > self.dds.counts.loc[:, cooks_outlier].to_numpy()[
+                self.adata[:, cooks_outlier].X
+                > self.adata[:, cooks_outlier].X.to_numpy()[  # TODO : again, to_numpy()?
                     pos, np.arange(len(pos))
                 ]
             ).sum(0)
             < 3
         )
 
-        self.p_values[cooks_outlier] = np.nan
+        self.adata.varm["p_values"][cooks_outlier] = np.nan
 
     def _fit_prior_var(self, min_var=1e-6, max_var=400):
         """Estimate the prior variance of the apeGLM model.
