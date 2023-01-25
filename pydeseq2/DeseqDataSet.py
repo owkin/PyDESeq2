@@ -28,12 +28,12 @@ from pydeseq2.utils import trimmed_mean
 
 # Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
 warnings.simplefilter("ignore", DomainWarning)
-
+# Ignore AnnData's FutureWarning about implicit data conversion.
+warnings.simplefilter("ignore", FutureWarning)
 
 # TODO: support loading / saving DeseqDataSets from annData objects.
 # TODO : Should check which fields are present and add relevant attributes
 # TODO : should a DeseqDataSet inherit from AnnData?
-# TODO: check who should be an obs, an obsm, etc.
 
 
 class DeseqDataSet:
@@ -147,7 +147,7 @@ class DeseqDataSet:
         Read counts after replacement,
         for which dispersions and LFCs must be fitted again.
 
-    new_all_zeroes : pandas.Series
+    new_all_zeroes_genes : pandas.Series TODO update
         Genes which have only zero counts after outlier replacement.
 
     _rough_dispersions : pandas.Series
@@ -278,7 +278,7 @@ class DeseqDataSet:
         if "size_factors" not in self.adata.obsm:
             self.fit_size_factors()
 
-        # Finit init "method of moments" dispersion estimates
+        # Fit "method of moments" dispersion estimates
         self._fit_MoM_dispersions()
 
         # Exclude genes with all zeroes
@@ -755,7 +755,7 @@ class DeseqDataSet:
         """
 
         # Check that size_factors are available. If not, compute them.
-        if not hasattr(self, "size_factors"):
+        if "size_factors" not in self.adata.obsm:
             self.fit_size_factors()
 
         non_zero = ~(self.adata.X == 0).all(axis=0)
@@ -817,7 +817,7 @@ class DeseqDataSet:
 
         # Compute replacement counts: trimmed means * size_factors
         # self.counts_to_refit = self.adata[:, self.adata.obsm["replaced"]].X.copy()
-        self.counts_to_refit = self.adata[:, self.adata.varm["replaced"]]
+        self.counts_to_refit = self.adata[:, self.adata.varm["replaced"]].copy()
 
         trim_base_mean = pd.DataFrame(
             trimmed_mean(
@@ -838,11 +838,11 @@ class DeseqDataSet:
         )
 
         if sum(self.adata.varm["replaced"] > 0):
-            self.counts_to_refit[
-                idx[self.adata[:, self.adata.varm["replaced"]].obsm["replaceable"]]
-            ].X = replacement_counts[
+            self.counts_to_refit.X[
                 idx[self.adata.obsm["replaceable"]][:, self.adata.varm["replaced"]]
-            ].values
+            ] = replacement_counts.values[
+                idx[self.adata.obsm["replaceable"]][:, self.adata.varm["replaced"]]
+            ]
 
             # TODO : does this happen in place or not ?
 
@@ -862,12 +862,19 @@ class DeseqDataSet:
             self._replace_outliers()
 
         # Only refit genes for which replacing outliers hasn't resulted in all zeroes
-        self.new_all_zeroes = (self.counts_to_refit == 0).all()
-        self.counts_to_refit = self.counts_to_refit.loc[:, ~self.new_all_zeroes]
+        new_all_zeroes = (self.counts_to_refit.X == 0).all(
+            axis=0
+        )  # TODO : fit this in the anndata?
+        self.new_all_zeroes_genes = self.counts_to_refit.var_names[new_all_zeroes]
+        self.counts_to_refit = self.counts_to_refit[:, ~new_all_zeroes].copy()
 
         sub_dds = DeseqDataSet(
-            counts=self.counts_to_refit,
-            clinical=self.clinical,
+            counts=pd.DataFrame(
+                self.counts_to_refit.X,
+                index=self.counts_to_refit.obs_names,
+                columns=self.counts_to_refit.var_names,
+            ),
+            clinical=self.adata.obs,
             design_factors=self.design_factors,
             min_mu=self.min_mu,
             min_disp=self.min_disp,
@@ -880,24 +887,24 @@ class DeseqDataSet:
         )
 
         # Use the same size factors
-        sub_dds.size_factors = self.size_factors
+        sub_dds.adata.obsm["size_factors"] = self.adata.obsm["size_factors"]
 
         # Estimate gene-wise dispersions.
         sub_dds.fit_genewise_dispersions()
 
         # Compute trend dispersions.
         # Note: the trend curve is not refitted.
-        sub_dds.trend_coeffs = self.trend_coeffs
-        sub_dds._normed_means = self.counts_to_refit.divide(self.size_factors, 0).mean(0)
-        sub_dds.fitted_dispersions = dispersion_trend(
-            sub_dds._normed_means,
-            sub_dds.trend_coeffs,
+        sub_dds.adata.uns["trend_coeffs"] = self.adata.uns["trend_coeffs"]
+        sub_dds.adata.varm["_normed_means"] = self.counts_to_refit.varm["_normed_means"]
+        sub_dds.adata.varm["fitted_dispersions"] = dispersion_trend(
+            sub_dds.adata.varm["_normed_means"],
+            sub_dds.adata.uns["trend_coeffs"],
         )
 
         # Estimate MAP dispersions.
         # Note: the prior variance is not recomputed.
-        sub_dds._squared_logres = self._squared_logres
-        sub_dds.prior_disp_var = self.prior_disp_var
+        sub_dds.adata.uns["_squared_logres"] = self.adata.uns["_squared_logres"]
+        sub_dds.adata.uns["prior_disp_var"] = self.adata.uns["prior_disp_var"]
 
         sub_dds.fit_MAP_dispersions()
 
@@ -905,16 +912,24 @@ class DeseqDataSet:
         sub_dds.fit_LFC()
 
         # Replace values in main object
-        self._normed_means[
-            self.replaced & (~self.new_all_zeroes)
-        ] = sub_dds._normed_means
-        self.LFCs[self.replaced & (~self.new_all_zeroes)] = sub_dds.LFCs
-        self.dispersions[self.replaced & (~self.new_all_zeroes)] = sub_dds.dispersions
-        self.replace_cooks = self.cooks.copy()
-        self.replace_cooks.loc[
-            self.replaced & (~self.new_all_zeroes), self.replaceable
-        ] = 0
+        to_replace = self.adata.varm["replaced"].copy()
+        # Only replace if genes are not all zeroes after outlier replacement
+        to_replace[to_replace] = ~new_all_zeroes  # TODO : is this inplace? (should be)
+
+        self.adata.varm["_normed_means"][to_replace] = sub_dds.adata.varm[
+            "_normed_means"
+        ]
+        self.adata.varm["LFC"][to_replace] = sub_dds.adata.varm["LFC"]
+        self.adata.varm["dispersions"][to_replace] = sub_dds.adata.varm["dispersions"]
+        self.adata.layers["replace_cooks"] = self.adata.layers["cooks"].copy()
+        self.adata[self.adata.obsm["replaceable"], to_replace].layers[
+            "replace_cooks"
+        ].fill(0)
 
         # Take into account new all-zero genes
-        self._normed_means.loc[self.new_all_zeroes[self.new_all_zeroes].index] = 0
-        self.LFCs.loc[self.new_all_zeroes[self.new_all_zeroes].index] = 0
+        self.adata[:, self.counts_to_refit.var_names[new_all_zeroes]].varm[
+            "_normed_means"
+        ] = np.zeros(new_all_zeroes.sum())
+        self.adata[:, self.counts_to_refit.var_names[new_all_zeroes]].varm[
+            "LFC"
+        ] = np.zeros(new_all_zeroes.sum())

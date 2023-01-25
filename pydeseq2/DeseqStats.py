@@ -327,15 +327,9 @@ class DeseqStats:
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
         if self.dds.refit_cooks and self.dds.adata.varm["replaced"].sum() > 0:
 
-            self.adata.varm["SE"].loc[
-                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
-            ] = 0
-            self.adata.varm["statistics"].loc[
-                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
-            ] = 0
-            self.adata.varm["p_values"].loc[
-                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
-            ] = 1
+            self.adata.varm["SE"].loc[self.dds.new_all_zeroes_genes] = 0
+            self.adata.varm["statistics"].loc[self.dds.new_all_zeroes_genes] = 0
+            self.adata.varm["p_values"].loc[self.dds.new_all_zeroes_genes] = 1
 
     def lfc_shrink(self):
         """LFC shrinkage with an apeGLM prior [2]_.
