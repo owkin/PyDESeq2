@@ -353,7 +353,7 @@ class DeseqStats:
         nz_data = self.adata[:, nonzero]
         num_genes = nz_data.n_vars
 
-        size = 1.0 / nz_data.varm["dispersions"][nonzero]
+        size = 1.0 / nz_data.varm["dispersions"]
         offset = np.log(self.adata.obsm["size_factors"])
 
         # Set priors

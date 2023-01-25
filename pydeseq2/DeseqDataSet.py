@@ -690,26 +690,30 @@ class DeseqDataSet:
             self.fit_MAP_dispersions()
 
         num_vars = self.adata.n_vars
+        nz_data = self.adata[
+            :, self.non_zero_genes
+        ]  # TODO : define and store once and for all as attribute ?
+        # TODO Would only be a view (check) so no memory overhead
         # Keep only non-zero genes
         # TODO: used a DataFrame to avoid changing robust_method_of_moments_disp
         # but we should be able to pass an array
         normed_counts = pd.DataFrame(
-            self.adata[:, self.non_zero_genes].X
-            / self.adata.obsm["size_factors"][:, None],
+            nz_data.X / self.adata.obsm["size_factors"][:, None],
             index=self.adata.obs_names,
             columns=self.non_zero_genes,
         )
+
+        # dispersions = pd.Series(np.NaN, index=self.adata.var_names)
         dispersions = robust_method_of_moments_disp(
             normed_counts, self.adata.obsm["design_matrix"]
-        ).values
-
-        V = (
-            self.adata.layers["_mu_LFC"]
-            + dispersions[None, :] * self.adata.layers["_mu_LFC"] ** 2
         )
-        squared_pearson_res = (
-            self.adata[:, self.non_zero_genes].X - self.adata.layers["_mu_LFC"]
-        ) ** 2 / V
+
+        # TODO : might be smarter to define nz_data to start with
+        V = (
+            nz_data.layers["_mu_LFC"]
+            + dispersions.values[None, :] * nz_data.layers["_mu_LFC"] ** 2
+        )
+        squared_pearson_res = (nz_data.X - nz_data.layers["_mu_LFC"]) ** 2 / V
 
         cooks = pd.DataFrame(
             np.NaN, index=self.adata.obs_names, columns=self.adata.var_names
@@ -719,10 +723,10 @@ class DeseqDataSet:
                 squared_pearson_res
                 / num_vars
                 * (
-                    self.adata.layers[
+                    nz_data.layers[
                         "_hat_diagonals"
                     ]  # TODO Hat diagonals might not have the right shape (NaNs)
-                    / (1 - self.adata.layers["_hat_diagonals"]) ** 2
+                    / (1 - nz_data.layers["_hat_diagonals"]) ** 2
                 ),
                 index=self.adata.obs_names,
                 columns=self.non_zero_genes,
@@ -754,6 +758,8 @@ class DeseqDataSet:
         if not hasattr(self, "size_factors"):
             self.fit_size_factors()
 
+        non_zero = ~(self.adata.X == 0).all(axis=0)
+
         rde = fit_rough_dispersions(
             self.adata.X,
             self.adata.obsm["size_factors"],
@@ -761,7 +767,9 @@ class DeseqDataSet:
         )
         mde = fit_moments_dispersions(self.adata.X, self.adata.obsm["size_factors"])
         alpha_hat = np.minimum(rde, mde)
-        self.adata.varm["_rough_dispersions"] = np.clip(
+
+        self.adata.varm["_rough_dispersions"] = np.full(self.adata.n_vars, np.NaN)
+        self.adata.varm["_rough_dispersions"][non_zero] = np.clip(
             alpha_hat, self.min_disp, self.max_disp
         )
 
