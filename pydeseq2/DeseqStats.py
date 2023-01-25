@@ -514,32 +514,32 @@ class DeseqStats:
         else:
             use_for_max = pd.Series(True, index=self.adata.obs_names)
 
-        print(use_for_max)
-
         # Take into account whether we already replaced outliers
         if self.dds.refit_cooks and self.dds.adata.varm["replaced"].sum() > 0:
             cooks_outlier = (
-                self.dds.adata[:, use_for_max].layers["replace_cooks"]
-                > cooks_cutoff  # TODO : check
-            ).any(axis=1)
+                (
+                    self.dds.adata[use_for_max, :].layers["replace_cooks"]
+                    > cooks_cutoff  # TODO : check
+                )
+                .any(axis=0)
+                .copy()
+            )
 
         else:
             cooks_outlier = (
-                self.dds.adata[:, use_for_max].layers["cooks"] > cooks_cutoff
-            ).any(axis=1)
+                (self.dds.adata[use_for_max, :].layers["cooks"] > cooks_cutoff)
+                .any(axis=0)
+                .copy()
+            )
 
-        pos = (
-            self.dds.adata[cooks_outlier].layers["cooks"].to_numpy().argmax(1)
-        )  # TODO : why the to_numpy() ?
-        cooks_outlier.update(
-            (
-                self.adata[:, cooks_outlier].X
-                > self.adata[:, cooks_outlier].X.to_numpy()[  # TODO : again, to_numpy()?
-                    pos, np.arange(len(pos))
-                ]
-            ).sum(0)
-            < 3
-        )
+        pos = self.dds.adata[:, cooks_outlier].layers["cooks"].argmax(0)
+
+        cooks_outlier[cooks_outlier] = (  # TODO :check that this works !
+            self.adata[:, cooks_outlier].X
+            > self.adata[:, cooks_outlier].X[
+                pos, np.arange(len(pos))
+            ]  # TODO : should pos and arange(len(pos)) be swapped?
+        ).sum(0) < 3
 
         self.adata.varm["p_values"][cooks_outlier] = np.nan
 
