@@ -160,8 +160,6 @@ class DeseqStats:
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
         self.prior_LFC_var = prior_LFC_var
-        # self.adata.uns["prior_LFC_var"] = prior_LFC_var
-        # self.base_mean = self.dds._normed_means
         self.base_mean = self.dds.varm["_normed_means"].copy()
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
@@ -169,14 +167,11 @@ class DeseqStats:
         self.design_matrix = self.dds.obsm["design_matrix"].copy()
         self.LFC = self.dds.varm["LFC"].copy()
         if self.contrast is None:
-            # alternative_level = self.design_matrix.columns[-1] # TODO
             alternative_level = self.dds.obsm["design_matrix"].columns[-1]
         else:
             alternative_level = "_".join([self.contrast[0], self.contrast[1]])
 
-        # if alternative_level in self.design_matrix.columns:
         if alternative_level in self.dds.obsm["design_matrix"].columns:
-            # self.contrast_idx = self.LFCs.columns.get_loc(alternative_level) # TODO
             self.contrast_idx = self.dds.varm["LFC"].columns.get_loc(alternative_level)
         else:  # The reference level is not the same as in dds: change it
             reference_level = "_".join([self.contrast[0], self.contrast[2]])
@@ -237,7 +232,6 @@ class DeseqStats:
                 self._p_value_adjustment()
 
         # Store the results in a DataFrame, in log2 scale for LFCs.
-        # TODO : should there still be a results_df attribute? keeping it for now
         self.results_df = pd.DataFrame(index=self.dds.var_names)
         self.results_df["baseMean"] = self.base_mean
         self.results_df["log2FoldChange"] = self.LFC.iloc[:, self.contrast_idx] / np.log(
@@ -310,7 +304,6 @@ class DeseqStats:
 
         pvals, stats, se = zip(*res)
 
-        # TODO : should we save those as series or numpy arrays ?
         self.p_values = pd.Series(pvals, index=self.dds.var_names)
         self.statistics = pd.Series(stats, index=self.dds.var_names)
         self.SE = pd.Series(se, index=self.dds.var_names)
@@ -373,8 +366,6 @@ class DeseqStats:
 
         lfcs, inv_hessians, l_bfgs_b_converged_ = zip(*res)
 
-        # TODO : should update only the not all zero genes
-
         self.LFC.iloc[:, self.contrast_idx].update(
             pd.Series(
                 np.array(lfcs)[:, self.contrast_idx],
@@ -398,8 +389,6 @@ class DeseqStats:
         self._LFC_shrink_converged.update(
             pd.Series(l_bfgs_b_converged_, index=nz_data.var_names)
         )
-
-        # self.adata.varm["_LFC_shrink_converged"] = _LFC_shrink_converged.values
 
         # Set a flag to indicate that LFCs were shrunk
         self.shrunk_LFCs = True
@@ -436,7 +425,6 @@ class DeseqStats:
             upper_quantile = 1
 
         theta = np.linspace(lower_quantile, upper_quantile, 50)
-
         cutoffs = np.quantile(self.base_mean, theta)
 
         result = pd.DataFrame(
@@ -509,10 +497,7 @@ class DeseqStats:
         # Take into account whether we already replaced outliers
         if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
             cooks_outlier = (
-                (
-                    self.dds[use_for_max, :].layers["replace_cooks"]
-                    > cooks_cutoff  # TODO : check
-                )
+                (self.dds[use_for_max, :].layers["replace_cooks"] > cooks_cutoff)
                 .any(axis=0)
                 .copy()
             )
@@ -526,11 +511,9 @@ class DeseqStats:
 
         pos = self.dds[:, cooks_outlier].layers["cooks"].argmax(0)
 
-        cooks_outlier[cooks_outlier] = (  # TODO :check that this works !
+        cooks_outlier[cooks_outlier] = (
             self.dds[:, cooks_outlier].X
-            > self.dds[:, cooks_outlier].X[
-                pos, np.arange(len(pos))
-            ]  # TODO : should pos and arange(len(pos)) be swapped?
+            > self.dds[:, cooks_outlier].X[pos, np.arange(len(pos))]
         ).sum(0) < 3
 
         self.p_values[cooks_outlier] = np.nan
