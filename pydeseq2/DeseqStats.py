@@ -53,7 +53,7 @@ class DeseqStats:
         Number of cpus to use for multiprocessing.
         If None, all available CPUs will be used. (default: None).
 
-    prior_disp_var : ndarray
+    prior_LFC_var : ndarray
         Prior variance for LFCs, used for ridge regularization. (default: None).
 
     batch_size : int
@@ -121,20 +121,21 @@ class DeseqStats:
         cooks_filter=True,
         independent_filter=True,
         n_cpus=None,
-        prior_disp_var=None,
+        prior_LFC_var=None,
         batch_size=128,
         joblib_verbosity=0,
     ):
         assert (
-            "LFC" in dds.adata.varm
+            "LFC" in dds.varm
         ), "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
 
         self.dds = dds
+        # TODO : we would need a mechanism to ensure that dds is not modified
         # TODO here it should be the dds object itself, once it inherits from anndata?
         # TODO At any rate we should find a way to avoid making copies and to avoid
         # unwanted modifications of the dds object
 
-        self.adata = dds.adata.copy()
+        # self.adata = dds.adata.copy() # TODO We shouldn't copy
 
         if contrast is not None:  # Test contrast if provided
             assert len(contrast) == 3, "The contrast should contain three strings."
@@ -142,16 +143,16 @@ class DeseqStats:
                 contrast[0] in self.dds.design_factors
             ), "The contrast variable should be one of the design factors."
             assert (
-                contrast[1] in self.dds.adata.obs[contrast[0]].values
-                and contrast[2] in self.dds.adata.obs[contrast[0]].values
+                contrast[1] in self.dds.obs[contrast[0]].values
+                and contrast[2] in self.dds.obs[contrast[0]].values
             ), "The contrast levels should correspond to design factors levels."
             self.contrast = contrast
         else:  # Build contrast if None
             factor = self.dds.design_factors[-1]
-            levels = np.unique(self.dds.adata.obs[factor]).astype(str)
+            levels = np.unique(self.dds.obs[factor]).astype(str)
             if (
                 "_".join([factor, levels[0]])
-                == self.dds.adata.obsm["design_matrix"].columns[-1]
+                == self.dds.obsm["design_matrix"].columns[-1]
             ):
                 self.contrast = [factor, levels[0], levels[1]]
             else:
@@ -160,49 +161,45 @@ class DeseqStats:
         self.alpha = alpha
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
-        # self.prior_disp_var = prior_disp_var
-        self.adata.uns["prior_disp_var"] = prior_disp_var
+        self.prior_LFC_var = prior_LFC_var
+        # self.adata.uns["prior_LFC_var"] = prior_LFC_var
         # self.base_mean = self.dds._normed_means
-        self.adata.varm["base_mean"] = self.dds.adata.varm["_normed_means"]
+        self.base_mean = self.dds.varm["_normed_means"].copy()
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
+        self.design_matrix = self.dds.obsm["design_matrix"].copy()
+        self.LFC = self.dds.varm["LFC"].copy()
         if self.contrast is None:
             # alternative_level = self.design_matrix.columns[-1] # TODO
-            alternative_level = self.adata.obsm["design_matrix"].columns[-1]
+            alternative_level = self.dds.obsm["design_matrix"].columns[-1]
         else:
             alternative_level = "_".join([self.contrast[0], self.contrast[1]])
 
         # if alternative_level in self.design_matrix.columns:
-        if alternative_level in self.adata.obsm["design_matrix"].columns:
+        if alternative_level in self.dds.obsm["design_matrix"].columns:
             # self.contrast_idx = self.LFCs.columns.get_loc(alternative_level) # TODO
-            self.contrast_idx = self.adata.varm["LFC"].columns.get_loc(alternative_level)
+            self.contrast_idx = self.dds.varm["LFC"].columns.get_loc(alternative_level)
         else:  # The reference level is not the same as in dds: change it
             reference_level = "_".join([self.contrast[0], self.contrast[2]])
-            self.contrast_idx = self.adata.varm["LFC"].columns.get_loc(reference_level)
+            self.contrast_idx = self.dds.varm["LFC"].columns.get_loc(reference_level)
             # Change the design matrix reference level
-            self.adata.obsm["design_matrix"].rename(
+            self.design_matrix.rename(
                 columns={
-                    self.adata.obsm["design_matrix"].columns[
-                        self.contrast_idx
-                    ]: alternative_level
+                    self.design_matrix.columns[self.contrast_idx]: alternative_level
                 },
                 inplace=True,
             )
-            self.adata.obsm["design_matrix"].iloc[:, self.contrast_idx] = (
-                1 - self.adata.obsm["design_matrix"].iloc[:, self.contrast_idx]
+            self.design_matrix.iloc[:, self.contrast_idx] = (
+                1 - self.design_matrix.iloc[:, self.contrast_idx]
             )
             # Rename and update LFC coefficients accordingly
-            self.adata.varm["LFC"].rename(
-                columns={
-                    self.adata.varm["LFC"].columns[self.contrast_idx]: alternative_level
-                },
+            self.LFC.rename(
+                columns={self.LFC.columns[self.contrast_idx]: alternative_level},
                 inplace=True,
             )
-            self.adata.varm["LFC"].iloc[:, 0] += self.adata.varm["LFC"].iloc[
-                :, self.contrast_idx
-            ]
-            self.adata.varm["LFC"].iloc[:, self.contrast_idx] *= -1
+            self.LFC.iloc[:, 0] += self.LFC.iloc[:, self.contrast_idx]
+            self.LFC.iloc[:, self.contrast_idx] *= -1
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
         self.n_processes = get_num_processes(n_cpus)
@@ -211,7 +208,7 @@ class DeseqStats:
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
-        if self.dds.refit_cooks and "replaced" not in self.dds.adata.varm:
+        if self.dds.refit_cooks and "replaced" not in self.dds.varm:
             raise AttributeError(
                 "dds has 'refit_cooks' set to True but Cooks outliers have not been "
                 "refitted. Please run 'dds.refit()' first or set 'dds.refit_cooks' "
@@ -243,15 +240,15 @@ class DeseqStats:
 
         # Store the results in a DataFrame, in log2 scale for LFCs.
         # TODO : should there still be a results_df attribute? keeping it for now
-        self.results_df = pd.DataFrame(index=self.adata.var_names)
-        self.results_df["baseMean"] = self.adata.varm["base_mean"]
-        self.results_df["log2FoldChange"] = self.adata.varm["LFC"].iloc[
-            :, self.contrast_idx
-        ] / np.log(2)
-        self.results_df["lfcSE"] = self.adata.varm["SE"] / np.log(2)
-        self.results_df["stat"] = self.adata.varm["statistics"]
-        self.results_df["pvalue"] = self.adata.varm["p_values"]
-        self.results_df["padj"] = self.adata.varm["padj"]
+        self.results_df = pd.DataFrame(index=self.dds.var_names)
+        self.results_df["baseMean"] = self.base_mean
+        self.results_df["log2FoldChange"] = self.LFC.iloc[:, self.contrast_idx] / np.log(
+            2
+        )
+        self.results_df["lfcSE"] = self.SE / np.log(2)
+        self.results_df["stat"] = self.statistics
+        self.results_df["pvalue"] = self.p_values
+        self.results_df["padj"] = self.padj
 
         print(
             f"Log2 fold change & Wald test p-value: "
@@ -265,8 +262,8 @@ class DeseqStats:
         Get gene-wise p-values for gene over/under-expression.`
         """
 
-        num_genes = self.adata.n_vars
-        num_vars = self.adata.obsm["design_matrix"].shape[1]
+        num_genes = self.dds.n_vars
+        num_vars = self.design_matrix.shape[1]
 
         # Raise a warning if LFCs are shrunk.
         if self.shrunk_LFCs:
@@ -277,20 +274,20 @@ class DeseqStats:
             )
 
         mu = (
-            np.exp(self.adata.obsm["design_matrix"] @ self.adata.varm["LFC"].T)
-            .multiply(self.adata.obsm["size_factors"], 0)
+            np.exp(self.design_matrix @ self.LFC.T)
+            .multiply(self.dds.obsm["size_factors"], 0)
             .values
         )
 
         # Set regularization factors.
-        if self.adata.uns["prior_disp_var"] is not None:
-            ridge_factor = np.diag(1 / self.adata.uns["prior_disp_var"] ** 2)
+        if self.prior_LFC_var is not None:
+            ridge_factor = np.diag(1 / self.prior_LFC_var**2)
         else:
             ridge_factor = np.diag(np.repeat(1e-6, num_vars))
 
-        X = self.adata.obsm["design_matrix"].values
-        disps = self.adata.varm["dispersions"]
-        LFCs = self.adata.varm["LFC"].values
+        X = self.design_matrix.values
+        disps = self.dds.varm["dispersions"]
+        LFCs = self.LFC.values
 
         print("Running Wald tests...")
         start = time.time()
@@ -316,16 +313,16 @@ class DeseqStats:
         pvals, stats, se = zip(*res)
 
         # TODO : should we save those as series or numpy arrays ?
-        self.adata.varm["p_values"] = pd.Series(pvals, index=self.adata.var_names)
-        self.adata.varm["statistics"] = pd.Series(stats, index=self.adata.var_names)
-        self.adata.varm["SE"] = pd.Series(se, index=self.adata.var_names)
+        self.p_values = pd.Series(pvals, index=self.dds.var_names)
+        self.statistics = pd.Series(stats, index=self.dds.var_names)
+        self.SE = pd.Series(se, index=self.dds.var_names)
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
-        if self.dds.refit_cooks and self.dds.adata.varm["replaced"].sum() > 0:
+        if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
 
-            self.adata.varm["SE"].loc[self.dds.new_all_zeroes_genes] = 0
-            self.adata.varm["statistics"].loc[self.dds.new_all_zeroes_genes] = 0
-            self.adata.varm["p_values"].loc[self.dds.new_all_zeroes_genes] = 1
+            self.SE.loc[self.dds.new_all_zeroes_genes] = 0
+            self.statistics.loc[self.dds.new_all_zeroes_genes] = 0
+            self.p_values.loc[self.dds.new_all_zeroes_genes] = 1
 
     def lfc_shrink(self):
         """LFC shrinkage with an apeGLM prior [2]_.
@@ -339,19 +336,19 @@ class DeseqStats:
             but unmodified stats and pvalues.
         """
         # Filter genes with all zero counts
-        nonzero = self.adata.X.sum(0) > 0
-        nz_data = self.adata[:, nonzero]
+        nonzero = self.dds.X.sum(0) > 0
+        nz_data = self.dds[:, nonzero]
         num_genes = nz_data.n_vars
 
         size = 1.0 / nz_data.varm["dispersions"]
-        offset = np.log(self.adata.obsm["size_factors"])
+        offset = np.log(self.dds.obsm["size_factors"])
 
         # Set priors
         prior_no_shrink_scale = 15
         prior_var = self._fit_prior_var()
         prior_scale = np.minimum(np.sqrt(prior_var), 1)
 
-        X = self.adata.obsm["design_matrix"].values
+        X = self.design_matrix.values
 
         print("Fitting MAP LFCs...")
         start = time.time()
@@ -380,14 +377,14 @@ class DeseqStats:
 
         # TODO : should update only the not all zero genes
 
-        self.adata.varm["LFC"].iloc[:, self.contrast_idx].update(
+        self.LFC.iloc[:, self.contrast_idx].update(
             pd.Series(
                 np.array(lfcs)[:, self.contrast_idx],
                 index=nz_data.var_names,
             )
         )
 
-        self.adata.varm["SE"].update(
+        self.SE.update(
             pd.Series(
                 np.array(
                     [
@@ -399,22 +396,22 @@ class DeseqStats:
             )
         )
 
-        _LFC_shrink_converged = pd.Series(np.NaN, index=self.adata.var_names)
-        _LFC_shrink_converged.update(
+        self._LFC_shrink_converged = pd.Series(np.NaN, index=self.dds.var_names)
+        self._LFC_shrink_converged.update(
             pd.Series(l_bfgs_b_converged_, index=nz_data.var_names)
         )
 
-        self.adata.varm["_LFC_shrink_converged"] = _LFC_shrink_converged.values
+        # self.adata.varm["_LFC_shrink_converged"] = _LFC_shrink_converged.values
 
         # Set a flag to indicate that LFCs were shrunk
         self.shrunk_LFCs = True
 
         # Replace in results dataframe, if it exists
         if hasattr(self, "results_df"):
-            self.results_df["log2FoldChange"] = self.adata.varm["LFC"].iloc[
+            self.results_df["log2FoldChange"] = self.LFC.iloc[
                 :, self.contrast_idx
             ] / np.log(2)
-            self.results_df["lfcSE"] = self.adata.varm["SE"] / np.log(2)
+            self.results_df["lfcSE"] = self.SE / np.log(2)
 
             print(
                 f"Shrunk Log2 fold change & Wald test p-value: "
@@ -433,7 +430,7 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        lower_quantile = np.mean(self.adata.varm["base_mean"] == 0)
+        lower_quantile = np.mean(self.base_mean == 0)
 
         if lower_quantile < 0.95:
             upper_quantile = 0.95
@@ -442,17 +439,15 @@ class DeseqStats:
 
         theta = np.linspace(lower_quantile, upper_quantile, 50)
 
-        cutoffs = np.quantile(self.adata.varm["base_mean"], theta)
+        cutoffs = np.quantile(self.base_mean, theta)
 
         result = pd.DataFrame(
-            np.nan, index=self.adata.var_names, columns=np.arange(len(theta))
+            np.nan, index=self.dds.var_names, columns=np.arange(len(theta))
         )
 
         for i, cutoff in enumerate(cutoffs):
-            use = (self.adata.varm["base_mean"] >= cutoff) & (
-                ~self.adata.varm["p_values"].isna()
-            )
-            U2 = self.adata.varm["p_values"][use]
+            use = (self.base_mean >= cutoff) & (~self.p_values.isna())
+            U2 = self.p_values[use]
             result.loc[use, i] = multipletests(U2, alpha=self.alpha, method="fdr_bh")[1]
 
         num_rej = (result < self.alpha).sum(0)
@@ -469,7 +464,7 @@ class DeseqStats:
             else:
                 j = 0
 
-        self.adata.varm["padj"] = result.loc[:, j]
+        self.padj = result.loc[:, j]
 
     def _p_value_adjustment(self):
         """Compute adjusted p-values using the Benjamini-Hochberg method.
@@ -482,9 +477,9 @@ class DeseqStats:
             # Estimate p-values with Wald test
             self.run_wald_test()
 
-        self.adata.varm["padj"] = pd.Series(np.nan, index=self.adata.var_names)
-        self.adata.varm["padj"].loc[~self.adata.varm["p_values"].isna()] = multipletests(
-            self.adata.varm["p_values"].dropna(), alpha=self.alpha, method="fdr_bh"
+        self.padj = pd.Series(np.nan, index=self.dds.var_names)
+        self.padj.loc[~self.p_values.isna()] = multipletests(
+            self.p_values.dropna(), alpha=self.alpha, method="fdr_bh"
         )[1]
 
     def _cooks_filtering(self):
@@ -494,8 +489,8 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        num_samples = self.adata.n_obs
-        num_vars = self.adata.obsm["design_matrix"].shape[-1]
+        num_samples = self.dds.n_obs
+        num_vars = self.design_matrix.shape[-1]
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
 
         # If for a gene there are 3 samples or more that have more counts than the
@@ -504,25 +499,20 @@ class DeseqStats:
         if num_vars == 2:
             # Check whether cohorts have enough samples to allow refitting
             # Only consider conditions with 3 or more samples (same as in R)
-            n_or_more = (
-                self.adata.obsm["design_matrix"]
-                .iloc[:, self.contrast_idx]
-                .value_counts()
-                >= 3
-            )
+            n_or_more = self.design_matrix.iloc[:, self.contrast_idx].value_counts() >= 3
             use_for_max = pd.Series(
-                n_or_more[self.adata.obsm["design_matrix"].iloc[:, self.contrast_idx]]
+                n_or_more[self.design_matrix.iloc[:, self.contrast_idx]]
             )
-            use_for_max.index = self.adata.obs_names
+            use_for_max.index = self.dds.obs_names
 
         else:
-            use_for_max = pd.Series(True, index=self.adata.obs_names)
+            use_for_max = pd.Series(True, index=self.dds.obs_names)
 
         # Take into account whether we already replaced outliers
-        if self.dds.refit_cooks and self.dds.adata.varm["replaced"].sum() > 0:
+        if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
             cooks_outlier = (
                 (
-                    self.dds.adata[use_for_max, :].layers["replace_cooks"]
+                    self.dds[use_for_max, :].layers["replace_cooks"]
                     > cooks_cutoff  # TODO : check
                 )
                 .any(axis=0)
@@ -531,21 +521,21 @@ class DeseqStats:
 
         else:
             cooks_outlier = (
-                (self.dds.adata[use_for_max, :].layers["cooks"] > cooks_cutoff)
+                (self.dds[use_for_max, :].layers["cooks"] > cooks_cutoff)
                 .any(axis=0)
                 .copy()
             )
 
-        pos = self.dds.adata[:, cooks_outlier].layers["cooks"].argmax(0)
+        pos = self.dds[:, cooks_outlier].layers["cooks"].argmax(0)
 
         cooks_outlier[cooks_outlier] = (  # TODO :check that this works !
-            self.adata[:, cooks_outlier].X
-            > self.adata[:, cooks_outlier].X[
+            self.dds[:, cooks_outlier].X
+            > self.dds[:, cooks_outlier].X[
                 pos, np.arange(len(pos))
             ]  # TODO : should pos and arange(len(pos)) be swapped?
         ).sum(0) < 3
 
-        self.adata.varm["p_values"][cooks_outlier] = np.nan
+        self.p_values[cooks_outlier] = np.nan
 
     def _fit_prior_var(self, min_var=1e-6, max_var=400):
         """Estimate the prior variance of the apeGLM model.
@@ -566,9 +556,9 @@ class DeseqStats:
             Estimated prior variance.
         """
 
-        keep = ~self.adata.varm["LFC"].iloc[:, self.contrast_idx].isna()
-        S = self.adata.varm["LFC"][keep].iloc[:, self.contrast_idx] ** 2
-        D = self.adata.varm["SE"][keep] ** 2
+        keep = ~self.LFC.iloc[:, self.contrast_idx].isna()
+        S = self.LFC[keep].iloc[:, self.contrast_idx] ** 2
+        D = self.SE[keep] ** 2
 
         def objective(a):
             # Equation to solve
