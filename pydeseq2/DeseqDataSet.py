@@ -34,6 +34,8 @@ warnings.simplefilter("ignore", FutureWarning)
 # TODO: support loading / saving DeseqDataSets from annData objects.
 # TODO : Should check which fields are present and add relevant attributes
 # TODO : should a DeseqDataSet inherit from AnnData?
+# TODO:  Document keys?
+# TODO: X, obs, etc.
 
 
 class DeseqDataSet(ad.AnnData):
@@ -96,62 +98,19 @@ class DeseqDataSet(ad.AnnData):
 
     Attributes
     ----------
-    design_matrix : pandas.DataFrame
-        A DataFrame with experiment design information (to split cohorts).
-        Indexed by sample barcodes. Unexpanded, *with* intercept.
-
     n_processes : int
         Number of cpus to use for multiprocessing.
-
-    size_factors : pandas.Series
-        DESeq normalization factors.
 
     non_zero_genes : pandas.Index
         Index of genes that have non-uniformly zero counts.
 
-    genewise_dispersions : pandas.Series
-        Initial estimates of gene counts dispersions.
-
-    trend_coeffs : pandas.Series
-        Coefficients of the trend curve: :math:`f(\mu) = \alpha_1/ \mu + a_0`.
-
-    fitted_dispersions : pandas.Series
-        Genewise dispersions regressed on the trend curve.
-
-    prior_disp_var : float
-        Dispersion prior of genewise dispersions,
-        used for dispersion shrinkage towards the trend curve.
-
-    MAP_dispersions : pandas.Series
-        MAP dispersions, after shrinkage towards the trend curve and before filtering.
-
-    dispersions : pandas.Series
-        Final dispersion estimates, after filtering MAP outliers.
-
-    LFCs : pandas.DataFrame
-        Log-fold change and intercept parameters, in natural log scale.
-
-    cooks : pandas.DataFrame
-        Cooks distances, used for outlier detection.
-
-    replaceable : pandas.Series
-        Whether counts are replaceable, i.e. if a given condition has enough samples.
-
-    replaced : pandas.Series
-        Counts which were replaced.
-
-    replace_cooks : pandas.DataFrame
-        Cooks distances after replacement.
-
-    counts_to_refit : pandas.DataFrame
+    counts_to_refit : anndata.AnnData
         Read counts after replacement,
         for which dispersions and LFCs must be fitted again.
 
-    new_all_zeroes_genes : pandas.Series TODO update
+    new_all_zeroes_genes : pandas.Series
+        TODO update
         Genes which have only zero counts after outlier replacement.
-
-    _rough_dispersions : pandas.Series
-        Intial method-of-moments estimates of the dispersions
 
     References
     ----------
@@ -207,8 +166,6 @@ class DeseqDataSet(ad.AnnData):
             intercept=True,
         )
 
-        # TODO : an option would be to store those in the "uns" field,
-        #  but doesn't seem very relevant
         self.min_mu = min_mu
         self.min_disp = min_disp
         self.max_disp = np.maximum(max_disp, self.n_obs)
@@ -791,7 +748,6 @@ class DeseqDataSet(ad.AnnData):
         self.varm["replaced"] = idx.any(axis=0)
 
         # Compute replacement counts: trimmed means * size_factors
-        # self.counts_to_refit = self[:, self.obsm["replaced"]].X.copy()
         self.counts_to_refit = self[:, self.varm["replaced"]].copy()
 
         trim_base_mean = pd.DataFrame(
@@ -824,9 +780,6 @@ class DeseqDataSet(ad.AnnData):
         self,
     ):
         """Re-run the whole DESeq2 pipeline with replaced outliers."""
-
-        # TODO : update this function for AnnData
-
         assert (
             self.refit_cooks
         ), "Trying to refit Cooks outliers but the 'refit_cooks' flag is set to False"

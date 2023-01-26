@@ -77,7 +77,7 @@ class DeseqStats:
         DeseqStats object, it may differ from the DeseqDataSet design matrix, as the
         reference level may need to be adapted.
 
-    LFCs : pandas.DataFrame
+    LFC : pandas.DataFrame
         Estimated log-fold change between conditions and intercept, in natural log scale.
 
     SE : pandas.Series
