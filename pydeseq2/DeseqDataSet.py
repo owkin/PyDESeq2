@@ -189,21 +189,6 @@ class DeseqDataSet(ad.AnnData):
         test_valid_counts(counts)
         super().__init__(X=counts, obs=clinical, dtype=int)  # TODO : fill
 
-        # self = ad.AnnData(X=counts, dtype=int)
-        # self.obs_names = counts.index
-        # self.var_names = counts.columns
-
-        if set(self.obs_names) != set(clinical.index):  # TODO : is this necessary ?
-            # AnnData should raise an error if this is not the case
-            raise KeyError(
-                "The count matrix and clinical data "
-                "should contain the same sample indexes."
-            )
-
-        # Import clinical data and convert design_column to string
-        # TODO : is this necessary ?
-        # self.obs = clinical.loc[self.obs_names]
-
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
