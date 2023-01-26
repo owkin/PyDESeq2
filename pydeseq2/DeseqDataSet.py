@@ -31,11 +31,7 @@ warnings.simplefilter("ignore", DomainWarning)
 # Ignore AnnData's FutureWarning about implicit data conversion.
 warnings.simplefilter("ignore", FutureWarning)
 
-# TODO: support loading / saving DeseqDataSets from annData objects.
-# TODO : Should check which fields are present and add relevant attributes
-# TODO : should a DeseqDataSet inherit from AnnData?
-# TODO:  Document keys?
-# TODO: X, obs, etc.
+# TODO: support loading / saving DeseqDataSets from AnnData objects.
 
 
 class DeseqDataSet(ad.AnnData):
@@ -104,6 +100,9 @@ class DeseqDataSet(ad.AnnData):
     n_processes : int
         Number of cpus to use for multiprocessing.
 
+    non_zero : ndarray
+        Boolean mask of genes that have non-uniformly zero counts.
+
     non_zero_genes : pandas.Index
         Index of genes that have non-uniformly zero counts.
 
@@ -144,12 +143,11 @@ class DeseqDataSet(ad.AnnData):
 
         # TODO : we should support several ways of loading counts / clinical
         # (from DataFrames, csv, AnnData directly...)
-
-        # TODO : implement getters? (for counts, clinical, etc.)
-
         # Test counts before going further
         test_valid_counts(counts)
-        super().__init__(X=counts, obs=clinical, dtype=int)  # TODO : fill
+
+        # Initialize the AnnData part
+        super().__init__(X=counts, obs=clinical, dtype=int)
 
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (
@@ -160,7 +158,7 @@ class DeseqDataSet(ad.AnnData):
         self.obs[self.design_factors] = self.obs[self.design_factors].astype(str)
 
         # Build the design matrix
-        # Stored in the obsm attribute of the dataset (TODO : check + add alias / getter)
+        # Stored in the obsm attribute of the dataset
         self.obsm["design_matrix"] = build_design_matrix(
             clinical_df=self.obs,
             design_factors=self.design_factors,
@@ -230,8 +228,11 @@ class DeseqDataSet(ad.AnnData):
         self._fit_MoM_dispersions()
 
         # Exclude genes with all zeroes
-        non_zero = ~(self.X == 0).all(axis=0)
-        self.non_zero_genes = self.var_names[non_zero]
+        # TODO : this could probably be simplified
+        self.non_zero = ~(self.X == 0).all(
+            axis=0
+        )  # TODO: add docstring for this attribute
+        self.non_zero_genes = self.var_names[self.non_zero]
         nz_data = self[:, self.non_zero_genes]
         num_genes = nz_data.n_vars
 
@@ -282,6 +283,8 @@ class DeseqDataSet(ad.AnnData):
                 _, mu_hat_, _, _ = zip(*res)
                 mu_hat_ = np.array(mu_hat_)
 
+        # TODO : do this better
+
         _mu_hat = pd.DataFrame(np.NaN, index=self.obs_names, columns=self.var_names)
 
         _mu_hat.update(
@@ -311,22 +314,30 @@ class DeseqDataSet(ad.AnnData):
 
         # TODO : this might not be the best way to add data to an anndata...
         # TODO : use np.where and such to do data allocations?
-        genewise_dispersions = pd.Series(np.NaN, index=self.var_names)
-        genewise_dispersions.update(
-            pd.Series(dispersions_, index=self.non_zero_genes).clip(
-                self.min_disp, self.max_disp
-            )
+        # genewise_dispersions = pd.Series(np.NaN, index=self.var_names)
+        # genewise_dispersions.update(
+        #     pd.Series(dispersions_, index=self.non_zero_genes).clip(
+        #         self.min_disp, self.max_disp
+        #     )
+        # )
+        #
+        # self.varm["genewise_dispersions"] = genewise_dispersions.values
+
+        self.varm["genewise_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.varm["genewise_dispersions"][self.non_zero] = np.clip(
+            dispersions_, self.min_disp, self.max_disp
         )
 
-        self.varm["genewise_dispersions"] = genewise_dispersions.values
+        # _genewise_converged = pd.Series(np.NaN, index=self.var_names)
+        #
+        # _genewise_converged.update(
+        #     pd.Series(l_bfgs_b_converged_, index=self.non_zero_genes)
+        # )
+        #
+        # self.varm["_genewise_converged"] = _genewise_converged.values
 
-        _genewise_converged = pd.Series(np.NaN, index=self.var_names)
-
-        _genewise_converged.update(
-            pd.Series(l_bfgs_b_converged_, index=self.non_zero_genes)
-        )
-
-        self.varm["_genewise_converged"] = _genewise_converged.values
+        self.varm["_genewise_converged"] = np.full(self.n_vars, np.NaN)
+        self.varm["_genewise_converged"][self.non_zero] = np.array(l_bfgs_b_converged_)
 
     def fit_dispersion_trend(self):
         r"""Fit the dispersion trend coefficients.
@@ -417,18 +428,24 @@ class DeseqDataSet(ad.AnnData):
         self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
 
         # TODO : again, maybe not the best way to add data
-        fitted_dispersions = pd.Series(np.NaN, index=self.var_names)
-        fitted_dispersions.update(
-            pd.Series(
-                dispersion_trend(
-                    self[:, self.non_zero_genes].varm["_normed_means"],
-                    self.uns["trend_coeffs"],
-                ),
-                index=self.non_zero_genes,
-            )
-        )
+        # fitted_dispersions = pd.Series(np.NaN, index=self.var_names)
+        # fitted_dispersions.update(
+        #     pd.Series(
+        #         dispersion_trend(
+        #             self[:, self.non_zero_genes].varm["_normed_means"],
+        #             self.uns["trend_coeffs"],
+        #         ),
+        #         index=self.non_zero_genes,
+        #     )
+        # )
+        #
+        # self.varm["fitted_dispersions"] = fitted_dispersions.values
 
-        self.varm["fitted_dispersions"] = fitted_dispersions.values
+        self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.varm["fitted_dispersions"][self.non_zero] = dispersion_trend(
+            self.varm["_normed_means"][self.non_zero],
+            self.uns["trend_coeffs"],
+        )
 
     def fit_dispersion_prior(self):
         """Fit dispersion variance priors and standard deviation of log-residuals.
@@ -437,9 +454,6 @@ class DeseqDataSet(ad.AnnData):
         """
 
         # Check that the dispersion trend curve was fitted. If not, fit it.
-        # if not hasattr(self, "trend_coeffs"):
-        #     self.fit_dispersion_trend()
-
         if "trend_coeffs" not in self.uns:
             self.fit_dispersion_trend()
 
@@ -511,18 +525,14 @@ class DeseqDataSet(ad.AnnData):
         print(f"... done in {end-start:.2f} seconds.\n")
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
-        MAP_dispersions = pd.Series(np.NaN, index=self.var_names)
-        MAP_dispersions.update(
-            pd.Series(dispersions_, index=self.non_zero_genes).clip(
-                self.min_disp, self.max_disp
-            )
+
+        self.varm["MAP_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.varm["MAP_dispersions"][self.non_zero] = np.clip(
+            dispersions_, self.min_disp, self.max_disp
         )
-        self.varm["MAP_dispersions"] = MAP_dispersions.values
 
-        _MAP_converged = pd.Series(np.NaN, index=self.var_names)
-        _MAP_converged.update(pd.Series(l_bfgs_b_converged_, index=self.non_zero_genes))
-
-        self.varm["_MAP_converged"] = _MAP_converged.values
+        self.varm["_MAP_converged"] = np.full(self.n_vars, np.NaN)
+        self.varm["_MAP_converged"][self.non_zero] = l_bfgs_b_converged_
 
         # Filter outlier genes for which we won't apply shrinkage
         self.varm["dispersions"] = self.varm["MAP_dispersions"].copy()
@@ -629,10 +639,8 @@ class DeseqDataSet(ad.AnnData):
             self.fit_MAP_dispersions()
 
         num_vars = self.n_vars
-        nz_data = self[
-            :, self.non_zero_genes
-        ]  # TODO : define and store once and for all as attribute ?
-        # TODO Would only be a view (check) so no memory overhead
+        nz_data = self[:, self.non_zero_genes]
+
         # Keep only non-zero genes
         # TODO: used a DataFrame to avoid changing robust_method_of_moments_disp
         # but we should be able to pass an array
@@ -647,7 +655,6 @@ class DeseqDataSet(ad.AnnData):
             normed_counts, self.obsm["design_matrix"]
         )
 
-        # TODO : might be smarter to define nz_data to start with
         V = (
             nz_data.layers["_mu_LFC"]
             + dispersions.values[None, :] * nz_data.layers["_mu_LFC"] ** 2
@@ -660,9 +667,7 @@ class DeseqDataSet(ad.AnnData):
                 squared_pearson_res
                 / num_vars
                 * (
-                    nz_data.layers[
-                        "_hat_diagonals"
-                    ]  # TODO Hat diagonals might not have the right shape (NaNs)
+                    nz_data.layers["_hat_diagonals"]
                     / (1 - nz_data.layers["_hat_diagonals"]) ** 2
                 ),
                 index=self.obs_names,
@@ -747,7 +752,6 @@ class DeseqDataSet(ad.AnnData):
         # Get positions of counts with cooks above threshold
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
         idx = self.layers["cooks"] > cooks_cutoff
-        # self.replaced = idx.any(axis=0) # TODO remove
         self.varm["replaced"] = idx.any(axis=0)
 
         # Compute replacement counts: trimmed means * size_factors
@@ -792,9 +796,7 @@ class DeseqDataSet(ad.AnnData):
             self._replace_outliers()
 
         # Only refit genes for which replacing outliers hasn't resulted in all zeroes
-        new_all_zeroes = (self.counts_to_refit.X == 0).all(
-            axis=0
-        )  # TODO : fit this in the anndata?
+        new_all_zeroes = (self.counts_to_refit.X == 0).all(axis=0)
         self.new_all_zeroes_genes = self.counts_to_refit.var_names[new_all_zeroes]
         self.counts_to_refit = self.counts_to_refit[:, ~new_all_zeroes].copy()
 
