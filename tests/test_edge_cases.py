@@ -36,8 +36,8 @@ def test_zero_genes():
     dds.deseq2()
 
     # check that the corresponding parameters are NaN
-    assert np.isnan(dds.adata[:, zero_genes].varm["dispersions"]).all()
-    assert np.isnan(dds.adata[:, zero_genes].varm["LFC"]).all().all()
+    assert np.isnan(dds[:, zero_genes].varm["dispersions"]).all()
+    assert np.isnan(dds[:, zero_genes].varm["LFC"]).all().all()
 
     res = DeseqStats(dds)
     res.summary()
@@ -161,7 +161,7 @@ def test_indexes():
     )
     clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample01", "sample02"])
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):  # Should be raised by AnnData
         DeseqDataSet(
             counts_df,
             clinical_df,
