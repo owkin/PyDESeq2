@@ -41,8 +41,11 @@ warnings.simplefilter("ignore", FutureWarning)
 class DeseqDataSet(ad.AnnData):
     r"""A class to implement dispersion and log fold-change (LFC) estimation.
 
-    Follows the DESeq2 pipeline [1]_.
-    TODO : update docstring
+    The DeseqDataSet extends the `AnnData class
+    <https://anndata.readthedocs.io/en/latest/generated/anndata.AnnData.html#anndata.AnnData>`_.
+    As such, it implements the same methods and attributes, in addition to those that are
+    specific to pydeseq2.
+    Dispersions and LFCs are estimated following the DESeq2 pipeline [1]_.
 
     Parameters
     ----------
@@ -105,10 +108,10 @@ class DeseqDataSet(ad.AnnData):
         Index of genes that have non-uniformly zero counts.
 
     counts_to_refit : anndata.AnnData
-        Read counts after replacement,
+        Read counts after replacement, containing only genes
         for which dispersions and LFCs must be fitted again.
 
-    new_all_zeroes_genes : pandas.Series
+    new_all_zeroes_genes : pandas.Index
         TODO update
         Genes which have only zero counts after outlier replacement.
 
@@ -727,7 +730,7 @@ class DeseqDataSet(ad.AnnData):
             >= self.min_replicates
         )
         # self.replaceable = pd.Series(
-        #     n_or_more[  # TODO: could this be simplified?
+        #     n_or_more[  # TODO: cleanup
         #         self.obsm["design_matrix"][
         #             self.obsm["design_matrix"].columns[-1]
         #         ]

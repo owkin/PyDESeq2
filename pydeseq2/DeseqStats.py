@@ -135,8 +135,6 @@ class DeseqStats:
         # TODO At any rate we should find a way to avoid making copies and to avoid
         # unwanted modifications of the dds object
 
-        # self.adata = dds.adata.copy() # TODO We shouldn't copy
-
         if contrast is not None:  # Test contrast if provided
             assert len(contrast) == 3, "The contrast should contain three strings."
             assert (

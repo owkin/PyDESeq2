@@ -788,23 +788,19 @@ def fit_rough_dispersions(counts, size_factors, design_matrix):
 
     Parameters
     ----------
-    counts : pandas.DataFrame
-        #TODO : update
-        Raw counts. One column per gene, rows are indexed by sample barcodes.
+    counts : ndarray
+        Raw counts. One column per gene, one row per sample.
 
-    size_factors : pandas.Series
-        #TODO : update
+    size_factors : ndarray
         DESeq2 normalization factors.
 
     design_matrix : pandas.DataFrame
-        #TODO : update
         A DataFrame with experiment design information (to split cohorts).
         Indexed by sample barcodes. Unexpanded, *with* intercept.
 
     Returns
     -------
-    pandas.Series
-        #TODO : update
+    ndarray
         Estimated dispersion parameter for each gene.
     """
 
@@ -832,20 +828,18 @@ def fit_moments_dispersions(counts, size_factors):
 
     Parameters
     ----------
-    counts : pandas.DataFrame
-        # TODO : update
-        Raw counts. One column per gene, rows are indexed by sample barcodes.
+    counts : ndarray
+        Raw counts. One column per gene, one row per sample.
 
-    size_factors : pandas.Series
-        # TODO : update
+    size_factors : ndarray
         DESeq2 normalization factors.
 
     Returns
     -------
-    pandas.Series
-        # TODO : update
+    ndarray
         Estimated dispersion parameter for each gene.
     """
+
     normed_counts = counts / size_factors[:, None]
     # Exclude genes with all zeroes
     normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
