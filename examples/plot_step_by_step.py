@@ -1,11 +1,14 @@
 """
-Step-by-step
-============
+Step-by-step PyDESeq2 workflow
+===============================
 
 This notebook details all the steps of the PyDESeq2 pipeline.
 
 It allows you to run the PyDESeq2 pipeline on the synthetic data provided
 in this repository.
+
+If this is your first contact with PyDESeq2, we recommend you first have a look at the
+:doc:`standard workflow example <plot_minimal_pydeseq2_pipeline>`.
 
 .. contents:: Contents
     :local:
@@ -18,8 +21,8 @@ results.
 import os
 import pickle as pkl
 
-from pydeseq2.DeseqDataSet import DeseqDataSet
-from pydeseq2.DeseqStats import DeseqStats
+from pydeseq2.dds import DeseqDataSet
+from pydeseq2.ds import DeseqStats
 from pydeseq2.utils import load_example_data
 
 SAVE = False  # whether to save the outputs of this notebook
@@ -70,9 +73,9 @@ clinical_df = load_example_data(
 # 1. Read counts modeling
 # -----------------------
 # Read counts modeling with the :class:`DeseqDataSet
-# <DeseqDataSet.DeseqDataSet>` class
+# <dds.DeseqDataSet>` class
 #
-# The :class:`DeseqDataSet <DeseqDataSet.DeseqDataSet>` class has two mandatory
+# The :class:`DeseqDataSet <dds.DeseqDataSet>` class has two mandatory
 # arguments, `counts_df` and
 # `clinical_df`, as well as a set of optional keyword arguments, among which:
 #
@@ -169,7 +172,7 @@ if SAVE:
 # %%
 # 2. Statistical analysis
 # -----------------------
-# Statistical analysis with the :class:`DeseqStats <DeseqStats.DeseqStats>` class.
+# Statistical analysis with the :class:`DeseqStats <ds.DeseqStats>` class.
 # The `DeseqDataSet` class has a unique mandatory arguments, `dds`, which should
 # be a *fitted* `DeseqDataSet` object, as well as a set of optional keyword
 # arguments, among which:

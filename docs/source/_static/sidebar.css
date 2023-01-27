@@ -5,7 +5,7 @@
     display: flex;
     flex-direction: column-reverse;
     font-size: 2rem;
-    text-transform: uppercase;
+    /*text-transform: uppercase;*/
     align-items: center;
     padding: 0;
     margin-bottom: 0.5em;
@@ -44,7 +44,7 @@
 .wy-menu-vertical p.caption {
     font-size: 1.4rem;
     margin-top: 2.8rem;
-    text-transform: uppercase;
+    /*text-transform: uppercase;*/
     color: black;
     opacity: 0.4;
 }
@@ -52,6 +52,7 @@
 .wy-menu-vertical a,
 .wy-menu-vertical li.current a {
     color: black;
+    text-align: left;
     border-right: none;
 }
 .wy-menu-vertical a:hover,

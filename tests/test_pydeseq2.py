@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 
 import tests
-from pydeseq2.DeseqDataSet import DeseqDataSet
-from pydeseq2.DeseqStats import DeseqStats
+from pydeseq2.dds import DeseqDataSet
+from pydeseq2.ds import DeseqStats
 from pydeseq2.utils import load_example_data
 
 # Single-factor tests

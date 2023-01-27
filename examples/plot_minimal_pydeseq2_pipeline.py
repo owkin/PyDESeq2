@@ -1,6 +1,6 @@
 """
-Getting started
-===============
+A simple PyDESeq2 workflow
+===========================
 
 In this example, we show how to perform a simple differential expression analysis on bulk
 RNAseq data, using PyDESeq2.
@@ -15,8 +15,8 @@ We start by importing required packages and setting up an optional path to save 
 import os
 import pickle as pkl
 
-from pydeseq2.DeseqDataSet import DeseqDataSet
-from pydeseq2.DeseqStats import DeseqStats
+from pydeseq2.dds import DeseqDataSet
+from pydeseq2.ds import DeseqStats
 from pydeseq2.utils import load_example_data
 
 SAVE = False  # whether to save the outputs of this notebook
@@ -92,7 +92,7 @@ clinical_df = clinical_df.loc[samples_to_keep]
 # %%
 # .. note::
 #   In the case where the design factor contains ``NaN`` entries, PyDESeq2 will throw an
-#   error when intializing a :class:`DeseqDataSet <DeseqDataSet.DeseqDataSet>`.
+#   error when intializing a :class:`DeseqDataSet <dds.DeseqDataSet>`.
 
 # %%
 # Next, we filter out genes that have less than 10 read counts in total. Note again that
@@ -116,7 +116,7 @@ counts_df = counts_df[genes_to_keep]
 #
 
 # %%
-# .. currentmodule:: pydeseq2.DeseqDataSet
+# .. currentmodule:: pydeseq2.dds
 #
 # Read counts modeling with the :class:`DeseqDataSet` class
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -151,7 +151,7 @@ dds = DeseqDataSet(
 #   You might need to change it according to your own dataset.
 #
 # Several other arguments may be optionally specified (see the :doc:`API documentation
-# </api/docstrings/pydeseq2.DeseqDataSet.DeseqDataSet>`).
+# </api/docstrings/pydeseq2.dds.DeseqDataSet>`).
 # Among those, the ``refit_cooks`` argument (set to ``True`` by default), controls
 # whether Cooks outlier should be refitted (which is advised, in general) and ``n_cpus``
 # sets the number of CPUs to use for computation. Here, we use 8 threads. Feel free to
@@ -184,7 +184,7 @@ print(dds.dispersions)
 print(dds.LFCs)
 
 # %%
-# .. currentmodule:: pydeseq2.DeseqStats
+# .. currentmodule:: pydeseq2.ds
 #
 # Statistical analysis with the :class:`DeseqStats` class
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -192,14 +192,14 @@ print(dds.LFCs)
 # Now that dispersions and LFCs were fitted, we may proceed with statistical tests to
 # compute p-values and adjusted p-values for differential expresion. This is the role of
 # the :class:`DeseqStats` class. It has a unique mandatory argument, ``dds``, which
-# should be a *fitted* :class:`DeseqDataSet <pydeseq2.DeseqDataSet.DeseqDataSet>`
+# should be a *fitted* :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`
 # object.
 
 stat_res = DeseqStats(dds, n_cpus=8)
 
 # %%
 # It also has a set of optional keyword arguments (see the :doc:`API documentation
-# </api/docstrings/pydeseq2.DeseqStats.DeseqStats>`), among which:
+# </api/docstrings/pydeseq2.ds.DeseqStats>`), among which:
 #
 # - ``alpha``: the p-value and adjusted p-value significance threshold (``0.05``
 #   by default),
@@ -260,7 +260,7 @@ print(stat_res.shrunk_LFCs)  # Will be True only if lfc_shrink() was run.
 # Multifactor analysis
 # ---------------------
 #
-# .. currentmodule:: pydeseq2.DeseqDataSet
+# .. currentmodule:: pydeseq2.dds
 #
 # So far, we have only used the ``condition`` column of ``clinical_df``, which divides
 # samples between conditions ``A`` and ``B``. Yet, ``clinical_df`` contains second
@@ -304,7 +304,7 @@ dds.deseq2()
 print(dds.LFCs)
 
 # %%
-# .. currentmodule:: pydeseq2.DeseqStats
+# .. currentmodule:: pydeseq2.ds
 #
 # Statistical analysis
 # ^^^^^^^^^^^^^^^^^^^^
@@ -325,7 +325,7 @@ stat_res_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"], n_cpus=8)
 # .. note::
 #   If left blank, the variable of interest will be the last one provided in
 #   the ``design_factors`` attribute of the corresponding
-#   :class:`DeseqDataSet <pydeseq2.DeseqDataSet.DeseqDataSet>` object,
+#   :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>` object,
 #   and the reference level will be picked alphabetically.
 #   In any case, *both variables are still used*. This is due to the fact that ``dds``
 #   was fit with both as design factors.
@@ -343,7 +343,7 @@ stat_res_B_vs_A.summary()
 #
 # Let us now evaluate differential expression according to group Y vs X. To do so,
 # we create a new :class:`DeseqStats` from the same
-# :class:`DeseqDataSet <pydeseq2.DeseqDataSet.DeseqDataSet>`
+# :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`
 # with ``contrast=["group", "Y", "X"]``, and run the analysis again.
 
 stat_res_Y_vs_X = DeseqStats(dds, contrast=["group", "Y", "X"], n_cpus=8)

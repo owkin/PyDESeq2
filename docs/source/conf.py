@@ -54,6 +54,7 @@ extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
+    "sphinxcontrib.bibtex",
 ]
 
 
@@ -71,11 +72,19 @@ autodoc_default_options = {
     "members": True,
 }
 
+add_module_names = False
+
 autoclass_content = "both"
 autodoc_typehints = "both"
 autosummary_generate = True
 autodoc_member_order = "groupwise"
 autodoc_docstring_signature = True
+
+
+# Bibliography
+bibtex_bibfiles = ["refs.bib"]
+# Workaround to cite the same paper in several places in the API docs
+suppress_warnings = ["bibtex.duplicate_label"]
 
 
 # Napoleon settings

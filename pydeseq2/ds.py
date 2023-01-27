@@ -20,9 +20,9 @@ class DeseqStats:
     """PyDESeq2 statistical tests for differential expression.
 
     Implements p-value estimation for differential gene expression according
-    to the DESeq2 pipeline [1]_.
+    to the DESeq2 pipeline :cite:p:`DeseqStats-love2014moderated`.
 
-    Also supports apeGLM log-fold change shrinkage [2]_.
+    Also supports apeGLM log-fold change shrinkage :cite:p:`DeseqStats-zhu2019heavy`.
 
     Parameters
     ----------
@@ -46,7 +46,8 @@ class DeseqStats:
         Whether to filter p-values based on cooks outliers. (default: True).
 
     independent_filter : bool
-        Whether to perform independent filtering to correct p-value trends. (default: True).
+        Whether to perform independent filtering to correct p-value trends.
+        (default: True).
 
     n_cpus : int
         Number of cpus to use for multiprocessing.
@@ -102,15 +103,9 @@ class DeseqStats:
 
     References
     ----------
-    ..  [1] Love, M. I., Huber, W., & Anders, S. (2014). "Moderated estimation of fold
-        change and dispersion for RNA-seq data with DESeq2." Genome biology, 15(12), 1-21.
-        <https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8>
-    ..  [2] Zhu, A., Ibrahim, J. G., & Love, M. I. (2019).
-        "Heavy-tailed prior distributions for sequence count data:
-        removing the noise and preserving large differences."
-        Bioinformatics, 35(12), 2084-2092.
-        <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>
-    """  # noqa: E501
+    .. bibliography::
+        :keyprefix: DeseqStats-
+    """
 
     def __init__(
         self,
@@ -313,7 +308,7 @@ class DeseqStats:
             self.p_values.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 1
 
     def lfc_shrink(self):
-        """LFC shrinkage with an apeGLM prior [2]_.
+        """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
 
@@ -400,7 +395,7 @@ class DeseqStats:
     def _independent_filtering(self):
         """Compute adjusted p-values using independent filtering.
 
-        Corrects p-value trend (see [1]_)
+        Corrects p-value trend (see :cite:p:`DeseqStats-love2014moderated`)
         """
 
         # Check that p-values are available. If not, compute them.
