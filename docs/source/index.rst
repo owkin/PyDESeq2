@@ -6,36 +6,19 @@
 PyDESeq2 documentation
 ======================
 
-This package is a python implementation of the `DESeq2 <https://bioconductor.org/packages/release/bioc/html/DESeq2.html>`_ method [1]_
+This package is a python implementation of the
+`DESeq2 <https://bioconductor.org/packages/release/bioc/html/DESeq2.html>`_ method :cite:p:`love2014moderated`
 for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
 It aims to facilitate DEA experiments for python users.
 
-As PyDESeq2 is a re-implementation of `DESeq2 <https://bioconductor.org/packages/release/bioc/html/DESeq2.html>`_ from scratch, you may experience some differences in terms of retrieved values or available features.
+As PyDESeq2 is a re-implementation of `DESeq2 <https://bioconductor.org/packages/release/bioc/html/DESeq2.html>`_
+from scratch, you may experience some differences in terms of retrieved values or available features.
 
-Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor analysis, with an optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage [2]_.
-We plan to implement more in the near future. In case there is a feature you would particularly like to be implemented, feel free to open an issue on GitHub.
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Usage:
-
-   usage/installation
-   usage/requirements
-   usage/getting_started
-   usage/contributing
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   api/index
-
-
-Documentation
--------------
-
-The documentation is automatically build using `Sphinx <https://www.sphinx-doc.org/en/master/>`_, and hosted `here on ReadTheDoc <https://pydeseq2.readthedocs.io/en/latest/>`_.
+Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor and
+paired multi-factor analysis (with bi-level factors), with an
+optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage step
+:cite:p:`zhu2019heavy`. We plan to implement more in the near future. In case there is a feature you would particularly
+like to be implemented, feel free to open an issue on GitHub.
 
 
 Citing this work
@@ -51,23 +34,36 @@ Citing this work
    journal={bioRxiv},
    }
 
-References
-----------
-
-.. [1] Love, M. I., Huber, W., & Anders, S. (2014). "Moderated estimation of fold
-        change and dispersion for RNA-seq data with DESeq2." Genome biology, 15(12), 1-21.
-        <https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8>
-
-..  [2] Zhu, A., Ibrahim, J. G., & Love, M. I. (2019).
-        "Heavy-tailed prior distributions for sequence count data:
-        removing the noise and preserving large differences."
-        Bioinformatics, 35(12), 2084-2092.
-        <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>
-
 License
 -------
 
 PyDESeq2 is released under an `MIT license <https://github.com/owkin/PyDESeq2/blob/main/LICENSE>`_.
+
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: General
+
+   usage/installation
+   usage/requirements
+   usage/contributing
+   usage/references
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: API
+
+   api/index
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Tutorials
+
+   auto_examples/index.rst
+
 
 
 

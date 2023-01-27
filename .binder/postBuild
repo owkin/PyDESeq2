@@ -1,0 +1,17 @@
+#!/bin/bash
+# binder post build script
+set -ex
+
+(cd docs && make html)
+
+# uninstall docs requirements for a lighter docker image
+pip uninstall -y -r docs/requirements.txt
+
+# move examples to the notebooks folder
+mv docs/build/html/jupyter_notebooks .
+
+# delete everything but the notebooks folder and the pydeseq2 dependencies
+shopt -s extglob
+rm -rf .[!.]*
+rm -rf !(jupyter_notebooks|docs)
+(cd docs && rm -rf !(src))

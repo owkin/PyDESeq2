@@ -8,13 +8,22 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import warnings
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 from datetime import date
+from pathlib import Path
+
+import git
+from statsmodels.tools.sm_exceptions import DomainWarning
 
 import pydeseq2
+
+# Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
+warnings.simplefilter("ignore", DomainWarning)
 
 # -- Project information -----------------------------------------------------
 
@@ -44,6 +53,8 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.intersphinx",
+    "sphinx_gallery.gen_gallery",
+    "sphinxcontrib.bibtex",
 ]
 
 
@@ -61,11 +72,19 @@ autodoc_default_options = {
     "members": True,
 }
 
+add_module_names = False
+
 autoclass_content = "both"
 autodoc_typehints = "both"
 autosummary_generate = True
 autodoc_member_order = "groupwise"
 autodoc_docstring_signature = True
+
+
+# Bibliography
+bibtex_bibfiles = ["refs.bib"]
+# Workaround to cite the same paper in several places in the API docs
+suppress_warnings = ["bibtex.duplicate_label"]
 
 
 # Napoleon settings
@@ -205,3 +224,20 @@ html_css_files = [
 # html_logo = "static/logo.svg"
 html_show_sourcelink = False
 html_show_sphinx = True
+
+current_commit = git.Repo(search_parent_directories=True).head.object.hexsha
+
+sphinx_gallery_conf = {
+    "examples_dirs": "../../examples",  # path to your example scripts
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "binder": {
+        "org": "Owkin",
+        "repo": "PyDESeq2",
+        "branch": current_commit,  # Can be any branch, tag, or commit hash.
+        # Use a branch that hosts your docs.
+        "binderhub_url": "https://mybinder.org",  # public binderhub url
+        "dependencies": str(Path(__file__).parents[2] / "environment.yml"),
+        "notebooks_dir": "jupyter_notebooks",
+        "use_jupyter_lab": True,
+    },
+}

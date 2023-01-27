@@ -41,7 +41,8 @@ class DeseqDataSet(ad.AnnData):
     <https://anndata.readthedocs.io/en/latest/generated/anndata.AnnData.html#anndata.AnnData>`_.
     As such, it implements the same methods and attributes, in addition to those that are
     specific to pydeseq2.
-    Dispersions and LFCs are estimated following the DESeq2 pipeline [1]_.
+    Dispersions and LFCs are estimated following the DESeq2 pipeline
+    :cite:p:`DeseqDataSet-love2014moderated`.
 
     Parameters
     ----------
@@ -116,10 +117,9 @@ class DeseqDataSet(ad.AnnData):
 
     References
     ----------
-    ..  [1] Love, M. I., Huber, W., & Anders, S. (2014). "Moderated estimation of fold
-        change and dispersion for RNA-seq data with DESeq2." Genome biology, 15(12), 1-21.
-        <https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0550-8>
-    """  # noqa: E501
+    .. bibliography::
+        :keyprefix: DeseqDataSet-
+    """
 
     def __init__(
         self,
@@ -296,7 +296,11 @@ class DeseqDataSet(ad.AnnData):
         print("Fitting dispersions...")
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(n_jobs=self.n_processes, batch_size=self.batch_size)(
+            res = Parallel(
+                n_jobs=self.n_processes,
+                verbose=self.joblib_verbosity,
+                batch_size=self.batch_size,
+            )(
                 delayed(fit_alpha_mle)(
                     counts=nz_data.X[:, i],
                     design_matrix=X,

@@ -1,35 +1,16 @@
-# TCGA Dataset
+# Datasets
 
-Data from The Cancer Genome Atlas can be obtained [here](https://portal.gdc.cancer.gov/).
+This directory stores example data which can be retrieved using the `load_example_data` function from
+`pydeseq2.utils`. Only synthetic data is provided for now, but new datasets might be available in the future.
 
 ## Folder organisation
-
-The `tcga_data` is supposed to be organized in the following way:
 
 ```
 PyDESeq2
 │
 └───datasets
         │
-        └───tcga_data   
-            │
-            └───Clinical
-            │       TCGA-BRCA_clinical.tsv.gz
-            │       TCGA-COAD_clinical.tsv.gz
-            │       TCGA-LUAD_clinical.tsv.gz
-            │       TCGA-LUSC_clinical.tsv.gz
-            │       TCGA-PAAD_clinical.tsv.gz
-            │       TCGA-PRAD_clinical.tsv.gz
-            │       TCGA-READ_clinical.tsv.gz
-            │       TCGA-SKCM_clinical.tsv.gz
-            │   
-            └───Gene_expressions
-                    TCGA-BRCA_raw_RNAseq.tsv.gz
-                    TCGA-COAD_raw_RNAseq.tsv.gz
-                    TCGA-LUAD_raw_RNAseq.tsv.gz
-                    TCGA-LUSC_raw_RNAseq.tsv.gz
-                    TCGA-PAAD_raw_RNAseq.tsv.gz
-                    TCGA-PRAD_raw_RNAseq.tsv.gz
-                    TCGA-READ_raw_RNAseq.tsv.gz
-                    TCGA-SKCM_raw_RNAseq.tsv.gz
+        └───synthetic   
+            │       test_clinical.csv
+            │       test_counts.csv
 ```
