@@ -63,11 +63,9 @@ Please don't hesitate to open an issue in case you encounter any issue due to po
 
 ## Getting started
 
-The [Getting Started](https://pydeseq2.readthedocs.io/en/latest/auto_examples/index.html) section of the documentation contains downloadable examples on how to use PyDESeq2.
+The [Getting Started](https://pydeseq2.readthedocs.io/en/latest/auto_examples/index.html) section of the documentation
+contains downloadable examples on how to use PyDESeq2.
 
-You can run them directly in your browser:  
-
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Owkin/PyDESeq2/5bf8ec61831abda43ab472517bf62c1d176b5043?urlpath=lab/tree/jupyter_notebooks/auto_examples/plot_minimal_pydeseq2_pipeline.ipynb) 
 
 ### Documentation
 
