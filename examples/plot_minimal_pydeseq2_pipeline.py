@@ -10,6 +10,9 @@ RNAseq data, using PyDESeq2.
     :depth: 3
 
 We start by importing required packages and setting up an optional path to save results.
+
+# TODO : talk about AnnData, and how to access different fields.
+
 """
 
 import os
@@ -175,13 +178,17 @@ if SAVE:
         pkl.dump(dds, f)
 
 # %%
+# TODO show all fields of dds
+dds
+
+# %%
 # If needed, we may now access the fitted dispersions and LFCs (in natural log scale):
 
-print(dds.dispersions)
+print(dds.varm["dispersions"])
 
 # %%
 
-print(dds.LFCs)
+print(dds.varm["LFC"])
 
 # %%
 # .. currentmodule:: pydeseq2.ds
@@ -301,7 +308,7 @@ dds.deseq2()
 # Now, if we print log fold changes, we will have two columns in addition to the
 # intercept: one corresponding to the ``group`` variable, and the other to ``condition``.
 
-print(dds.LFCs)
+print(dds.varm["LFC"])
 
 # %%
 # .. currentmodule:: pydeseq2.ds
