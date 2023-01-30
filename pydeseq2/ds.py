@@ -125,10 +125,6 @@ class DeseqStats:
         ), "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
 
         self.dds = dds
-        # TODO : we would need a mechanism to ensure that dds is not modified
-        # TODO here it should be the dds object itself, once it inherits from anndata?
-        # TODO At any rate we should find a way to avoid making copies and to avoid
-        # unwanted modifications of the dds object
 
         if contrast is not None:  # Test contrast if provided
             assert len(contrast) == 3, "The contrast should contain three strings."
