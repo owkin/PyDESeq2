@@ -82,9 +82,9 @@ class DeseqDataSet(ad.AnnData):
         to allow refitting its samples. (default: 7).
 
     beta_tol : float
-        Stopping criterion for IRWLS:
-        math:: abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol.
-        (default: 1e-8).
+        Stopping criterion for IRWLS. (default: 1e-8).
+
+        .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
 
     n_cpus : int
         Number of cpus to use. If None, all available cpus will be used. (default: None).
@@ -116,7 +116,7 @@ class DeseqDataSet(ad.AnnData):
         ‘number of samples’. Stores "design_matrix" and "size_factors", among others.
 
     varm
-        Key-indexed multi-dimensional gene annotation of length #variables.
+        Key-indexed multi-dimensional gene annotation of length ‘number of genes’.
         Stores "dispersions" and "LFC", among others.
 
     layers
