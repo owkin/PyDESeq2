@@ -18,11 +18,12 @@
 
 ## Overview
 
-This package is a python implementation of the [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) method [1]
-for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
+This package is a python implementation of the [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) 
+method [1] for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
 It aims to facilitate DEA experiments for python users.
 
-As PyDESeq2 is a re-implementation of [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) from scratch, you may experience some differences in terms of retrieved values or available features.
+As PyDESeq2 is a re-implementation of [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) from 
+scratch, you may experience some differences in terms of retrieved values or available features.
 
 Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor 
 and paired multi-factor analysis (with bi-level factors), but we plan to implement more in the near future.
@@ -62,25 +63,28 @@ Please don't hesitate to open an issue in case you encounter any issue due to po
 
 ## Getting started
 
-The [`notebooks` directory](https://github.com/owkin/PyDESeq2/blob/main/notebooks/README.md) contains minimal examples on how to use PyDESeq2, in the form of jupyter notebooks.
+The [Getting Started](https://pydeseq2.readthedocs.io/en/latest/auto_examples/index.html) section of the documentation
+contains downloadable examples on how to use PyDESeq2.
 
-You can also try them from your browser (on synthetic data only):  
-
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/owkin/PyDESeq2/HEAD?labpath=notebooks%2Findex.ipynb) 
 
 ### Documentation
 
-The documentation is hosted [here on ReadTheDocs](https://pydeseq2.readthedocs.io/en/latest/). If you want to have the latest version of the documentation, you can build it from source. Please go to the dedicated [README.md](https://github.com/owkin/PyDESeq2/blob/main/docs/README.md) for information on how to do so.
+The documentation is hosted [here on ReadTheDocs](https://pydeseq2.readthedocs.io/en/latest/). 
+If you want to have the latest version of the documentation, you can build it from source.
+Please go to the dedicated [README.md](https://github.com/owkin/PyDESeq2/blob/main/docs/README.md) for information on how to do so.
 
 ### Data
 
-The quick start notebooks use synthetic data, provided in this repo (see [datasets](https://github.com/owkin/PyDESeq2/blob/main/datasets/README.md).)
+The quick start examples use synthetic data, provided in this repo (see [datasets](https://github.com/owkin/PyDESeq2/blob/main/datasets/README.md).)
 
 The experiments described in our [preprint](https://www.biorxiv.org/content/10.1101/2022.12.14.520412v1) rely on data
 from [The Cancer Genome Atlas](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga),
 which may be obtained from this [portal](https://portal.gdc.cancer.gov/).
 
 ## Contributing
+
+Please the [Contributing](https://pydeseq2.readthedocs.io/en/latest/usage/contributing.html) section of the
+documentation to see how you can contribute to PyDESeq2.
 
 ### 1 - Download the repository
 
