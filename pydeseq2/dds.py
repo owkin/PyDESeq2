@@ -98,6 +98,30 @@ class DeseqDataSet(ad.AnnData):
 
     Attributes
     ----------
+    X
+        A ‘number of samples’ x ‘number of genes’ count data matrix.
+
+    obs
+        Key-indexed one-dimensional observations annotation of length 'number of
+        samples". Used to store design factors.
+
+    var
+        Key-indexed one-dimensional gene-level annotation of length ‘number of genes’.
+
+    uns
+        Key-indexed unstructured annotation.
+
+    obsm
+        Key-indexed multi-dimensional observations annotation of length
+        ‘number of samples’. Stores "design_matrix" and "size_factors", among others.
+
+    varm
+        Key-indexed multi-dimensional gene annotation of length #variables.
+        Stores "dispersions" and "LFC", among others.
+
+    layers
+        Key-indexed multi-dimensional arrays aligned to dimensions of `X`, e.g. "cooks".
+
     n_processes : int
         Number of cpus to use for multiprocessing.
 
@@ -112,7 +136,6 @@ class DeseqDataSet(ad.AnnData):
         for which dispersions and LFCs must be fitted again.
 
     new_all_zeroes_genes : pandas.Index
-        TODO update
         Genes which have only zero counts after outlier replacement.
 
     References
@@ -141,8 +164,6 @@ class DeseqDataSet(ad.AnnData):
         the number of multiprocessing threads.
         """
 
-        # TODO : we should support several ways of loading counts / clinical
-        # (from DataFrames, csv, AnnData directly...)
         # Test counts before going further
         test_valid_counts(counts)
 

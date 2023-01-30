@@ -9,8 +9,8 @@ def deseq2_norm(counts):
 
     Parameters
     ----------
-    counts : pandas.DataFrame # TODO : update
-            Raw counts. One column per gene, rows are indexed by sample barcodes.
+    counts : ndarray
+            Raw counts. One column per gene, one row per sample.
 
     Returns
     -------
@@ -21,6 +21,7 @@ def deseq2_norm(counts):
     size_factors : pandas.DataFrame
         DESeq2 normalization factors.
     """
+
     # Compute gene-wise mean log counts
     with np.errstate(divide="ignore"):  # ignore division by zero warnings
         log_counts = np.log(counts)
