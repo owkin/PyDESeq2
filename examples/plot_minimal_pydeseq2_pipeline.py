@@ -178,11 +178,27 @@ if SAVE:
         pkl.dump(dds, f)
 
 # %%
-# TODO show all fields of dds
-dds
+# The :class:`DeseqDataSet` class extends the
+# :class:`AnnData <anndata.AnnData>`
+# class.
+
+print(dds)
 
 # %%
-# If needed, we may now access the fitted dispersions and LFCs (in natural log scale):
+# Hence, parameters are stored according to the :class:`AnnData <anndata.AnnData>` data
+# structure, with key-based data fields. In particular,
+#
+# - ``X`` stores the count data,
+# - ``obs`` stores design factors,
+# - ``obsm`` stores sample-level data, such as ``"design_matrix"`` and
+#   ``"size_factors"``,
+# - ``varm`` stores gene-level data, such as ``"dispersions"`` and ``"LFC"``.
+#
+#
+# As an example, here is how we would access dispersions and LFCs
+# (in natural log scale):
+
+# %%
 
 print(dds.varm["dispersions"])
 
