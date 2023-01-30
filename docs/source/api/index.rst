@@ -7,10 +7,10 @@ PyDESeq2
 
 .. autosummary::
     :toctree: docstrings
-    :recursive:
 
-    dds.DeseqDataSet
-    ds.DeseqStats
+    ~dds.DeseqDataSet
+    ~ds.DeseqStats
     ~utils
     ~grid_search
     ~preprocessing
+
