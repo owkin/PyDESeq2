@@ -5,13 +5,10 @@
 
 .. autoclass:: pydeseq2.dds.DeseqDataSet
 
-    .. automethod:: __init__
-
     .. rubric:: Methods
 
     .. autosummary::
    
-        ~DeseqDataSet.__init__
         ~DeseqDataSet.calculate_cooks
         ~DeseqDataSet.deseq2
         ~DeseqDataSet.fit_LFC

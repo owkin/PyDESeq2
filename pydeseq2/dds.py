@@ -160,9 +160,6 @@ class DeseqDataSet(ad.AnnData):
         batch_size=128,
         joblib_verbosity=0,
     ):
-        """Initialize the DeseqDataSet instance, computing the design matrix and
-        the number of multiprocessing threads.
-        """
 
         # Test counts before going further
         test_valid_counts(counts)
