@@ -206,7 +206,7 @@ class DeseqDataSet(ad.AnnData):
         # Fit an independent negative binomial model per gene
         self.fit_genewise_dispersions()
         # Fit a parameterized trend curve for dispersions, of the form
-        # math:: f(\mu) = \alpha_1/\mu + a_0
+        # f(\mu) = \alpha_1/\mu + a_0
         self.fit_dispersion_trend()
         # Compute prior dispersion variance
         self.fit_dispersion_prior()
@@ -246,10 +246,7 @@ class DeseqDataSet(ad.AnnData):
         self._fit_MoM_dispersions()
 
         # Exclude genes with all zeroes
-        # TODO : this could probably be simplified
-        self.non_zero = ~(self.X == 0).all(
-            axis=0
-        )  # TODO: add docstring for this attribute
+        self.non_zero = ~(self.X == 0).all(axis=0)
         self.non_zero_genes = self.var_names[self.non_zero]
         nz_data = self[:, self.non_zero_genes]
         num_genes = nz_data.n_vars
@@ -301,8 +298,6 @@ class DeseqDataSet(ad.AnnData):
                 _, mu_hat_, _, _ = zip(*res)
                 mu_hat_ = np.array(mu_hat_)
 
-        # TODO : do this better
-
         _mu_hat = pd.DataFrame(np.NaN, index=self.obs_names, columns=self.var_names)
 
         _mu_hat.update(
@@ -334,29 +329,10 @@ class DeseqDataSet(ad.AnnData):
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
 
-        # TODO : this might not be the best way to add data to an anndata...
-        # TODO : use np.where and such to do data allocations?
-        # genewise_dispersions = pd.Series(np.NaN, index=self.var_names)
-        # genewise_dispersions.update(
-        #     pd.Series(dispersions_, index=self.non_zero_genes).clip(
-        #         self.min_disp, self.max_disp
-        #     )
-        # )
-        #
-        # self.varm["genewise_dispersions"] = genewise_dispersions.values
-
         self.varm["genewise_dispersions"] = np.full(self.n_vars, np.NaN)
         self.varm["genewise_dispersions"][self.non_zero] = np.clip(
             dispersions_, self.min_disp, self.max_disp
         )
-
-        # _genewise_converged = pd.Series(np.NaN, index=self.var_names)
-        #
-        # _genewise_converged.update(
-        #     pd.Series(l_bfgs_b_converged_, index=self.non_zero_genes)
-        # )
-        #
-        # self.varm["_genewise_converged"] = _genewise_converged.values
 
         self.varm["_genewise_converged"] = np.full(self.n_vars, np.NaN)
         self.varm["_genewise_converged"][self.non_zero] = np.array(l_bfgs_b_converged_)
@@ -368,7 +344,6 @@ class DeseqDataSet(ad.AnnData):
         """
 
         # Check that genewise dispersions are available. If not, compute them.
-        # if not hasattr(self, "genewise_dispersions"):
         if not "genewise_dispersions" not in self.varm:
             self.fit_genewise_dispersions()
 
@@ -378,11 +353,7 @@ class DeseqDataSet(ad.AnnData):
             0
         )
 
-        # TODO : not a very good way to use pandas and annData (array to pandas)
         # Exclude all-zero counts
-        # targets = self.genewise_dispersions.loc[self.non_zero_genes].copy()
-        # covariates = sm.add_constant(1 / self._normed_means.loc[self.non_zero_genes])
-
         targets = pd.Series(
             self[:, self.non_zero_genes].varm["genewise_dispersions"].copy(),
             index=self.non_zero_genes,
@@ -420,7 +391,6 @@ class DeseqDataSet(ad.AnnData):
 
             # Filter out genes that are too far away from the curve before refitting
             predictions = covariates.values @ coeffs
-            # pred_ratios = self.genewise_dispersions.loc[covariates.index] / predictions
             pred_ratios = (
                 self[:, covariates.index].varm["genewise_dispersions"] / predictions
             )
@@ -437,31 +407,7 @@ class DeseqDataSet(ad.AnnData):
         end = time.time()
         print(f"... done in {end - start:.2f} seconds.\n")
 
-        # self.trend_coeffs = pd.Series(coeffs, index=["a0", "a1"])
-        # self.fitted_dispersions = pd.Series(
-        #     np.NaN, index=self.genewise_dispersions.index
-        # )
-        # self.fitted_dispersions.update(
-        #     dispersion_trend(
-        #         self._normed_means.loc[self.non_zero_genes], self.trend_coeffs
-        #     )
-        # )
-
         self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
-
-        # TODO : again, maybe not the best way to add data
-        # fitted_dispersions = pd.Series(np.NaN, index=self.var_names)
-        # fitted_dispersions.update(
-        #     pd.Series(
-        #         dispersion_trend(
-        #             self[:, self.non_zero_genes].varm["_normed_means"],
-        #             self.uns["trend_coeffs"],
-        #         ),
-        #         index=self.non_zero_genes,
-        #     )
-        # )
-        #
-        # self.varm["fitted_dispersions"] = fitted_dispersions.values
 
         self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
         self.varm["fitted_dispersions"][self.non_zero] = dispersion_trend(
@@ -508,9 +454,6 @@ class DeseqDataSet(ad.AnnData):
         """
 
         # Check that the dispersion prior variance is available. If not, compute it.
-        # if not hasattr(self, "prior_disp_var"):
-        #     self.fit_dispersion_prior()
-
         if "prior_disp_var" not in self.uns:
             self.fit_dispersion_prior()
 
@@ -664,8 +607,6 @@ class DeseqDataSet(ad.AnnData):
         nz_data = self[:, self.non_zero_genes]
 
         # Keep only non-zero genes
-        # TODO: used a DataFrame to avoid changing robust_method_of_moments_disp
-        # but we should be able to pass an array
         normed_counts = pd.DataFrame(
             nz_data.X / self.obsm["size_factors"][:, None],
             index=self.obs_names,
@@ -756,14 +697,6 @@ class DeseqDataSet(ad.AnnData):
             ].value_counts()
             >= self.min_replicates
         )
-        # self.replaceable = pd.Series(
-        #     n_or_more[  # TODO: cleanup
-        #         self.obsm["design_matrix"][
-        #             self.obsm["design_matrix"].columns[-1]
-        #         ]
-        #     ],
-        #     index=self.obs_names,
-        # )
 
         replaceable = n_or_more[  # TODO: could this be simplified?
             self.obsm["design_matrix"][self.obsm["design_matrix"].columns[-1]]
@@ -803,7 +736,6 @@ class DeseqDataSet(ad.AnnData):
             ] = replacement_counts.values[
                 idx[self.obsm["replaceable"]][:, self.varm["replaced"]]
             ]
-            # TODO : does this happen in place or not ?
 
     def _refit_without_outliers(
         self,
@@ -868,7 +800,7 @@ class DeseqDataSet(ad.AnnData):
         # Replace values in main object
         to_replace = self.varm["replaced"].copy()
         # Only replace if genes are not all zeroes after outlier replacement
-        to_replace[to_replace] = ~new_all_zeroes  # TODO : is this inplace? (should be)
+        to_replace[to_replace] = ~new_all_zeroes
 
         self.varm["_normed_means"][to_replace] = sub_dds.varm["_normed_means"]
         self.varm["LFC"][to_replace] = sub_dds.varm["LFC"]

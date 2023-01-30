@@ -11,8 +11,6 @@ RNAseq data, using PyDESeq2.
 
 We start by importing required packages and setting up an optional path to save results.
 
-# TODO : talk about AnnData, and how to access different fields.
-
 """
 
 import os
