@@ -269,7 +269,6 @@ class DeseqStats:
             ridge_factor = np.diag(np.repeat(1e-6, num_vars))
 
         X = self.design_matrix.values
-        disps = self.dds.varm["dispersions"]
         LFCs = self.LFC.values
 
         print("Running Wald tests...")
@@ -282,7 +281,7 @@ class DeseqStats:
             )(
                 delayed(wald_test)(
                     design_matrix=X,
-                    disp=disps[i],
+                    disp=self.dds.varm["dispersions"][i],
                     lfc=LFCs[i],
                     mu=mu[:, i],
                     ridge_factor=ridge_factor,
@@ -317,12 +316,8 @@ class DeseqStats:
             If pvalues were already computed, return the results DataFrame with MAP LFCs,
             but unmodified stats and pvalues.
         """
-        # Filter genes with all zero counts
-        nonzero = self.dds.X.sum(0) > 0
-        nz_data = self.dds[:, nonzero]
-        num_genes = nz_data.n_vars
 
-        size = 1.0 / nz_data.varm["dispersions"]
+        size = 1.0 / self.dds.varm["dispersions"]
         offset = np.log(self.dds.obsm["size_factors"])
 
         # Set priors
@@ -342,7 +337,7 @@ class DeseqStats:
             )(
                 delayed(nbinomGLM)(
                     design_matrix=X,
-                    counts=nz_data.X[:, i],
+                    counts=self.dds.X[:, i],
                     size=size[i],
                     offset=offset,
                     prior_no_shrink_scale=prior_no_shrink_scale,
@@ -350,7 +345,7 @@ class DeseqStats:
                     optimizer="L-BFGS-B",
                     shrink_index=self.contrast_idx,
                 )
-                for i in range(num_genes)
+                for i in self.dds.non_zero_idx
             )
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
@@ -360,7 +355,7 @@ class DeseqStats:
         self.LFC.iloc[:, self.contrast_idx].update(
             pd.Series(
                 np.array(lfcs)[:, self.contrast_idx],
-                index=nz_data.var_names,
+                index=self.dds.non_zero_genes,
             )
         )
 
@@ -372,13 +367,13 @@ class DeseqStats:
                         for inv_hess in inv_hessians
                     ]
                 ),
-                index=nz_data.var_names,
+                index=self.dds.non_zero_genes,
             )
         )
 
         self._LFC_shrink_converged = pd.Series(np.NaN, index=self.dds.var_names)
         self._LFC_shrink_converged.update(
-            pd.Series(l_bfgs_b_converged_, index=nz_data.var_names)
+            pd.Series(l_bfgs_b_converged_, index=self.dds.non_zero_genes)
         )
 
         # Set a flag to indicate that LFCs were shrunk

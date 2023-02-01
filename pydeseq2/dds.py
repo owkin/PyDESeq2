@@ -128,6 +128,9 @@ class DeseqDataSet(ad.AnnData):
     non_zero : ndarray
         Boolean mask of genes that have non-uniformly zero counts.
 
+    non_zero_idx : ndarray
+        Indices of genes that have non-uniformly zero counts.
+
     non_zero_genes : pandas.Index
         Index of genes that have non-uniformly zero counts.
 
@@ -247,20 +250,20 @@ class DeseqDataSet(ad.AnnData):
 
         # Exclude genes with all zeroes
         self.non_zero = ~(self.X == 0).all(axis=0)
+        self.non_zero_idx = np.arange(self.n_vars)[self.non_zero]
         self.non_zero_genes = self.var_names[self.non_zero]
-        nz_data = self[:, self.non_zero_genes]
-        num_genes = nz_data.n_vars
 
         # Convert design_matrix to numpy for speed
-        X = nz_data.obsm["design_matrix"].values
-        rough_disps = nz_data.varm["_rough_dispersions"]
-        size_factors = nz_data.obsm["size_factors"]
+        X = self.obsm["design_matrix"].values
 
         # mu_hat is initialized differently depending on the number of different factor
         # groups. If there are as many different factor combinations as design factors
         # (intercept included), it is fitted with a linear model, otherwise it is fitted
         # with a GLM (using rough dispersion estimates).
-        if len(nz_data.obsm["design_matrix"].value_counts()) == self.n_vars:
+        if (
+            len(self.obsm["design_matrix"].value_counts())
+            == self.obsm["design_matrix"].shape[-1]
+        ):
             with parallel_backend("loky", inner_max_num_threads=1):
                 mu_hat_ = np.array(
                     Parallel(
@@ -269,12 +272,12 @@ class DeseqDataSet(ad.AnnData):
                         batch_size=self.batch_size,
                     )(
                         delayed(fit_lin_mu)(
-                            counts=nz_data.X[:, i],
-                            size_factors=size_factors,
+                            counts=self.X[:, i],
+                            size_factors=self.obsm["size_factors"],
                             design_matrix=X,
                             min_mu=self.min_mu,
                         )
-                        for i in range(num_genes)
+                        for i in self.non_zero_idx
                     )
                 )
         else:
@@ -285,26 +288,21 @@ class DeseqDataSet(ad.AnnData):
                     batch_size=self.batch_size,
                 )(
                     delayed(irls_solver)(
-                        counts=nz_data.X[:, i],
-                        size_factors=size_factors,
+                        counts=self.X[:, i],
+                        size_factors=self.obsm["size_factors"],
                         design_matrix=X,
-                        disp=rough_disps[i],
+                        disp=self.varm["_rough_dispersions"][i],
                         min_mu=self.min_mu,
                         beta_tol=self.beta_tol,
                     )
-                    for i in range(num_genes)
+                    for i in self.non_zero_idx
                 )
 
                 _, mu_hat_, _, _ = zip(*res)
                 mu_hat_ = np.array(mu_hat_)
 
-        _mu_hat = pd.DataFrame(np.NaN, index=self.obs_names, columns=self.var_names)
-
-        _mu_hat.update(
-            pd.DataFrame(mu_hat_.T, index=self.obs_names, columns=self.non_zero_genes)
-        )
-
-        self.layers["_mu_hat"] = _mu_hat.values
+        self.layers["_mu_hat"] = np.full((self.n_obs, self.n_vars), np.NaN)
+        self.layers["_mu_hat"][:, self.non_zero] = mu_hat_.T
 
         print("Fitting dispersions...")
         start = time.time()
@@ -315,14 +313,15 @@ class DeseqDataSet(ad.AnnData):
                 batch_size=self.batch_size,
             )(
                 delayed(fit_alpha_mle)(
-                    counts=nz_data.X[:, i],
+                    counts=self.X[:, i],
                     design_matrix=X,
-                    mu=mu_hat_[i, :],
-                    alpha_hat=rough_disps[i],
+                    mu=self.layers["_mu_hat"][:, i],
+                    alpha_hat=self.varm["_rough_dispersions"][i],
                     min_disp=self.min_disp,
                     max_disp=self.max_disp,
                 )
-                for i in range(num_genes)
+                # for i in range(num_genes)
+                for i in self.non_zero_idx
             )
         end = time.time()
         print(f"... done in {end - start:.2f} seconds.\n")
@@ -457,13 +456,8 @@ class DeseqDataSet(ad.AnnData):
         if "prior_disp_var" not in self.uns:
             self.fit_dispersion_prior()
 
-        # Exclude genes with all zeroes
-        nz_data = self[:, self.non_zero_genes]
-        num_genes = nz_data.n_vars
-
-        X = nz_data.obsm["design_matrix"].values
-        mu_hat = nz_data.layers["_mu_hat"]
-        fit_disps = nz_data.varm["fitted_dispersions"]
+        # Convert design matrix to numpy for speed
+        X = self.obsm["design_matrix"].values
 
         print("Fitting MAP dispersions...")
         start = time.time()
@@ -474,17 +468,17 @@ class DeseqDataSet(ad.AnnData):
                 batch_size=self.batch_size,
             )(
                 delayed(fit_alpha_mle)(
-                    counts=nz_data.X[:, i],
+                    counts=self.X[:, i],
                     design_matrix=X,
-                    mu=mu_hat[:, i],
-                    alpha_hat=fit_disps[i],
+                    mu=self.layers["_mu_hat"][:, i],
+                    alpha_hat=self.varm["fitted_dispersions"][i],
                     min_disp=self.min_disp,
                     max_disp=self.max_disp,
                     prior_disp_var=self.uns["prior_disp_var"].item(),
                     cr_reg=True,
                     prior_reg=True,
                 )
-                for i in range(num_genes)
+                for i in self.non_zero_idx
             )
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
@@ -519,13 +513,8 @@ class DeseqDataSet(ad.AnnData):
         if "dispersions" not in self.varm:
             self.fit_MAP_dispersions()
 
-        # Exclude genes with all zeroes
-        nz_data = self[:, self.non_zero_genes]
-        num_genes = nz_data.n_vars
-
-        X = nz_data.obsm["design_matrix"].values
-        size_factors = nz_data.obsm["size_factors"]
-        disps = nz_data.varm["dispersions"]
+        # Convert design matrix to numpy for speed
+        X = self.obsm["design_matrix"].values
 
         print("Fitting LFCs...")
         start = time.time()
@@ -536,14 +525,14 @@ class DeseqDataSet(ad.AnnData):
                 batch_size=self.batch_size,
             )(
                 delayed(irls_solver)(
-                    counts=nz_data.X[:, i],
-                    size_factors=size_factors,
+                    counts=self.X[:, i],
+                    size_factors=self.obsm["size_factors"],
                     design_matrix=X,
-                    disp=disps[i],
+                    disp=self.varm["dispersions"][i],
                     min_mu=self.min_mu,
                     beta_tol=self.beta_tol,
                 )
-                for i in range(num_genes)
+                for i in self.non_zero_idx
             )
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
@@ -564,34 +553,14 @@ class DeseqDataSet(ad.AnnData):
             )
         )
 
-        _mu_LFC = pd.DataFrame(np.NaN, index=self.obs_names, columns=self.var_names)
-        _mu_LFC.update(
-            pd.DataFrame(
-                np.array(mu_).T, index=self.obs_names, columns=self.non_zero_genes
-            )
-        )
+        self.layers["_mu_LFC"] = np.full((self.n_obs, self.n_vars), np.NaN)
+        self.layers["_mu_LFC"][:, self.non_zero] = np.array(mu_).T
 
-        self.layers["_mu_LFC"] = _mu_LFC.values
+        self.layers["_hat_diagonals"] = np.full((self.n_obs, self.n_vars), np.NaN)
+        self.layers["_hat_diagonals"][:, self.non_zero] = np.array(hat_diagonals_).T
 
-        _hat_diagonals = pd.DataFrame(
-            np.NaN,
-            index=self.obs_names,
-            columns=self.var_names,
-        )
-        _hat_diagonals.update(
-            pd.DataFrame(
-                np.array(hat_diagonals_).T,
-                index=self.obs_names,
-                columns=self.non_zero_genes,
-            )
-        )
-
-        self.layers["_hat_diagonals"] = _hat_diagonals.values
-
-        _LFC_converged = pd.Series(np.NaN, index=self.var_names)
-        _LFC_converged.update(pd.Series(converged_, index=self.non_zero_genes))
-
-        self.varm["_LFC_converged"] = _LFC_converged.values
+        self.varm["_LFC_converged"] = np.full(self.n_vars, np.NaN)
+        self.varm["_LFC_converged"][self.non_zero] = converged_
 
     def calculate_cooks(self):
         """Compute Cook's distance for outlier detection.
@@ -624,21 +593,15 @@ class DeseqDataSet(ad.AnnData):
         )
         squared_pearson_res = (nz_data.X - nz_data.layers["_mu_LFC"]) ** 2 / V
 
-        cooks = pd.DataFrame(np.NaN, index=self.obs_names, columns=self.var_names)
-        cooks.update(
-            pd.DataFrame(
-                squared_pearson_res
-                / num_vars
-                * (
-                    nz_data.layers["_hat_diagonals"]
-                    / (1 - nz_data.layers["_hat_diagonals"]) ** 2
-                ),
-                index=self.obs_names,
-                columns=self.non_zero_genes,
+        self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.NaN)
+        self.layers["cooks"][:, self.non_zero] = (
+            squared_pearson_res
+            / num_vars
+            * (
+                nz_data.layers["_hat_diagonals"]
+                / (1 - nz_data.layers["_hat_diagonals"]) ** 2
             )
         )
-
-        self.layers["cooks"] = cooks.values
 
     def refit(self):
         """Refit Cook outliers.
@@ -698,7 +661,7 @@ class DeseqDataSet(ad.AnnData):
             >= self.min_replicates
         )
 
-        replaceable = n_or_more[  # TODO: could this be simplified?
+        replaceable = n_or_more[
             self.obsm["design_matrix"][self.obsm["design_matrix"].columns[-1]]
         ]
 
