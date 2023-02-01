@@ -572,7 +572,7 @@ class DeseqDataSet(ad.AnnData):
         if "dispersions" not in self.varm:
             self.fit_MAP_dispersions()
 
-        num_vars = self.n_vars
+        num_vars = self.obsm["design_matrix"].shape[-1]
         nz_data = self[:, self.non_zero_genes]
 
         # Keep only non-zero genes
@@ -744,7 +744,9 @@ class DeseqDataSet(ad.AnnData):
         # Compute trend dispersions.
         # Note: the trend curve is not refitted.
         sub_dds.uns["trend_coeffs"] = self.uns["trend_coeffs"]
-        sub_dds.varm["_normed_means"] = self.counts_to_refit.varm["_normed_means"]
+        sub_dds.varm["_normed_means"] = (
+            self.counts_to_refit.X / self.obsm["size_factors"][:, None]
+        ).mean(0)
         sub_dds.varm["fitted_dispersions"] = dispersion_trend(
             sub_dds.varm["_normed_means"],
             sub_dds.uns["trend_coeffs"],
@@ -768,13 +770,13 @@ class DeseqDataSet(ad.AnnData):
         self.varm["_normed_means"][to_replace] = sub_dds.varm["_normed_means"]
         self.varm["LFC"][to_replace] = sub_dds.varm["LFC"]
         self.varm["dispersions"][to_replace] = sub_dds.varm["dispersions"]
-        self.layers["replace_cooks"] = self.layers["cooks"].copy()
-        self[self.obsm["replaceable"], to_replace].layers["replace_cooks"].fill(0)
 
+        replace_cooks = pd.DataFrame(self.layers["cooks"].copy())
+        replace_cooks.loc[self.obsm["replaceable"], to_replace] = 0
+
+        self.layers["replace_cooks"] = replace_cooks
         # Take into account new all-zero genes
-        self[:, self.counts_to_refit.var_names[new_all_zeroes]].varm[
-            "_normed_means"
-        ] = np.zeros(new_all_zeroes.sum())
-        self[:, self.counts_to_refit.var_names[new_all_zeroes]].varm["LFC"] = np.zeros(
+        self[:, self.new_all_zeroes_genes].varm["_normed_means"] = np.zeros(
             new_all_zeroes.sum()
         )
+        self[:, self.new_all_zeroes_genes].varm["LFC"] = np.zeros(new_all_zeroes.sum())
