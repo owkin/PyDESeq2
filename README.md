@@ -110,8 +110,8 @@ PyDESeq2 is a living project and any contributions are welcome! Feel free to ope
 Here are some of the features and improvements we plan to implement in the future:
 
 - [ ] Integration to the [scverse](https://scverse.org/) ecosystem:
-  * [ ] Refactor to use the [AnnData](https://anndata.readthedocs.io/) data structure
-  * [ ] Submit PR to be listed as an [scverse ecosystem](https://github.com/scverse/ecosystem-packages/) package
+  * [ ] Refactoring to use the [AnnData](https://anndata.readthedocs.io/) data structure
+  * [ ] Submitting a PR to be listed as an [scverse ecosystem](https://github.com/scverse/ecosystem-packages/) package
 - [ ] Variance-stabilizing transformation
 - [ ] Improving multi-factor analysis:
   * [ ] Allowing n-level factors (only bi-level for now)
