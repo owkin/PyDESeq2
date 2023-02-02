@@ -1,11 +1,10 @@
 import time
-from typing import Optional, cast
+from typing import Optional
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-
-
 import statsmodels.api as sm  # type: ignore
 from IPython.display import display
 from joblib import Parallel  # type: ignore
@@ -15,10 +14,10 @@ from scipy.optimize import root_scalar  # type: ignore
 from scipy.stats import f  # type: ignore
 from statsmodels.stats.multitest import multipletests  # type: ignore
 
+from pydeseq2.dds import DeseqDataSet
 from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import nbinomGLM
 from pydeseq2.utils import wald_test
-from pydeseq2.dds import DeseqDataSet
 
 
 class DeseqStats:

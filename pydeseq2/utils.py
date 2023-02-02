@@ -1,7 +1,10 @@
 import multiprocessing
 from math import floor
 from pathlib import Path
-from typing import Optional, Union, Literal, cast
+from typing import Literal
+from typing import Optional
+from typing import Union
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -477,7 +480,7 @@ def fit_alpha_mle(
     prior_disp_var: Optional[float] = None,
     cr_reg: bool = True,
     prior_reg: bool = False,
-    optimizer: Literal['BFGS', 'L-BFGS-B']="L-BFGS-B",
+    optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
 ):
     """Estimate the dispersion parameter of a negative binomial GLM.
 
@@ -896,7 +899,9 @@ def robust_method_of_moments_disp(
         v = trimmed_cell_variance(normed_counts, design_matrix.iloc[:, -1].astype(int))
         # last argument is non-intercept.
     else:
-        v = pd.Series(trimmed_variance(normed_counts.values), index=normed_counts.index)
+        v = pd.Series(
+            trimmed_variance(normed_counts.values), index=normed_counts.columns
+        )
     m = normed_counts.mean(0)
     alpha = (v - m) / m**2
     # cannot use the typical min_disp = 1e-8 here or else all counts in the same

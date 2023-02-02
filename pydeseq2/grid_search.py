@@ -1,9 +1,7 @@
 from typing import Optional
 
 import numpy as np
-import pandas as pd
 import numpy.typing as npt
-
 from scipy.special import gammaln  # type: ignore
 
 import pydeseq2.utils

@@ -1,15 +1,19 @@
 import time
 import warnings
-
-from typing import Optional, Union, cast
-import numpy.typing as npt
+from typing import Optional
+from typing import Union
+from typing import cast
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
-from joblib import Parallel, delayed, parallel_backend  # type: ignore
+from joblib import Parallel  # type: ignore
+from joblib import delayed
+from joblib import parallel_backend
 from scipy.special import polygamma  # type: ignore
-from scipy.stats import f, norm  # type: ignore
+from scipy.stats import f  # type: ignore
+from scipy.stats import norm
 from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
 from pydeseq2.preprocessing import deseq2_norm

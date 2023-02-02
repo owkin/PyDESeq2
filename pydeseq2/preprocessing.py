@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def deseq2_norm(counts: pd.DataFrame) -> "tuple[pd.DataFrame, pd.DataFrame]":
