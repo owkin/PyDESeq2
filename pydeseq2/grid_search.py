@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import gammaln
+from scipy.special import gammaln  # type: ignore
 
 import pydeseq2.utils
 

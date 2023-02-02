@@ -1,16 +1,16 @@
 import time
 import warnings
 
+from typing import Optional, Union, cast
+import numpy.typing as npt
+
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
-from joblib import Parallel
-from joblib import delayed
-from joblib import parallel_backend
-from scipy.special import polygamma
-from scipy.stats import f
-from scipy.stats import norm
-from statsmodels.tools.sm_exceptions import DomainWarning
+import statsmodels.api as sm  # type: ignore
+from joblib import Parallel, delayed, parallel_backend  # type: ignore
+from scipy.special import polygamma  # type: ignore
+from scipy.stats import f, norm  # type: ignore
+from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
 from pydeseq2.preprocessing import deseq2_norm
 from pydeseq2.utils import build_design_matrix
@@ -153,20 +153,20 @@ class DeseqDataSet:
 
     def __init__(
         self,
-        counts,
-        clinical,
-        design_factors="condition",
-        reference_level=None,
-        min_mu=0.5,
-        min_disp=1e-8,
-        max_disp=10,
-        refit_cooks=True,
-        min_replicates=7,
-        beta_tol=1e-8,
-        n_cpus=None,
-        batch_size=128,
-        joblib_verbosity=0,
-    ):
+        counts: pd.DataFrame,
+        clinical: pd.DataFrame,
+        design_factors: Union[str, "list[str]"] = "condition",
+        reference_level: Optional[str] = None,
+        min_mu: float = 0.5,
+        min_disp: float = 1e-8,
+        max_disp: float = 10.0,
+        refit_cooks: bool = True,
+        min_replicates: int = 7,
+        beta_tol: float = 1e-8,
+        n_cpus: Optional[int] = None,
+        batch_size: int = 128,
+        joblib_verbosity: int = 0,
+    ) -> None:
         """Initialize the DeseqDataSet instance, computing the design matrix and
         the number of multiprocessing threads.
         """
@@ -211,7 +211,7 @@ class DeseqDataSet:
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
 
-    def deseq2(self):
+    def deseq2(self) -> None:
         """Perform dispersion and log fold-change (LFC) estimation.
 
         Wrapper for the first part of the PyDESeq2 pipeline.
@@ -238,7 +238,7 @@ class DeseqDataSet:
             # for genes that had outliers replaced
             self.refit()
 
-    def fit_size_factors(self):
+    def fit_size_factors(self) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
         Uses the median-of-ratios method.
@@ -249,7 +249,7 @@ class DeseqDataSet:
         end = time.time()
         print(f"... done in {end - start:.2f} seconds.\n")
 
-    def fit_genewise_dispersions(self):
+    def fit_genewise_dispersions(self) -> None:
         """Fit gene-wise dispersion estimates.
 
         Fits a negative binomial per gene, independently.
@@ -266,13 +266,20 @@ class DeseqDataSet:
 
         # Exclude genes with all zeroes
         non_zero = ~(self.counts == 0).all()
-        self.non_zero_genes = non_zero[non_zero].index
+        _non_zero_genes = non_zero[non_zero].index
+        
+        if isinstance(_non_zero_genes, pd.MultiIndex):
+            raise ValueError("Must not multi index")
+        
+        # need cast for mypy checking
+        self.non_zero_genes: 'list[str]' = _non_zero_genes.to_list()
+        
         counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
         num_genes = counts_nonzero.shape[1]
 
         # Convert design_matrix to numpy for speed
         X = self.design_matrix.values
-        rough_disps = self._rough_dispersions.loc[self.non_zero_genes].values
+        rough_disps: npt.NDArray = self._rough_dispersions.loc[self.non_zero_genes].values
         size_factors = self.size_factors.values
 
         # mu_hat is initialized differently depending on the number of different factor
@@ -355,7 +362,7 @@ class DeseqDataSet:
             l_bfgs_b_converged_, index=self.non_zero_genes
         )
 
-    def fit_dispersion_trend(self):
+    def fit_dispersion_trend(self) -> None:
         r"""Fit the dispersion trend coefficients.
 
         .. math:: f(\mu) = \alpha_1/\mu + a_0.
@@ -423,7 +430,7 @@ class DeseqDataSet:
             )
         )
 
-    def fit_dispersion_prior(self):
+    def fit_dispersion_prior(self) -> None:
         """Fit dispersion variance priors and standard deviation of log-residuals.
 
         The computation is based on genes whose dispersions are above 100 * min_disp.
@@ -454,7 +461,7 @@ class DeseqDataSet:
             self._squared_logres - polygamma(1, (num_genes - num_vars) / 2), 0.25
         )
 
-    def fit_MAP_dispersions(self):
+    def fit_MAP_dispersions(self) -> None:
         """Fit Maximum a Posteriori dispersion estimates.
 
         After MAP dispersions are fit, filter genes for which we don't apply shrinkage.
@@ -514,7 +521,7 @@ class DeseqDataSet:
             self._outlier_genes
         ]
 
-    def fit_LFC(self):
+    def fit_LFC(self) -> None:
         """Fit log fold change (LFC) coefficients.
 
         In the 2-level setting, the intercept corresponds to the base mean,
@@ -586,7 +593,7 @@ class DeseqDataSet:
 
         self._LFC_converged = pd.DataFrame(converged_, index=self.non_zero_genes)
 
-    def calculate_cooks(self):
+    def calculate_cooks(self) -> None:
         """Compute Cook's distance for outlier detection.
 
         Measures the contribution of a single entry to the output of LFC estimation.
@@ -598,11 +605,14 @@ class DeseqDataSet:
 
         num_vars = self.design_matrix.shape[1]
         # Keep only non-zero genes
-        normed_counts = self.counts.loc[:, self.non_zero_genes].div(self.size_factors, 0)
+        none_zero_gene_counts: pd.DataFrame = self.counts.loc[:, self.non_zero_genes]
+        normed_counts = none_zero_gene_counts.div(self.size_factors, 0)
+        
         dispersions = robust_method_of_moments_disp(normed_counts, self.design_matrix)
         V = self._mu_LFC + dispersions * self._mu_LFC**2
+        
         squared_pearson_res = (
-            self.counts.loc[:, self.non_zero_genes] - self._mu_LFC
+            none_zero_gene_counts - self._mu_LFC
         ) ** 2 / V
         self.cooks = (
             squared_pearson_res
@@ -610,7 +620,7 @@ class DeseqDataSet:
             * (self._hat_diagonals / (1 - self._hat_diagonals) ** 2)
         ).T
 
-    def refit(self):
+    def refit(self) -> None:
         """Refit Cook outliers.
 
         Replace values that are filtered out based on the Cooks distance with imputed
@@ -624,7 +634,7 @@ class DeseqDataSet:
             # Refit dispersions and LFCs for genes that had outliers replaced
             self._refit_without_outliers()
 
-    def _fit_MoM_dispersions(self):
+    def _fit_MoM_dispersions(self) -> None:
         """ "Rough method of moments" initial dispersions fit.
         Estimates are the max of "robust" and "method of moments" estimates.
         """
@@ -636,9 +646,9 @@ class DeseqDataSet:
         rde = fit_rough_dispersions(self.counts, self.size_factors, self.design_matrix)
         mde = fit_moments_dispersions(self.counts, self.size_factors)
         alpha_hat = np.minimum(rde, mde)
-        self._rough_dispersions = np.clip(alpha_hat, self.min_disp, self.max_disp)
+        self._rough_dispersions = cast(pd.DataFrame, np.clip(alpha_hat, self.min_disp, self.max_disp))
 
-    def _replace_outliers(self):
+    def _replace_outliers(self) -> None:
         """Replace values that are filtered out based
         on the Cooks distance with imputed values.
         """
@@ -662,7 +672,7 @@ class DeseqDataSet:
         # Get positions of counts with cooks above threshold
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
         idx = (self.cooks > cooks_cutoff).T
-        self.replaced = idx.any(axis=0)
+        self.replaced: pd.Series[bool] = idx.any(axis=0)
 
         # Compute replacement counts: trimmed means * size_factors
         self.counts_to_refit = self.counts.loc[:, self.replaced].copy()
@@ -757,5 +767,9 @@ class DeseqDataSet:
         ] = 0
 
         # Take into account new all-zero genes
-        self._normed_means.loc[self.new_all_zeroes[self.new_all_zeroes].index] = 0
-        self.LFCs.loc[self.new_all_zeroes[self.new_all_zeroes].index] = 0
+        new_all_zero_index = self.new_all_zeroes[self.new_all_zeroes].index
+        if isinstance(new_all_zero_index, pd.MultiIndex):
+            raise ValueError
+        
+        self._normed_means.loc[new_all_zero_index] = 0
+        self.LFCs.loc[:, new_all_zero_index] = 0

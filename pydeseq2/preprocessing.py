@@ -1,7 +1,8 @@
+import pandas as pd
 import numpy as np
 
 
-def deseq2_norm(counts):
+def deseq2_norm(counts: pd.DataFrame) -> "tuple[pd.DataFrame, pd.DataFrame]":
     """
     Return normalized counts and size_factors.
 
