@@ -111,6 +111,7 @@ Here are some of the features and improvements we plan to implement in the futur
 
 - [ ] Integration to the [scverse](https://scverse.org/) ecosystem:
   * [ ] Refactor to use the [AnnData](https://anndata.readthedocs.io/) data structure
+  * [ ] Submit PR to be listed as an [scverse ecosystem](https://github.com/scverse/ecosystem-packages/) package
 - [ ] Variance-stabilizing transformation
 - [ ] Improving multi-factor analysis:
   * [ ] Allowing n-level factors (only bi-level for now)
