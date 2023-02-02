@@ -42,7 +42,7 @@ setup(
             "pre-commit>=2.13.0",
             "numpydoc",
             "mypy",
-            "pandas-stub",
+            "pandas-stubs",
         ],
     },
 )
