@@ -306,7 +306,7 @@ def irls_solver(
     counts: npt.NDArray,
     size_factors: npt.NDArray,
     design_matrix: npt.NDArray,
-    disp: pd.Series,
+    disp: npt.NDArray,
     min_mu=0.5,
     beta_tol=1e-8,
     min_beta=-30,

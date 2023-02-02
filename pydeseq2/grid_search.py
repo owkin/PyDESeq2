@@ -1,10 +1,15 @@
+from typing import Optional
+
 import numpy as np
+import pandas as pd
+import numpy.typing as npt
+
 from scipy.special import gammaln  # type: ignore
 
 import pydeseq2.utils
 
 
-def vec_nb_nll(counts, mu, alpha):
+def vec_nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray) -> float:
     """Return the negative log-likelihood of a negative binomial.
 
     Vectorized version.
@@ -51,16 +56,16 @@ def vec_nb_nll(counts, mu, alpha):
 
 
 def grid_fit_alpha(
-    counts,
-    design_matrix,
-    mu,
-    alpha_hat,
-    min_disp,
-    max_disp,
-    prior_disp_var=None,
-    cr_reg=True,
-    prior_reg=False,
-    grid_length=100,
+    counts: npt.NDArray,
+    design_matrix: npt.NDArray,
+    mu: npt.NDArray,
+    alpha_hat: float,
+    min_disp: float,
+    max_disp: float,
+    prior_disp_var: Optional[float] = None,
+    cr_reg: bool = True,
+    prior_reg: bool = False,
+    grid_length: int = 100,
 ):
     """Find best dispersion parameter.
 
@@ -121,6 +126,11 @@ def grid_fit_alpha(
                 )[1]
             )
         if prior_reg:
+            if prior_disp_var is None:
+                raise NotImplementedError(
+                    "If you use prior_reg, you need to specify prior_disp_var"
+                )
+
             reg += (np.log(alpha) - np.log(alpha_hat)) ** 2 / (2 * prior_disp_var)
         return vec_nb_nll(counts, mu, alpha) + reg
 
@@ -138,15 +148,15 @@ def grid_fit_alpha(
 
 
 def grid_fit_beta(
-    counts,
-    size_factors,
-    design_matrix,
-    disp,
+    counts: npt.NDArray,
+    size_factors: npt.NDArray,
+    design_matrix: npt.NDArray,
+    disp: npt.NDArray,
     min_mu=0.5,
     grid_length=60,
     min_beta=-30,
     max_beta=30,
-):
+) -> npt.NDArray:
     """Find best LFC parameter.
 
     Perform 2D grid search to maximize negative binomial
@@ -157,7 +167,7 @@ def grid_fit_beta(
     counts : ndarray
         Raw counts for a given gene.
 
-    size_factors : pandas.Series
+    size_factors : ndarray
         DESeq2 normalization factors.
 
     design_matrix : ndarray
@@ -217,13 +227,13 @@ def grid_fit_beta(
 
 
 def grid_fit_shrink_beta(
-    counts,
-    offset,
-    design_matrix,
-    size,
-    prior_no_shrink_scale,
-    prior_scale,
-    scale_cnst,
+    counts: npt.NDArray,
+    offset: npt.NDArray,
+    design_matrix: npt.NDArray,
+    size: npt.NDArray,
+    prior_no_shrink_scale: float,
+    prior_scale: float,
+    scale_cnst: float,
     grid_length=60,
     min_beta=-30,
     max_beta=30,
