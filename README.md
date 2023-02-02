@@ -107,13 +107,14 @@ PyDESeq2 is a living project and any contributions are welcome! Feel free to ope
 
 ## Development Roadmap
 
-Currently, PyDESeq2's features broadly correspond to the default settings of DESeq2 (v1.34.0)
-for single-factor analysis. Here are some of the features and improvements we plan to implement in the near future:
+Here are some of the features and improvements we plan to implement in the future:
 
-- Integration to the [scverse](https://scverse.org/) ecosystem:
-  * Refactor to use the [AnnData](https://anndata.readthedocs.io/) data structure
-- Multi-factor analysis
-- Variance-stabilizing transformation
+- [ ] Integration to the [scverse](https://scverse.org/) ecosystem:
+  * [ ] Refactor to use the [AnnData](https://anndata.readthedocs.io/) data structure
+- [ ] Variance-stabilizing transformation
+- [ ] Improving multi-factor analysis:
+  * [ ] Allowing n-level factors (only bi-level for now)
+  * [ ] Implementing interaction terms
 
 ## Citing this work
 
