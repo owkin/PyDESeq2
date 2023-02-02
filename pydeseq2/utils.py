@@ -1,7 +1,7 @@
 import multiprocessing
 from math import floor
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -20,9 +20,9 @@ from pydeseq2.grid_search import grid_fit_shrink_beta
 
 
 def load_example_data(
-    modality="raw_counts",
+    modality: Literal["raw_counts", "clinical"] = "raw_counts",
     dataset="synthetic",
-    debug=False,
+    debug: bool = False,
     debug_seed=42,
 ):
     """Load synthetic example data.
@@ -204,7 +204,10 @@ def build_design_matrix(
     return design_matrix
 
 
-def dispersion_trend(normed_mean, coeffs):
+def dispersion_trend(
+    normed_mean: Union[float, npt.NDArray],
+    coeffs: Union["pd.Series[float]", npt.NDArray],
+):
     r"""Return dispersion trend from normalized counts.
 
      :math:`a_1/ \mu + a_0`.
@@ -222,13 +225,13 @@ def dispersion_trend(normed_mean, coeffs):
     float
         Dispersion trend :math:`a_1/ \mu + a_0`.
     """
-    if type(coeffs) == pd.Series:
+    if isinstance(coeffs, pd.Series):
         return coeffs["a0"] + coeffs["a1"] / normed_mean
     else:
         return coeffs[0] + coeffs[1] / normed_mean
 
 
-def nb_nll(counts, mu, alpha):
+def nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray):
     """Negative log-likelihood of a negative binomial.
 
     Unvectorized version.
@@ -265,7 +268,7 @@ def nb_nll(counts, mu, alpha):
     )
 
 
-def dnb_nll(counts, mu, alpha):
+def dnb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray) -> float:
     """Gradient of the negative log-likelihood of a negative binomial.
 
     Unvectorized.
@@ -311,7 +314,7 @@ def irls_solver(
     beta_tol=1e-8,
     min_beta=-30,
     max_beta=30,
-    optimizer="L-BFGS-B",
+    optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
     maxiter=250,
 ):
     r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
@@ -465,16 +468,16 @@ def irls_solver(
 
 
 def fit_alpha_mle(
-    counts,
-    design_matrix,
-    mu,
-    alpha_hat,
-    min_disp,
-    max_disp,
-    prior_disp_var=None,
-    cr_reg=True,
-    prior_reg=False,
-    optimizer="L-BFGS-B",
+    counts: npt.NDArray,
+    design_matrix: npt.NDArray,
+    mu: npt.NDArray,
+    alpha_hat: float,
+    min_disp: float,
+    max_disp: float,
+    prior_disp_var: Optional[float] = None,
+    cr_reg: bool = True,
+    prior_reg: bool = False,
+    optimizer: Literal['BFGS', 'L-BFGS-B']="L-BFGS-B",
 ):
     """Estimate the dispersion parameter of a negative binomial GLM.
 
@@ -526,6 +529,7 @@ def fit_alpha_mle(
     assert optimizer in ["BFGS", "L-BFGS-B"]
 
     if prior_reg:
+        # Note: assertion is not work when using numpy
         assert (
             prior_disp_var is not None
         ), "Sigma_prior is required for prior regularization"
@@ -538,6 +542,9 @@ def fit_alpha_mle(
         if cr_reg:
             reg += 0.5 * np.linalg.slogdet((design_matrix.T * W) @ design_matrix)[1]
         if prior_reg:
+            if prior_disp_var is None:
+                raise ValueError("Sigma_prior is required for prior regularization")
+
             reg += (np.log(alpha) - np.log(alpha_hat)) ** 2 / (2 * prior_disp_var)
         return nb_nll(counts, mu, alpha) + reg
 
@@ -556,6 +563,9 @@ def fit_alpha_mle(
                 ).sum()
             )
         if prior_reg:
+            if prior_disp_var is None:
+                raise ValueError("Sigma_prior is required for prior regularization")
+
             reg_grad += (np.log(alpha) - np.log(alpha_hat)) / (alpha * prior_disp_var)
         return dnb_nll(counts, mu, alpha) + reg_grad
 
@@ -616,7 +626,7 @@ def trimmed_mean(x, trim=0.1, **kwargs):
         return s[ntrim : n - ntrim].mean()
 
 
-def trimmed_cell_variance(counts, cells):
+def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
     """Return trimmed variance of counts according to condition.
 
     Compute the variance after trimming data of its smallest and largest elements,
@@ -664,7 +674,7 @@ def trimmed_cell_variance(counts, cells):
     return varEst.max(axis=1)
 
 
-def trimmed_variance(x, trim=0.125, axis=0):
+def trimmed_variance(x: npt.NDArray, trim=0.125, axis=0) -> npt.NDArray:
     """Return trimmed variance.
 
      Compute the variance after trimming data of its smallest and largest quantiles.
@@ -729,7 +739,14 @@ def fit_lin_mu(
     return np.maximum(mu_hat, min_mu)
 
 
-def wald_test(design_matrix, disp, lfc, mu, ridge_factor, idx=-1):
+def wald_test(
+    design_matrix: npt.NDArray,
+    disp: float,
+    lfc: npt.NDArray,
+    mu: float,
+    ridge_factor: npt.NDArray,
+    idx: int = -1,
+) -> "tuple[float, float, float]":
     """Run Wald test for differential expression.
 
     Computes Wald statistics, standard error and p-values from
@@ -773,8 +790,8 @@ def wald_test(design_matrix, disp, lfc, mu, ridge_factor, idx=-1):
     H = np.linalg.inv(M + ridge_factor)
     S = H @ M @ H
     # Evaluate standard error and Wald statistic
-    wald_se = np.sqrt(S[idx, idx])
-    wald_statistic = lfc[idx] / wald_se
+    wald_se: float = np.sqrt(S[idx, idx])
+    wald_statistic: float = lfc[idx] / wald_se
     wald_p_value = 2 * norm.sf(np.abs(wald_statistic))
     return wald_p_value, wald_statistic, wald_se
 
@@ -852,7 +869,7 @@ def fit_moments_dispersions(
 
 def robust_method_of_moments_disp(
     normed_counts: pd.DataFrame, design_matrix: pd.DataFrame
-):
+) -> pd.Series:
     """Perform dispersion estimation using a method of trimmed moments.
 
     Used for outlier detection based on Cook's distance.
@@ -879,13 +896,13 @@ def robust_method_of_moments_disp(
         v = trimmed_cell_variance(normed_counts, design_matrix.iloc[:, -1].astype(int))
         # last argument is non-intercept.
     else:
-        v = trimmed_variance(normed_counts)
+        v = pd.Series(trimmed_variance(normed_counts.values), index=normed_counts.index)
     m = normed_counts.mean(0)
     alpha = (v - m) / m**2
     # cannot use the typical min_disp = 1e-8 here or else all counts in the same
     # group as the outlier count will get an extreme Cook's distance
     minDisp = 0.04
-    alpha = np.maximum(alpha, minDisp)
+    alpha = cast(pd.Series, np.maximum(alpha, minDisp))
     return alpha
 
 
@@ -918,14 +935,14 @@ def get_num_processes(n_cpus: Optional[int] = None) -> int:
 
 
 def nbinomGLM(
-    design_matrix,
-    counts,
-    size,
-    offset,
-    prior_no_shrink_scale,
-    prior_scale,
+    design_matrix: npt.NDArray,
+    counts: npt.NDArray,
+    size: npt.NDArray,
+    offset: npt.NDArray,
+    prior_no_shrink_scale: float,
+    prior_scale: float,
     optimizer="L-BFGS-B",
-    shrink_index=1,
+    shrink_index: int = 1,
 ):
     """Fit a negative binomial MAP LFC using an apeGLM prior.
 
@@ -1072,14 +1089,14 @@ def nbinomGLM(
 
 
 def nbinomFn(
-    beta,
-    design_matrix,
-    counts,
-    size,
-    offset,
-    prior_no_shrink_scale,
-    prior_scale,
-    shrink_index=1,
+    beta: npt.NDArray,
+    design_matrix: npt.NDArray,
+    counts: npt.NDArray,
+    size: npt.NDArray,
+    offset: npt.NDArray,
+    prior_no_shrink_scale: float,
+    prior_scale: float,
+    shrink_index: int = 1,
 ):
     """Return the NB negative likelihood with apeGLM prior.
 
