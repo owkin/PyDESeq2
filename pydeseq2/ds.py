@@ -1,19 +1,24 @@
 import time
+from typing import Optional, cast
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
-import statsmodels.api as sm
+
+
+import statsmodels.api as sm  # type: ignore
 from IPython.display import display
-from joblib import Parallel
-from joblib import delayed
-from joblib import parallel_backend
-from scipy.optimize import root_scalar
-from scipy.stats import f
-from statsmodels.stats.multitest import multipletests
+from joblib import Parallel  # type: ignore
+from joblib import delayed  # type: ignore
+from joblib import parallel_backend  # type: ignore
+from scipy.optimize import root_scalar  # type: ignore
+from scipy.stats import f  # type: ignore
+from statsmodels.stats.multitest import multipletests  # type: ignore
 
 from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import nbinomGLM
 from pydeseq2.utils import wald_test
+from pydeseq2.dds import DeseqDataSet
 
 
 class DeseqStats:
@@ -109,15 +114,15 @@ class DeseqStats:
 
     def __init__(
         self,
-        dds,
-        contrast=None,
-        alpha=0.05,
-        cooks_filter=True,
-        independent_filter=True,
-        n_cpus=None,
-        prior_disp_var=None,
-        batch_size=128,
-        joblib_verbosity=0,
+        dds: DeseqDataSet,
+        contrast: Optional["list[str]"] = None,
+        alpha: float = 0.05,
+        cooks_filter: bool = True,
+        independent_filter: bool = True,
+        n_cpus: Optional[int] = None,
+        prior_disp_var: Optional[npt.NDArray] = None,
+        batch_size: int = 128,
+        joblib_verbosity: int = 0,
     ):
         assert hasattr(
             dds, "LFCs"
@@ -198,7 +203,7 @@ class DeseqStats:
                     "to False."
                 )
 
-    def summary(self):
+    def summary(self) -> None:
         """Run the statistical analysis.
 
         The results are stored in the `results_df` attribute.
@@ -238,7 +243,7 @@ class DeseqStats:
         )
         display(self.results_df)
 
-    def run_wald_test(self):
+    def run_wald_test(self) -> None:
         """Perform a Wald test.
 
         Get gene-wise p-values for gene over/under-expression.`
@@ -294,18 +299,21 @@ class DeseqStats:
 
         pvals, stats, se = zip(*res)
 
-        self.p_values = pd.Series(pvals, index=self.LFCs.index)
-        self.statistics = pd.Series(stats, index=self.LFCs.index)
-        self.SE = pd.Series(se, index=self.LFCs.index)
+        # need casting because mypy recognize them as TimeStampSeries
+        # reason is unknown...
+        self.p_values = cast(pd.Series, pd.Series(pvals, index=self.LFCs.index))
+        self.statistics = cast(pd.Series, pd.Series(stats, index=self.LFCs.index))
+        self.SE = cast(pd.Series, pd.Series(se, index=self.LFCs.index))
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
         if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
+            new_all_zero_index = self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
+            if isinstance(new_all_zero_index, pd.MultiIndex):
+                raise ValueError
 
-            self.SE.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 0
-            self.statistics.loc[
-                self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
-            ] = 0
-            self.p_values.loc[self.dds.new_all_zeroes[self.dds.new_all_zeroes].index] = 1
+            self.SE.loc[new_all_zero_index] = 0.0
+            self.statistics.loc[new_all_zero_index] = 0.0
+            self.p_values.loc[new_all_zero_index] = 1.0
 
     def lfc_shrink(self):
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
@@ -324,7 +332,7 @@ class DeseqStats:
         num_genes = counts_nonzero.shape[1]
 
         size = (1.0 / self.dds.dispersions[nonzero]).values
-        offset = np.log(self.dds.size_factors).values
+        offset = cast(pd.DataFrame, np.log(self.dds.size_factors)).values
 
         # Set priors
         prior_no_shrink_scale = 15

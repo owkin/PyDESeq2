@@ -267,19 +267,21 @@ class DeseqDataSet:
         # Exclude genes with all zeroes
         non_zero = ~(self.counts == 0).all()
         _non_zero_genes = non_zero[non_zero].index
-        
+
         if isinstance(_non_zero_genes, pd.MultiIndex):
             raise ValueError("Must not multi index")
-        
+
         # need cast for mypy checking
-        self.non_zero_genes: 'list[str]' = _non_zero_genes.to_list()
-        
+        self.non_zero_genes: "list[str]" = _non_zero_genes.to_list()
+
         counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
         num_genes = counts_nonzero.shape[1]
 
         # Convert design_matrix to numpy for speed
         X = self.design_matrix.values
-        rough_disps: npt.NDArray = self._rough_dispersions.loc[self.non_zero_genes].values
+        rough_disps: npt.NDArray = self._rough_dispersions.loc[
+            self.non_zero_genes
+        ].values
         size_factors = self.size_factors.values
 
         # mu_hat is initialized differently depending on the number of different factor
@@ -607,13 +609,11 @@ class DeseqDataSet:
         # Keep only non-zero genes
         none_zero_gene_counts: pd.DataFrame = self.counts.loc[:, self.non_zero_genes]
         normed_counts = none_zero_gene_counts.div(self.size_factors, 0)
-        
+
         dispersions = robust_method_of_moments_disp(normed_counts, self.design_matrix)
         V = self._mu_LFC + dispersions * self._mu_LFC**2
-        
-        squared_pearson_res = (
-            none_zero_gene_counts - self._mu_LFC
-        ) ** 2 / V
+
+        squared_pearson_res = (none_zero_gene_counts - self._mu_LFC) ** 2 / V
         self.cooks = (
             squared_pearson_res
             / num_vars
@@ -646,7 +646,9 @@ class DeseqDataSet:
         rde = fit_rough_dispersions(self.counts, self.size_factors, self.design_matrix)
         mde = fit_moments_dispersions(self.counts, self.size_factors)
         alpha_hat = np.minimum(rde, mde)
-        self._rough_dispersions = cast(pd.DataFrame, np.clip(alpha_hat, self.min_disp, self.max_disp))
+        self._rough_dispersions = cast(
+            pd.DataFrame, np.clip(alpha_hat, self.min_disp, self.max_disp)
+        )
 
     def _replace_outliers(self) -> None:
         """Replace values that are filtered out based
@@ -770,6 +772,6 @@ class DeseqDataSet:
         new_all_zero_index = self.new_all_zeroes[self.new_all_zeroes].index
         if isinstance(new_all_zero_index, pd.MultiIndex):
             raise ValueError
-        
+
         self._normed_means.loc[new_all_zero_index] = 0
         self.LFCs.loc[:, new_all_zero_index] = 0

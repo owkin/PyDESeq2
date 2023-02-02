@@ -98,7 +98,7 @@ def load_example_data(
         # subsample 10 samples and 100 genes
         df = df.sample(n=10, axis=0, random_state=debug_seed)
         if modality == "raw_counts":
-            df = df.sample(n=100, axis='index', random_state=debug_seed)
+            df = df.sample(n=100, axis="index", random_state=debug_seed)
 
     return df
 
@@ -850,7 +850,9 @@ def fit_moments_dispersions(
     return ((sigma - s_mean_inv * mu) / mu**2).fillna(0)
 
 
-def robust_method_of_moments_disp(normed_counts: pd.DataFrame, design_matrix: pd.DataFrame):
+def robust_method_of_moments_disp(
+    normed_counts: pd.DataFrame, design_matrix: pd.DataFrame
+):
     """Perform dispersion estimation using a method of trimmed moments.
 
     Used for outlier detection based on Cook's distance.
