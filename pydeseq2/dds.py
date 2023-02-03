@@ -618,7 +618,7 @@ class DeseqDataSet:
         """
         # Replace outlier counts
         self._replace_outliers()
-        print(f"Refitting {self.replaced.sum()} outliers.\n")
+        print(f"Refitting {self.replaced.sum()} outlier genes.\n")
 
         if self.replaced.sum() > 0:
             # Refit dispersions and LFCs for genes that had outliers replaced
@@ -654,6 +654,12 @@ class DeseqDataSet:
             self.design_matrix[self.design_matrix.columns[-1]].value_counts()
             >= self.min_replicates
         )
+
+        if n_or_more.sum() == 0:
+            # No sample can be replaced. Set self.replaced to False and exit.
+            self.replaced = pd.Series(False, index=self.counts.columns)
+            return
+
         self.replaceable = pd.Series(
             n_or_more[self.design_matrix[self.design_matrix.columns[-1]]]
         )
