@@ -130,3 +130,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Autobuild docs
+docs/source/api/docstrings
+docs/source/auto_examples
