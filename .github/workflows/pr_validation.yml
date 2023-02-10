@@ -31,7 +31,15 @@ jobs:
         run: isort .
       - name: Test with pytest
         run: |
-          pytest
+          coverage run -m pytest
+      - name: Generate code coverage report
+        run: |
+          coverage html
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-coverage-report
+          path: htmlcov/
       - name: Compile docs
         run: |
           cd docs
