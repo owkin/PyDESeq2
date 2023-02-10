@@ -259,7 +259,7 @@ def nb_nll(counts, mu, alpha):
         Observations.
 
     mu : float
-        Mean of the distribution :math:`\\mu`
+        Mean of the distribution :math:`\\mu`.
 
     alpha : float
         Dispersion of the distribution :math:`\\alpha`,
