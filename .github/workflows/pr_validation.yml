@@ -40,6 +40,7 @@ jobs:
         with:
           name: test-coverage-report
           path: htmlcov/
+          retention-days: 20
       - name: Compile docs
         run: |
           cd docs
