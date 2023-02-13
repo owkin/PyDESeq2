@@ -268,7 +268,7 @@ class DeseqStats:
         else:
             ridge_factor = np.diag(np.repeat(1e-6, num_vars))
 
-        X = self.design_matrix.values
+        design_matrix = self.design_matrix.values
         LFCs = self.LFC.values
 
         print("Running Wald tests...")
@@ -280,7 +280,7 @@ class DeseqStats:
                 batch_size=self.batch_size,
             )(
                 delayed(wald_test)(
-                    design_matrix=X,
+                    design_matrix=design_matrix,
                     disp=self.dds.varm["dispersions"][i],
                     lfc=LFCs[i],
                     mu=mu[:, i],
@@ -325,7 +325,7 @@ class DeseqStats:
         prior_var = self._fit_prior_var()
         prior_scale = np.minimum(np.sqrt(prior_var), 1)
 
-        X = self.design_matrix.values
+        design_matrix = self.design_matrix.values
 
         print("Fitting MAP LFCs...")
         start = time.time()
@@ -336,7 +336,7 @@ class DeseqStats:
                 batch_size=self.batch_size,
             )(
                 delayed(nbinomGLM)(
-                    design_matrix=X,
+                    design_matrix=design_matrix,
                     counts=self.dds.X[:, i],
                     size=size[i],
                     offset=offset,

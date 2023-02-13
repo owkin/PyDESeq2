@@ -251,7 +251,7 @@ class DeseqDataSet(ad.AnnData):
         self._fit_MoM_dispersions()
 
         # Convert design_matrix to numpy for speed
-        X = self.obsm["design_matrix"].values
+        design_matrix = self.obsm["design_matrix"].values
 
         # mu_hat is initialized differently depending on the number of different factor
         # groups. If there are as many different factor combinations as design factors
@@ -271,7 +271,7 @@ class DeseqDataSet(ad.AnnData):
                         delayed(fit_lin_mu)(
                             counts=self.X[:, i],
                             size_factors=self.obsm["size_factors"],
-                            design_matrix=X,
+                            design_matrix=design_matrix,
                             min_mu=self.min_mu,
                         )
                         for i in self.non_zero_idx
@@ -287,7 +287,7 @@ class DeseqDataSet(ad.AnnData):
                     delayed(irls_solver)(
                         counts=self.X[:, i],
                         size_factors=self.obsm["size_factors"],
-                        design_matrix=X,
+                        design_matrix=design_matrix,
                         disp=self.varm["_rough_dispersions"][i],
                         min_mu=self.min_mu,
                         beta_tol=self.beta_tol,
@@ -311,7 +311,7 @@ class DeseqDataSet(ad.AnnData):
             )(
                 delayed(fit_alpha_mle)(
                     counts=self.X[:, i],
-                    design_matrix=X,
+                    design_matrix=design_matrix,
                     mu=self.layers["_mu_hat"][:, i],
                     alpha_hat=self.varm["_rough_dispersions"][i],
                     min_disp=self.min_disp,
@@ -456,7 +456,7 @@ class DeseqDataSet(ad.AnnData):
             self.fit_dispersion_prior()
 
         # Convert design matrix to numpy for speed
-        X = self.obsm["design_matrix"].values
+        design_matrix = self.obsm["design_matrix"].values
 
         print("Fitting MAP dispersions...")
         start = time.time()
@@ -468,7 +468,7 @@ class DeseqDataSet(ad.AnnData):
             )(
                 delayed(fit_alpha_mle)(
                     counts=self.X[:, i],
-                    design_matrix=X,
+                    design_matrix=design_matrix,
                     mu=self.layers["_mu_hat"][:, i],
                     alpha_hat=self.varm["fitted_dispersions"][i],
                     min_disp=self.min_disp,
@@ -513,7 +513,7 @@ class DeseqDataSet(ad.AnnData):
             self.fit_MAP_dispersions()
 
         # Convert design matrix to numpy for speed
-        X = self.obsm["design_matrix"].values
+        design_matrix = self.obsm["design_matrix"].values
 
         print("Fitting LFCs...")
         start = time.time()
@@ -526,7 +526,7 @@ class DeseqDataSet(ad.AnnData):
                 delayed(irls_solver)(
                     counts=self.X[:, i],
                     size_factors=self.obsm["size_factors"],
-                    design_matrix=X,
+                    design_matrix=design_matrix,
                     disp=self.varm["dispersions"][i],
                     min_mu=self.min_mu,
                     beta_tol=self.beta_tol,
