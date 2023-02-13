@@ -7,6 +7,7 @@ PyDESeq2
 
 .. autosummary::
     :toctree: docstrings
+    :recursive:
 
     ~dds.DeseqDataSet
     ~ds.DeseqStats
