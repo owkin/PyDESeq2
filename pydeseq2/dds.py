@@ -661,6 +661,11 @@ class DeseqDataSet(ad.AnnData):
             >= self.min_replicates
         )
 
+        if n_or_more.sum() == 0:
+            # No sample can be replaced. Set self.replaced to False and exit.
+            self.varm["replaced"] = pd.Series(False, index=self.var_names)
+            return
+
         replaceable = n_or_more[
             self.obsm["design_matrix"][self.obsm["design_matrix"].columns[-1]]
         ]

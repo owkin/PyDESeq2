@@ -420,7 +420,10 @@ class DeseqStats:
         for i, cutoff in enumerate(cutoffs):
             use = (self.base_mean >= cutoff) & (~self.p_values.isna())
             U2 = self.p_values[use]
-            result.loc[use, i] = multipletests(U2, alpha=self.alpha, method="fdr_bh")[1]
+            if not U2.empty:
+                result.loc[use, i] = multipletests(
+                    U2, alpha=self.alpha, method="fdr_bh"
+                )[1]
 
         num_rej = (result < self.alpha).sum(0)
         lowess = sm.nonparametric.lowess(num_rej, theta, frac=1 / 5)

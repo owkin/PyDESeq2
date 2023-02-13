@@ -21,7 +21,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install isort black==22.3.0
           pip install flake8
-          pip install pytest
           pip install -e ."[dev]"
           pip install -r docs/requirements.txt
       - name: Run black
@@ -32,8 +31,17 @@ jobs:
         run: isort .
       - name: Test with pytest
         run: |
-          pytest
+          coverage run -m pytest
+      - name: Generate code coverage report
+        run: |
+          coverage html
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-coverage-report
+          path: htmlcov/
+          retention-days: 20
       - name: Compile docs
         run: |
           cd docs
-          make clean html 
+          make clean html
