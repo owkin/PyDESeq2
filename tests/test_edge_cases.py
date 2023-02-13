@@ -207,6 +207,9 @@ def test_few_samples():
     counts_df = counts_df.loc[samples_to_keep]
     clinical_df = clinical_df.loc[samples_to_keep]
 
+    # Introduce an outlier
+    counts_df.iloc[0, 0] = 1000
+
     # Run analysis. Should not throw an error.
     dds = DeseqDataSet(
         counts_df, clinical_df, refit_cooks=True, design_factors="condition"
@@ -215,3 +218,6 @@ def test_few_samples():
 
     res = DeseqStats(dds)
     res.summary()
+
+    # Check that no gene was refit, as there are not enough samples.
+    assert dds.replaced.sum() == 0
