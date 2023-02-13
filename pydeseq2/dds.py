@@ -242,13 +242,13 @@ class DeseqDataSet(ad.AnnData):
         if "size_factors" not in self.obsm:
             self.fit_size_factors()
 
-        # Fit "method of moments" dispersion estimates
-        self._fit_MoM_dispersions()
-
         # Exclude genes with all zeroes
         self.varm["non_zero"] = ~(self.X == 0).all(axis=0)
         self.non_zero_idx = np.arange(self.n_vars)[self.varm["non_zero"]]
         self.non_zero_genes = self.var_names[self.varm["non_zero"]]
+
+        # Fit "method of moments" dispersion estimates
+        self._fit_MoM_dispersions()
 
         # Convert design_matrix to numpy for speed
         X = self.obsm["design_matrix"].values
@@ -627,8 +627,6 @@ class DeseqDataSet(ad.AnnData):
         if "size_factors" not in self.obsm:
             self.fit_size_factors()
 
-        non_zero = ~(self.X == 0).all(axis=0)
-
         rde = fit_rough_dispersions(
             self.X,
             self.obsm["size_factors"],
@@ -638,7 +636,7 @@ class DeseqDataSet(ad.AnnData):
         alpha_hat = np.minimum(rde, mde)
 
         self.varm["_rough_dispersions"] = np.full(self.n_vars, np.NaN)
-        self.varm["_rough_dispersions"][non_zero] = np.clip(
+        self.varm["_rough_dispersions"][self.varm["non_zero"]] = np.clip(
             alpha_hat, self.min_disp, self.max_disp
         )
 
