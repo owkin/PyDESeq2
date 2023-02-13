@@ -591,15 +591,14 @@ class DeseqDataSet(ad.AnnData):
             + dispersions.values[None, :] * nonzero_data.layers["_mu_LFC"] ** 2
         )
         squared_pearson_res = (nonzero_data.X - nonzero_data.layers["_mu_LFC"]) ** 2 / V
+        diag_mul = (
+            nonzero_data.layers["_hat_diagonals"]
+            / (1 - nonzero_data.layers["_hat_diagonals"]) ** 2
+        )
 
         self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.NaN)
         self.layers["cooks"][:, self.varm["non_zero"]] = (
-            squared_pearson_res
-            / num_vars
-            * (
-                nonzero_data.layers["_hat_diagonals"]
-                / (1 - nonzero_data.layers["_hat_diagonals"]) ** 2
-            )
+            squared_pearson_res / num_vars * diag_mul
         )
 
     def refit(self):
