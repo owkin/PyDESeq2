@@ -574,11 +574,11 @@ class DeseqDataSet(ad.AnnData):
             self.fit_MAP_dispersions()
 
         num_vars = self.obsm["design_matrix"].shape[-1]
-        nz_data = self[:, self.non_zero_genes]
+        nonzero_data = self[:, self.non_zero_genes]
 
         # Keep only non-zero genes
         normed_counts = pd.DataFrame(
-            nz_data.X / self.obsm["size_factors"][:, None],
+            nonzero_data.X / self.obsm["size_factors"][:, None],
             index=self.obs_names,
             columns=self.non_zero_genes,
         )
@@ -589,18 +589,18 @@ class DeseqDataSet(ad.AnnData):
         )
 
         V = (
-            nz_data.layers["_mu_LFC"]
-            + dispersions.values[None, :] * nz_data.layers["_mu_LFC"] ** 2
+            nonzero_data.layers["_mu_LFC"]
+            + dispersions.values[None, :] * nonzero_data.layers["_mu_LFC"] ** 2
         )
-        squared_pearson_res = (nz_data.X - nz_data.layers["_mu_LFC"]) ** 2 / V
+        squared_pearson_res = (nonzero_data.X - nonzero_data.layers["_mu_LFC"]) ** 2 / V
 
         self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.NaN)
         self.layers["cooks"][:, self.varm["non_zero"]] = (
             squared_pearson_res
             / num_vars
             * (
-                nz_data.layers["_hat_diagonals"]
-                / (1 - nz_data.layers["_hat_diagonals"]) ** 2
+                nonzero_data.layers["_hat_diagonals"]
+                / (1 - nonzero_data.layers["_hat_diagonals"]) ** 2
             )
         )
 
