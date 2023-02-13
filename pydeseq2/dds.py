@@ -125,9 +125,6 @@ class DeseqDataSet(ad.AnnData):
     n_processes : int
         Number of cpus to use for multiprocessing.
 
-    non_zero : ndarray
-        Boolean mask of genes that have non-uniformly zero counts.
-
     non_zero_idx : ndarray
         Indices of genes that have non-uniformly zero counts.
 
@@ -249,9 +246,9 @@ class DeseqDataSet(ad.AnnData):
         self._fit_MoM_dispersions()
 
         # Exclude genes with all zeroes
-        self.non_zero = ~(self.X == 0).all(axis=0)
-        self.non_zero_idx = np.arange(self.n_vars)[self.non_zero]
-        self.non_zero_genes = self.var_names[self.non_zero]
+        self.varm["non_zero"] = ~(self.X == 0).all(axis=0)
+        self.non_zero_idx = np.arange(self.n_vars)[self.varm["non_zero"]]
+        self.non_zero_genes = self.var_names[self.varm["non_zero"]]
 
         # Convert design_matrix to numpy for speed
         X = self.obsm["design_matrix"].values
@@ -302,7 +299,7 @@ class DeseqDataSet(ad.AnnData):
                 mu_hat_ = np.array(mu_hat_)
 
         self.layers["_mu_hat"] = np.full((self.n_obs, self.n_vars), np.NaN)
-        self.layers["_mu_hat"][:, self.non_zero] = mu_hat_.T
+        self.layers["_mu_hat"][:, self.varm["non_zero"]] = mu_hat_.T
 
         print("Fitting dispersions...")
         start = time.time()
@@ -329,12 +326,14 @@ class DeseqDataSet(ad.AnnData):
         dispersions_, l_bfgs_b_converged_ = zip(*res)
 
         self.varm["genewise_dispersions"] = np.full(self.n_vars, np.NaN)
-        self.varm["genewise_dispersions"][self.non_zero] = np.clip(
+        self.varm["genewise_dispersions"][self.varm["non_zero"]] = np.clip(
             dispersions_, self.min_disp, self.max_disp
         )
 
         self.varm["_genewise_converged"] = np.full(self.n_vars, np.NaN)
-        self.varm["_genewise_converged"][self.non_zero] = np.array(l_bfgs_b_converged_)
+        self.varm["_genewise_converged"][self.varm["non_zero"]] = np.array(
+            l_bfgs_b_converged_
+        )
 
     def fit_dispersion_trend(self):
         r"""Fit the dispersion trend coefficients.
@@ -409,8 +408,8 @@ class DeseqDataSet(ad.AnnData):
         self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
 
         self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
-        self.varm["fitted_dispersions"][self.non_zero] = dispersion_trend(
-            self.varm["_normed_means"][self.non_zero],
+        self.varm["fitted_dispersions"][self.varm["non_zero"]] = dispersion_trend(
+            self.varm["_normed_means"][self.varm["non_zero"]],
             self.uns["trend_coeffs"],
         )
 
@@ -486,12 +485,12 @@ class DeseqDataSet(ad.AnnData):
         dispersions_, l_bfgs_b_converged_ = zip(*res)
 
         self.varm["MAP_dispersions"] = np.full(self.n_vars, np.NaN)
-        self.varm["MAP_dispersions"][self.non_zero] = np.clip(
+        self.varm["MAP_dispersions"][self.varm["non_zero"]] = np.clip(
             dispersions_, self.min_disp, self.max_disp
         )
 
         self.varm["_MAP_converged"] = np.full(self.n_vars, np.NaN)
-        self.varm["_MAP_converged"][self.non_zero] = l_bfgs_b_converged_
+        self.varm["_MAP_converged"][self.varm["non_zero"]] = l_bfgs_b_converged_
 
         # Filter outlier genes for which we won't apply shrinkage
         self.varm["dispersions"] = self.varm["MAP_dispersions"].copy()
@@ -554,13 +553,15 @@ class DeseqDataSet(ad.AnnData):
         )
 
         self.layers["_mu_LFC"] = np.full((self.n_obs, self.n_vars), np.NaN)
-        self.layers["_mu_LFC"][:, self.non_zero] = np.array(mu_).T
+        self.layers["_mu_LFC"][:, self.varm["non_zero"]] = np.array(mu_).T
 
         self.layers["_hat_diagonals"] = np.full((self.n_obs, self.n_vars), np.NaN)
-        self.layers["_hat_diagonals"][:, self.non_zero] = np.array(hat_diagonals_).T
+        self.layers["_hat_diagonals"][:, self.varm["non_zero"]] = np.array(
+            hat_diagonals_
+        ).T
 
         self.varm["_LFC_converged"] = np.full(self.n_vars, np.NaN)
-        self.varm["_LFC_converged"][self.non_zero] = converged_
+        self.varm["_LFC_converged"][self.varm["non_zero"]] = converged_
 
     def calculate_cooks(self):
         """Compute Cook's distance for outlier detection.
@@ -594,7 +595,7 @@ class DeseqDataSet(ad.AnnData):
         squared_pearson_res = (nz_data.X - nz_data.layers["_mu_LFC"]) ** 2 / V
 
         self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.NaN)
-        self.layers["cooks"][:, self.non_zero] = (
+        self.layers["cooks"][:, self.varm["non_zero"]] = (
             squared_pearson_res
             / num_vars
             * (
