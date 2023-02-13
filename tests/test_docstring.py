@@ -5,6 +5,7 @@ from inspect import signature
 from typing import Optional
 
 import pytest
+from anndata import AnnData
 
 from tests.discover import all_estimators
 from tests.discover import all_functions
@@ -12,46 +13,9 @@ from tests.discover import all_functions
 numpydoc_validation = pytest.importorskip("numpydoc.validate")
 
 # Ignore methods that are imported from AnnData
-FUNCTION_DOCSTRING_IGNORE_LIST = [
-    "X",
-    "chunk_X",
-    "chunked_X",
-    "concatenate",
-    "copy",
-    "is_view",
-    "isbacked",
-    "n_obs",
-    "n_vars",
-    "obs",
-    "obs_keys",
-    "obs_names",
-    "obs_names_make_unique",
-    "obs_vector",
-    "obsm",
-    "obsm_keys",
-    "obsp",
-    "rename_categories",
-    "shape",
-    "strings_to_categoricals",
-    "to_df",
-    "to_memory",
-    "transpose",
-    "uns",
-    "uns_keys",
-    "var",
-    "var_keys",
-    "var_names",
-    "var_names_make_unique",
-    "var_vector",
-    "varm",
-    "varm_keys",
-    "varp",
-    "write",
-    "write_csvs",
-    "write_h5ad",
-    "write_loom",
-    "write_zarr",
-]
+z = AnnData()
+anndata_methods_and_attributes = dir(z)
+FUNCTION_DOCSTRING_IGNORE_LIST = anndata_methods_and_attributes
 
 FUNCTION_DOCSTRING_IGNORE_LIST = [
     "pydeseq2.dds.DeseqDataSet." + meth for meth in FUNCTION_DOCSTRING_IGNORE_LIST
