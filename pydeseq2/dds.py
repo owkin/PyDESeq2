@@ -331,9 +331,7 @@ class DeseqDataSet(ad.AnnData):
         )
 
         self.varm["_genewise_converged"] = np.full(self.n_vars, np.NaN)
-        self.varm["_genewise_converged"][self.varm["non_zero"]] = np.array(
-            l_bfgs_b_converged_
-        )
+        self.varm["_genewise_converged"][self.varm["non_zero"]] = l_bfgs_b_converged_
 
     def fit_dispersion_trend(self):
         r"""Fit the dispersion trend coefficients.
@@ -537,6 +535,8 @@ class DeseqDataSet(ad.AnnData):
         print(f"... done in {end-start:.2f} seconds.\n")
 
         MLE_lfcs_, mu_, hat_diagonals_, converged_ = zip(*res)
+        mu_ = np.array(mu_).T
+        hat_diagonals_ = np.array(hat_diagonals_).T
 
         self.varm["LFC"] = pd.DataFrame(
             np.NaN,
@@ -553,12 +553,10 @@ class DeseqDataSet(ad.AnnData):
         )
 
         self.layers["_mu_LFC"] = np.full((self.n_obs, self.n_vars), np.NaN)
-        self.layers["_mu_LFC"][:, self.varm["non_zero"]] = np.array(mu_).T
+        self.layers["_mu_LFC"][:, self.varm["non_zero"]] = mu_
 
         self.layers["_hat_diagonals"] = np.full((self.n_obs, self.n_vars), np.NaN)
-        self.layers["_hat_diagonals"][:, self.varm["non_zero"]] = np.array(
-            hat_diagonals_
-        ).T
+        self.layers["_hat_diagonals"][:, self.varm["non_zero"]] = hat_diagonals_
 
         self.varm["_LFC_converged"] = np.full(self.n_vars, np.NaN)
         self.varm["_LFC_converged"][self.varm["non_zero"]] = converged_
