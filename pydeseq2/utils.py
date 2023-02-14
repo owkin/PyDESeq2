@@ -223,7 +223,7 @@ def dispersion_trend(normed_mean, coeffs):
 
 
 def nb_nll(counts, mu, alpha):
-    """Negative log-likelihood of a negative binomial of parameters `mu` and `alpha`.
+    """Negative log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
 
     Unvectorized version.
 
