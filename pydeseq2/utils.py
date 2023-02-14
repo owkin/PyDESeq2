@@ -223,9 +223,35 @@ def dispersion_trend(normed_mean, coeffs):
 
 
 def nb_nll(counts, mu, alpha):
-    """Negative log-likelihood of a negative binomial.
+    """Negative log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
 
     Unvectorized version.
+
+    Mathematically, if ``counts`` is a vector of counting entries :math:`y_i`
+    then the likelihood of each entry :math:`y_i` to be drawn from a negative
+    binomial :math:`NB(\\mu, \\alpha)` is [1]
+
+    .. math::
+        p(y_i | \\mu, \\alpha) = \\frac{\\Gamma(y_i + \\alpha^{-1})}{
+            \\Gamma(y_i + 1)\\Gamma(\\alpha^{-1})
+        }
+        \\left(\\frac{1}{1 + \\alpha \\mu} \\right)^{1/\\alpha}
+        \\left(\\frac{\\mu}{\\alpha^{-1} + \\mu} \\right)^{y_i}
+
+    As a consequence, assuming there are :math:`n` entries,
+    the total negative log-likelihood for ``counts`` is
+
+    .. math::
+        \\ell(\\mu, \\alpha) = \\frac{n}{\\alpha} \\log(\\alpha) +
+            \\sum_i \\left \\lbrace
+            - \\log \\left( \\frac{\\Gamma(y_i + \\alpha^{-1})}{
+            \\Gamma(y_i + 1)\\Gamma(\\alpha^{-1})
+        } \\right)
+        + (\\alpha^{-1} + y_i) \\log (\\alpha^{-1} + y_i)
+        - y_i \\log \\mu
+            \\right \\rbrace
+
+    This is implemented in this function.
 
     Parameters
     ----------
@@ -233,17 +259,21 @@ def nb_nll(counts, mu, alpha):
         Observations.
 
     mu : float
-        Mean of the distribution.
+        Mean of the distribution :math:`\\mu`.
 
     alpha : float
-        Dispersion of the distribution,
-        s.t. the variance is :math:`\\mu + \\alpha * \\mu^2`.
+        Dispersion of the distribution :math:`\\alpha`,
+        s.t. the variance is :math:`\\mu + \\alpha \\mu^2`.
 
     Returns
     -------
     float
         Negative log likelihood of the observations counts
         following :math:`NB(\\mu, \\alpha)`.
+
+    Notes
+    -----
+    [1] https://en.wikipedia.org/wiki/Negative_binomial_distribution
     """
 
     n = len(counts)
