@@ -19,6 +19,11 @@ repos:
     hooks:
     - id: isort
       args: ["--profile", "black"]
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.991
+    hooks:
+    - id: mypy
+      exclude: ^(tests/|docs/source/conf.py)
 - repo: https://github.com/nbQA-dev/nbQA #black and isort for Jupyter notebooks
   rev: 1.4.0
   hooks:
