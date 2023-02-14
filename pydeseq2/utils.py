@@ -239,7 +239,7 @@ def nb_nll(counts, mu, alpha):
         \\left(\\frac{\\mu}{\\alpha^{-1} + \\mu} \\right)^{y_i}
 
     As a consequence, assuming there are :math:`n` entries,
-    the total negative log-likelihood for `counts` is
+    the total negative log-likelihood for ``counts`` is
 
     .. math::
         \\ell(\\mu, \\alpha) = \\frac{n}{\\alpha} \\log(\\alpha) +
