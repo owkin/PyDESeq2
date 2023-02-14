@@ -229,7 +229,7 @@ def nb_nll(counts, mu, alpha):
 
     Mathematically, if ``counts`` is a vector of counting entries :math:`y_i`
     then the likelihood of each entry :math:`y_i` to be drawn from a negative
-    binomial :math:`NB(\\mu, \alpha)` is [1]
+    binomial :math:`NB(\\mu, \\alpha)` is [1]
 
     .. math::
         p(y_i | \\mu, \\alpha) = \\frac{\\Gamma(y_i + \\alpha^{-1})}{
