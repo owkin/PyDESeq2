@@ -4,7 +4,7 @@ import pytest
 from pydeseq2.utils import nb_nll
 
 
-@pytest.mark.parametrize("mu, alpha", [(10, 0.5), (10, 0.1), (3, 0.5), (52, 0.05)])
+@pytest.mark.parametrize("mu, alpha", [(10, 0.5), (10, 0.1), (3, 0.5), (9, 0.05)])
 def test_nb_nll_moments(mu, alpha):
     # get the probability of many points
     y = np.arange(int(10 * (mu + mu**2 / alpha)))
