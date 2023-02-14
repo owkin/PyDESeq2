@@ -12,6 +12,7 @@
   - [Contributing](#contributing)
     - [1 - Download the repository](#1---download-the-repository)
     - [2 - Create a conda environment](#2---create-a-conda-environment)
+  - [Development roadmap](#development-roadmap)
   - [Citing this work](#citing-this-work)
   - [References](#references)
   - [License](#license)
@@ -103,6 +104,18 @@ The `pre-commit` tool will automatically run [black](https://black.readthedocs.i
 and [isort](https://pycqa.github.io/isort/), and check [flake8](https://flake8.pycqa.org/en/latest/) compatibility
 
 PyDESeq2 is a living project and any contributions are welcome! Feel free to open new PRs or issues.
+
+## Development Roadmap
+
+Here are some of the features and improvements we plan to implement in the future:
+
+- [ ] Integration to the [scverse](https://scverse.org/) ecosystem:
+  * [ ] Refactoring to use the [AnnData](https://anndata.readthedocs.io/) data structure
+  * [ ] Submitting a PR to be listed as an [scverse ecosystem](https://github.com/scverse/ecosystem-packages/) package
+- [ ] Variance-stabilizing transformation
+- [ ] Improving multi-factor analysis:
+  * [ ] Allowing n-level factors (only bi-level for now)
+  * [ ] Implementing interaction terms
 
 ## Citing this work
 

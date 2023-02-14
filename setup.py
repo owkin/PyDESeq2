@@ -33,7 +33,6 @@ setup(
         "scikit-learn>=1.1.0",
         "scipy>=1.8.0",
         "statsmodels",
-        "gitpython>=3.1.27",
         "matplotlib>=3.6.2",  # not sure why sphinx_gallery does not work without it
     ],  # external packages as dependencies
     extras_require={
@@ -41,6 +40,7 @@ setup(
             "pytest>=6.2.4",
             "pre-commit>=2.13.0",
             "numpydoc",
+            "coverage",
             "mypy",
             "pandas-stubs",
         ],
