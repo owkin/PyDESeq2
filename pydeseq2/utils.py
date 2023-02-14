@@ -1,8 +1,10 @@
 import multiprocessing
 from math import floor
 from pathlib import Path
+from typing import List
 from typing import Literal
 from typing import Optional
+from typing import Tuple
 from typing import Union
 from typing import cast
 
@@ -69,7 +71,6 @@ def load_example_data(
     datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
 
     if dataset == "synthetic":
-
         path_to_data = datasets_path / "synthetic"
         if Path(path_to_data).is_dir():
             path_to_data_counts = path_to_data / "test_counts.csv"
@@ -130,7 +131,7 @@ def test_valid_counts(counts_df: pd.DataFrame) -> None:
 
 def build_design_matrix(
     clinical_df: pd.DataFrame,
-    design_factors: Union[str, "list[str]"] = "condition",
+    design_factors: Union[str, List[str]] = "condition",
     ref: Optional[str] = None,
     expanded: bool = False,
     intercept: bool = True,
@@ -405,7 +406,6 @@ def irls_solver(
     converged = True
     i = 0
     while dev_ratio > beta_tol:
-
         W = mu / (1.0 + mu * disp)
         z = np.log(mu / size_factors) + (counts - mu) / mu
         H = (X.T * W) @ X + ridge_factor
@@ -749,7 +749,7 @@ def wald_test(
     mu: float,
     ridge_factor: npt.NDArray,
     idx: int = -1,
-) -> "tuple[float, float, float]":
+) -> Tuple[float, float, float]:
     """Run Wald test for differential expression.
 
     Computes Wald statistics, standard error and p-values from

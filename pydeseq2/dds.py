@@ -1,5 +1,6 @@
 import time
 import warnings
+from typing import List
 from typing import Optional
 from typing import Union
 from typing import cast
@@ -159,7 +160,7 @@ class DeseqDataSet:
         self,
         counts: pd.DataFrame,
         clinical: pd.DataFrame,
-        design_factors: Union[str, "list[str]"] = "condition",
+        design_factors: Union[str, List[str]] = "condition",
         reference_level: Optional[str] = None,
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
@@ -276,7 +277,7 @@ class DeseqDataSet:
             raise ValueError("Must not multi index")
 
         # need cast for mypy checking
-        self.non_zero_genes: "list[str]" = _non_zero_genes.to_list()
+        self.non_zero_genes: List[str] = _non_zero_genes.to_list()
 
         counts_nonzero = self.counts.loc[:, self.non_zero_genes].values
         num_genes = counts_nonzero.shape[1]
@@ -399,7 +400,6 @@ class DeseqDataSet:
         coeffs = pd.Series([1.0, 1.0])
 
         while (np.log(np.abs(coeffs / old_coeffs)) ** 2).sum() >= 1e-6:
-
             glm_gamma = sm.GLM(
                 targets.values,
                 covariates.values,
@@ -432,7 +432,8 @@ class DeseqDataSet:
         )
         self.fitted_dispersions.update(
             dispersion_trend(
-                self._normed_means.loc[self.non_zero_genes], self.trend_coeffs
+                np.array(self._normed_means.loc[self.non_zero_genes].values),
+                self.trend_coeffs,
             )
         )
 
@@ -460,6 +461,7 @@ class DeseqDataSet:
         above_min_disp = self.genewise_dispersions.loc[self.non_zero_genes] >= (
             100 * self.min_disp
         )
+
         self._squared_logres = np.abs(
             disp_residuals.loc[self.non_zero_genes][above_min_disp]
         ).median() ** 2 / norm.ppf(0.75)
@@ -673,7 +675,7 @@ class DeseqDataSet:
 
         if n_or_more.sum() == 0:
             # No sample can be replaced. Set self.replaced to False and exit.
-            self.replaced = pd.Series(False, index=self.counts.columns)
+            self.replaced: pd.Series[bool] = pd.Series(False, index=self.counts.columns)
             return
 
         self.replaceable = pd.Series(
@@ -684,7 +686,7 @@ class DeseqDataSet:
         # Get positions of counts with cooks above threshold
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
         idx = (self.cooks > cooks_cutoff).T
-        self.replaced: pd.Series[bool] = idx.any(axis=0)
+        self.replaced = idx.any(axis=0)
 
         # Compute replacement counts: trimmed means * size_factors
         self.counts_to_refit = self.counts.loc[:, self.replaced].copy()

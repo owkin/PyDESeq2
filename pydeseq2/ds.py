@@ -1,4 +1,5 @@
 import time
+from typing import List
 from typing import Optional
 from typing import cast
 
@@ -114,7 +115,7 @@ class DeseqStats:
     def __init__(
         self,
         dds: DeseqDataSet,
-        contrast: Optional["list[str]"] = None,
+        contrast: Optional[List[str]] = None,
         alpha: float = 0.05,
         cooks_filter: bool = True,
         independent_filter: bool = True,
