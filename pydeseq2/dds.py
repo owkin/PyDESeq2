@@ -244,7 +244,7 @@ class DeseqDataSet:
         Return median-of-ratios normalized counts.
 
         Called like an attribute (``dds.normed_counts``) thanks to the
-        ``@property decorator``.
+        ``@property`` decorator.
         """
 
         # Check that size factors are available. If not, compute them.
