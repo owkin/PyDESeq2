@@ -251,7 +251,7 @@ class DeseqDataSet:
         if not hasattr(self, "size_factors"):
             self.fit_size_factors()
 
-        return self.counts.div(self.size_factors, 0)
+        return self.counts.div(self.size_factors, axis=0)
 
     def fit_size_factors(self):
         """Fit sample-wise deseq2 normalization (size) factors.
