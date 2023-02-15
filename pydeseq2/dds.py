@@ -432,8 +432,7 @@ class DeseqDataSet:
         )
         self.fitted_dispersions.update(
             dispersion_trend(
-                np.array(self._normed_means.loc[self.non_zero_genes].values),
-                self.trend_coeffs,
+                self._normed_means.loc[self.non_zero_genes], self.trend_coeffs
             )
         )
 
