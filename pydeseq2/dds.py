@@ -438,9 +438,7 @@ class DeseqDataSet:
         num_vars = self.design_matrix.shape[1]
 
         # Fit dispersions to the curve, and compute log residuals
-        disp_residuals = np.log(self.genewise_dispersions) - np.log(
-            self.fitted_dispersions
-        )
+        disp_residuals = np.log(self.genewise_dispersions) - np.log(self.fitted_dispersions)
 
         # Compute squared log-residuals and prior variance based on genes whose
         # dispersions are above 100 * min_disp. This is to reproduce DESeq2's behaviour.
