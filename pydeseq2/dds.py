@@ -238,6 +238,21 @@ class DeseqDataSet:
             # for genes that had outliers replaced
             self.refit()
 
+    @property
+    def normed_counts(self):
+        """
+        Return median-of-ratios normalized counts.
+
+        Called like an attribute (``dds.normed_counts``) thanks to the
+        ``@property decorator``.
+        """
+
+        # Check that size factors are available. If not, compute them.
+        if not hasattr(self, "size_factors"):
+            self.fit_size_factors()
+
+        return self.counts.div(self.size_factors, 0)
+
     def fit_size_factors(self):
         """Fit sample-wise deseq2 normalization (size) factors.
 
@@ -367,7 +382,7 @@ class DeseqDataSet:
 
         print("Fitting dispersion trend curve...")
         start = time.time()
-        self._normed_means = self.counts.div(self.size_factors, 0).mean(0)
+        self._normed_means = self.normed_counts.mean(0)
 
         # Exclude all-zero counts
         targets = self.genewise_dispersions.loc[self.non_zero_genes].copy()
