@@ -7,7 +7,7 @@ repos:
       args: # arguments to configure black
        - --line-length=89
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v1.2.3
+    rev: v2.3.0
     hooks:
     - id: flake8
       additional_dependencies: [ 'flake8-bugbear' ]
