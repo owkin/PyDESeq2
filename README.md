@@ -50,7 +50,8 @@ If you're interested in contributing or want access to the development version, 
 
 The list of package version requirements is available in `setup.py`.
 
-For reference, the code was tested with python 3.8 and the following package versions:
+For reference, the code is being tested in a github workflow (CI) with python
+3.8 -- 3.11 and the following package versions:
 ```
 - numpy 1.23.0
 - pandas 1.4.3
