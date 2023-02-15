@@ -21,14 +21,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install isort black==22.3.0
           pip install flake8
+          pip install pre-commit
           pip install -e ."[dev]"
           pip install -r docs/requirements.txt
-      - name: Run black
-        run: black --line-length=89 --check .
-      - name: Run flake8
-        run: flake8 --max-line-length=89 --extend-ignore=E203 .
-      - name: Run isort
-        run: isort .
+      - name:
+          run: pre-commit --all-files --show-diff-on-failure
+#      - name: Run black
+#        run: black --line-length=89 --check .
+#      - name: Run flake8
+#        run: flake8 --max-line-length=89 --extend-ignore=E203 .
+#      - name: Run isort
+#        run: isort .
       - name: Test with pytest
         run: |
           coverage run -m pytest
