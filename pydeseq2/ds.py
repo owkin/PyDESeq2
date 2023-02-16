@@ -1,21 +1,17 @@
 import time
-from typing import List
-from typing import Optional
-from typing import cast
 
+# import anndata as ad
 import numpy as np
-import numpy.typing as npt
 import pandas as pd
-import statsmodels.api as sm  # type: ignore
+import statsmodels.api as sm
 from IPython.display import display
-from joblib import Parallel  # type: ignore
-from joblib import delayed  # type: ignore
-from joblib import parallel_backend  # type: ignore
-from scipy.optimize import root_scalar  # type: ignore
-from scipy.stats import f  # type: ignore
-from statsmodels.stats.multitest import multipletests  # type: ignore
+from joblib import Parallel
+from joblib import delayed
+from joblib import parallel_backend
+from scipy.optimize import root_scalar
+from scipy.stats import f
+from statsmodels.stats.multitest import multipletests
 
-from pydeseq2.dds import DeseqDataSet
 from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import nbinomGLM
 from pydeseq2.utils import wald_test
@@ -58,7 +54,7 @@ class DeseqStats:
         Number of cpus to use for multiprocessing.
         If None, all available CPUs will be used. (default: None).
 
-    prior_disp_var : ndarray
+    prior_LFC_var : ndarray
         Prior variance for LFCs, used for ridge regularization. (default: None).
 
     batch_size : int
@@ -82,7 +78,7 @@ class DeseqStats:
         DeseqStats object, it may differ from the DeseqDataSet design matrix, as the
         reference level may need to be adapted.
 
-    LFCs : pandas.DataFrame
+    LFC : pandas.DataFrame
         Estimated log-fold change between conditions and intercept, in natural log scale.
 
     SE : pandas.Series
@@ -114,18 +110,18 @@ class DeseqStats:
 
     def __init__(
         self,
-        dds: DeseqDataSet,
-        contrast: Optional[List[str]] = None,
-        alpha: float = 0.05,
-        cooks_filter: bool = True,
-        independent_filter: bool = True,
-        n_cpus: Optional[int] = None,
-        prior_disp_var: Optional[npt.NDArray] = None,
-        batch_size: int = 128,
-        joblib_verbosity: int = 0,
+        dds,
+        contrast=None,
+        alpha=0.05,
+        cooks_filter=True,
+        independent_filter=True,
+        n_cpus=None,
+        prior_LFC_var=None,
+        batch_size=128,
+        joblib_verbosity=0,
     ):
-        assert hasattr(
-            dds, "LFCs"
+        assert (
+            "LFC" in dds.varm
         ), "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
 
         self.dds = dds
@@ -136,14 +132,17 @@ class DeseqStats:
                 contrast[0] in self.dds.design_factors
             ), "The contrast variable should be one of the design factors."
             assert (
-                contrast[1] in self.dds.clinical[contrast[0]].values
-                and contrast[2] in self.dds.clinical[contrast[0]].values
+                contrast[1] in self.dds.obs[contrast[0]].values
+                and contrast[2] in self.dds.obs[contrast[0]].values
             ), "The contrast levels should correspond to design factors levels."
             self.contrast = contrast
         else:  # Build contrast if None
             factor = self.dds.design_factors[-1]
-            levels = np.unique(self.dds.clinical[factor]).astype(str)
-            if "_".join([factor, levels[0]]) == self.dds.design_matrix.columns[-1]:
+            levels = np.unique(self.dds.obs[factor]).astype(str)
+            if (
+                "_".join([factor, levels[0]])
+                == self.dds.obsm["design_matrix"].columns[-1]
+            ):
                 self.contrast = [factor, levels[0], levels[1]]
             else:
                 self.contrast = [factor, levels[1], levels[0]]
@@ -151,23 +150,23 @@ class DeseqStats:
         self.alpha = alpha
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
-        self.prior_disp_var = prior_disp_var
-        self.base_mean = self.dds._normed_means
+        self.prior_LFC_var = prior_LFC_var
+        self.base_mean = self.dds.varm["_normed_means"].copy()
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
-        self.design_matrix = self.dds.design_matrix.copy()
-        self.LFCs = self.dds.LFCs.copy()
+        self.design_matrix = self.dds.obsm["design_matrix"].copy()
+        self.LFC = self.dds.varm["LFC"].copy()
         if self.contrast is None:
-            alternative_level = self.design_matrix.columns[-1]
+            alternative_level = self.dds.obsm["design_matrix"].columns[-1]
         else:
             alternative_level = "_".join([self.contrast[0], self.contrast[1]])
 
-        if alternative_level in self.design_matrix.columns:
-            self.contrast_idx = self.LFCs.columns.get_loc(alternative_level)
+        if alternative_level in self.dds.obsm["design_matrix"].columns:
+            self.contrast_idx = self.dds.varm["LFC"].columns.get_loc(alternative_level)
         else:  # The reference level is not the same as in dds: change it
             reference_level = "_".join([self.contrast[0], self.contrast[2]])
-            self.contrast_idx = self.LFCs.columns.get_loc(reference_level)
+            self.contrast_idx = self.dds.varm["LFC"].columns.get_loc(reference_level)
             # Change the design matrix reference level
             self.design_matrix.rename(
                 columns={
@@ -179,12 +178,12 @@ class DeseqStats:
                 1 - self.design_matrix.iloc[:, self.contrast_idx]
             )
             # Rename and update LFC coefficients accordingly
-            self.LFCs.rename(
-                columns={self.LFCs.columns[self.contrast_idx]: alternative_level},
+            self.LFC.rename(
+                columns={self.LFC.columns[self.contrast_idx]: alternative_level},
                 inplace=True,
             )
-            self.LFCs.iloc[:, 0] += self.LFCs.iloc[:, self.contrast_idx]
-            self.LFCs.iloc[:, self.contrast_idx] *= -1
+            self.LFC.iloc[:, 0] += self.LFC.iloc[:, self.contrast_idx]
+            self.LFC.iloc[:, self.contrast_idx] *= -1
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
         self.n_processes = get_num_processes(n_cpus)
@@ -193,17 +192,14 @@ class DeseqStats:
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
-        if self.dds.refit_cooks:
-            try:
-                dds.replaced
-            except AttributeError:
-                raise AttributeError(
-                    "dds has 'refit_cooks' set to True but Cooks outliers have not been "
-                    "refitted. Please run 'dds.refit()' first or set 'dds.refit_cooks' "
-                    "to False."
-                )
+        if self.dds.refit_cooks and "replaced" not in self.dds.varm:
+            raise AttributeError(
+                "dds has 'refit_cooks' set to True but Cooks outliers have not been "
+                "refitted. Please run 'dds.refit()' first or set 'dds.refit_cooks' "
+                "to False."
+            )
 
-    def summary(self) -> None:
+    def summary(self):
         """Run the statistical analysis.
 
         The results are stored in the `results_df` attribute.
@@ -227,11 +223,11 @@ class DeseqStats:
                 self._p_value_adjustment()
 
         # Store the results in a DataFrame, in log2 scale for LFCs.
-        self.results_df = pd.DataFrame(index=self.dds.dispersions.index)
+        self.results_df = pd.DataFrame(index=self.dds.var_names)
         self.results_df["baseMean"] = self.base_mean
-        self.results_df["log2FoldChange"] = self.LFCs.iloc[
-            :, self.contrast_idx
-        ] / np.log(2)
+        self.results_df["log2FoldChange"] = self.LFC.iloc[:, self.contrast_idx] / np.log(
+            2
+        )
         self.results_df["lfcSE"] = self.SE / np.log(2)
         self.results_df["stat"] = self.statistics
         self.results_df["pvalue"] = self.p_values
@@ -243,13 +239,13 @@ class DeseqStats:
         )
         display(self.results_df)
 
-    def run_wald_test(self) -> None:
+    def run_wald_test(self):
         """Perform a Wald test.
 
         Get gene-wise p-values for gene over/under-expression.`
         """
 
-        num_genes = len(self.LFCs)
+        num_genes = self.dds.n_vars
         num_vars = self.design_matrix.shape[1]
 
         # Raise a warning if LFCs are shrunk.
@@ -261,20 +257,19 @@ class DeseqStats:
             )
 
         mu = (
-            np.exp(self.design_matrix @ self.LFCs.T)
-            .multiply(self.dds.size_factors, 0)
+            np.exp(self.design_matrix @ self.LFC.T)
+            .multiply(self.dds.obsm["size_factors"], 0)
             .values
         )
 
         # Set regularization factors.
-        if self.prior_disp_var is not None:
-            ridge_factor = np.diag(1 / self.prior_disp_var**2)
+        if self.prior_LFC_var is not None:
+            ridge_factor = np.diag(1 / self.prior_LFC_var**2)
         else:
             ridge_factor = np.diag(np.repeat(1e-6, num_vars))
 
-        X = self.design_matrix.values
-        disps = self.dds.dispersions.values
-        LFCs = self.LFCs.values
+        design_matrix = self.design_matrix.values
+        LFCs = self.LFC.values
 
         print("Running Wald tests...")
         start = time.time()
@@ -285,8 +280,8 @@ class DeseqStats:
                 batch_size=self.batch_size,
             )(
                 delayed(wald_test)(
-                    design_matrix=X,
-                    disp=disps[i],
+                    design_matrix=design_matrix,
+                    disp=self.dds.varm["dispersions"][i],
                     lfc=LFCs[i],
                     mu=mu[:, i],
                     ridge_factor=ridge_factor,
@@ -299,21 +294,16 @@ class DeseqStats:
 
         pvals, stats, se = zip(*res)
 
-        # need casting because mypy recognize them as TimeStampSeries
-        # reason is unknown...
-        self.p_values = cast(pd.Series, pd.Series(pvals, index=self.LFCs.index))
-        self.statistics = cast(pd.Series, pd.Series(stats, index=self.LFCs.index))
-        self.SE = cast(pd.Series, pd.Series(se, index=self.LFCs.index))
+        self.p_values = pd.Series(pvals, index=self.dds.var_names)
+        self.statistics = pd.Series(stats, index=self.dds.var_names)
+        self.SE = pd.Series(se, index=self.dds.var_names)
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
-        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
-            new_all_zero_index = self.dds.new_all_zeroes[self.dds.new_all_zeroes].index
-            if isinstance(new_all_zero_index, pd.MultiIndex):
-                raise ValueError
+        if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
 
-            self.SE.loc[new_all_zero_index] = 0.0
-            self.statistics.loc[new_all_zero_index] = 0.0
-            self.p_values.loc[new_all_zero_index] = 1.0
+            self.SE.loc[self.dds.new_all_zeroes_genes] = 0
+            self.statistics.loc[self.dds.new_all_zeroes_genes] = 0
+            self.p_values.loc[self.dds.new_all_zeroes_genes] = 1
 
     def lfc_shrink(self):
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
@@ -326,20 +316,16 @@ class DeseqStats:
             If pvalues were already computed, return the results DataFrame with MAP LFCs,
             but unmodified stats and pvalues.
         """
-        # Filter genes with all zero counts
-        nonzero = self.dds.counts.sum(0) > 0
-        counts_nonzero = self.dds.counts.loc[:, nonzero].values
-        num_genes = counts_nonzero.shape[1]
 
-        size = (1.0 / self.dds.dispersions[nonzero]).values
-        offset = cast(pd.DataFrame, np.log(self.dds.size_factors)).values
+        size = 1.0 / self.dds.varm["dispersions"]
+        offset = np.log(self.dds.obsm["size_factors"])
 
         # Set priors
         prior_no_shrink_scale = 15
         prior_var = self._fit_prior_var()
         prior_scale = np.minimum(np.sqrt(prior_var), 1)
 
-        X = self.design_matrix.values
+        design_matrix = self.design_matrix.values
 
         print("Fitting MAP LFCs...")
         start = time.time()
@@ -350,8 +336,8 @@ class DeseqStats:
                 batch_size=self.batch_size,
             )(
                 delayed(nbinomGLM)(
-                    design_matrix=X,
-                    counts=counts_nonzero[:, i],
+                    design_matrix=design_matrix,
+                    counts=self.dds.X[:, i],
                     size=size[i],
                     offset=offset,
                     prior_no_shrink_scale=prior_no_shrink_scale,
@@ -359,28 +345,35 @@ class DeseqStats:
                     optimizer="L-BFGS-B",
                     shrink_index=self.contrast_idx,
                 )
-                for i in range(num_genes)
+                for i in self.dds.non_zero_idx
             )
         end = time.time()
         print(f"... done in {end-start:.2f} seconds.\n")
 
         lfcs, inv_hessians, l_bfgs_b_converged_ = zip(*res)
 
-        self.LFCs.iloc[:, self.contrast_idx] = pd.Series(
-            np.array(lfcs)[:, self.contrast_idx],
-            index=self.dds.dispersions[nonzero].index,
+        self.LFC.iloc[:, self.contrast_idx].update(
+            pd.Series(
+                np.array(lfcs)[:, self.contrast_idx],
+                index=self.dds.non_zero_genes,
+            )
         )
-        self.SE = pd.Series(
-            np.array(
-                [
-                    np.sqrt(np.abs(inv_hess[self.contrast_idx, self.contrast_idx]))
-                    for inv_hess in inv_hessians
-                ]
-            ),
-            index=self.dds.dispersions[nonzero].index,
+
+        self.SE.update(
+            pd.Series(
+                np.array(
+                    [
+                        np.sqrt(np.abs(inv_hess[self.contrast_idx, self.contrast_idx]))
+                        for inv_hess in inv_hessians
+                    ]
+                ),
+                index=self.dds.non_zero_genes,
+            )
         )
-        self._lcf_shrink_converged = pd.Series(
-            np.array(l_bfgs_b_converged_), index=self.dds.dispersions[nonzero].index
+
+        self._LFC_shrink_converged = pd.Series(np.NaN, index=self.dds.var_names)
+        self._LFC_shrink_converged.update(
+            pd.Series(l_bfgs_b_converged_, index=self.dds.non_zero_genes)
         )
 
         # Set a flag to indicate that LFCs were shrunk
@@ -388,7 +381,7 @@ class DeseqStats:
 
         # Replace in results dataframe, if it exists
         if hasattr(self, "results_df"):
-            self.results_df["log2FoldChange"] = self.LFCs.iloc[
+            self.results_df["log2FoldChange"] = self.LFC.iloc[
                 :, self.contrast_idx
             ] / np.log(2)
             self.results_df["lfcSE"] = self.SE / np.log(2)
@@ -418,11 +411,10 @@ class DeseqStats:
             upper_quantile = 1
 
         theta = np.linspace(lower_quantile, upper_quantile, 50)
-
         cutoffs = np.quantile(self.base_mean, theta)
 
         result = pd.DataFrame(
-            np.nan, index=self.base_mean.index, columns=np.arange(len(theta))
+            np.nan, index=self.dds.var_names, columns=np.arange(len(theta))
         )
 
         for i, cutoff in enumerate(cutoffs):
@@ -460,7 +452,7 @@ class DeseqStats:
             # Estimate p-values with Wald test
             self.run_wald_test()
 
-        self.padj = pd.Series(np.nan, index=self.p_values.index)
+        self.padj = pd.Series(np.nan, index=self.dds.var_names)
         self.padj.loc[~self.p_values.isna()] = multipletests(
             self.p_values.dropna(), alpha=self.alpha, method="fdr_bh"
         )[1]
@@ -472,7 +464,8 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        num_samples, num_vars = self.design_matrix.shape
+        num_samples = self.dds.n_obs
+        num_vars = self.design_matrix.shape[-1]
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
 
         # If for a gene there are 3 samples or more that have more counts than the
@@ -485,32 +478,32 @@ class DeseqStats:
             use_for_max = pd.Series(
                 n_or_more[self.design_matrix.iloc[:, self.contrast_idx]]
             )
-            use_for_max.index = self.design_matrix.index
+            use_for_max.index = self.dds.obs_names
 
         else:
-            use_for_max = pd.Series(True, index=self.design_matrix.index)
+            use_for_max = pd.Series(True, index=self.dds.obs_names)
 
         # Take into account whether we already replaced outliers
-        if self.dds.refit_cooks and self.dds.replaced.sum() > 0:
+        if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
             cooks_outlier = (
-                self.dds.replace_cooks.loc[:, use_for_max] > cooks_cutoff
-            ).any(axis=1)
-
-        else:
-            cooks_outlier = (self.dds.cooks.loc[:, use_for_max] > cooks_cutoff).any(
-                axis=1
+                (self.dds[use_for_max, :].layers["replace_cooks"] > cooks_cutoff)
+                .any(axis=0)
+                .copy()
             )
 
-        pos = self.dds.cooks[cooks_outlier].to_numpy().argmax(1)
-        cooks_outlier.update(
-            (
-                self.dds.counts.loc[:, cooks_outlier]
-                > self.dds.counts.loc[:, cooks_outlier].to_numpy()[
-                    pos, np.arange(len(pos))
-                ]
-            ).sum(0)
-            < 3
-        )
+        else:
+            cooks_outlier = (
+                (self.dds[use_for_max, :].layers["cooks"] > cooks_cutoff)
+                .any(axis=0)
+                .copy()
+            )
+
+        pos = self.dds[:, cooks_outlier].layers["cooks"].argmax(0)
+
+        cooks_outlier[cooks_outlier] = (
+            self.dds[:, cooks_outlier].X
+            > self.dds[:, cooks_outlier].X[pos, np.arange(len(pos))]
+        ).sum(0) < 3
 
         self.p_values[cooks_outlier] = np.nan
 
@@ -533,8 +526,8 @@ class DeseqStats:
             Estimated prior variance.
         """
 
-        keep = ~self.LFCs.iloc[:, self.contrast_idx].isna()
-        S = self.LFCs[keep].iloc[:, self.contrast_idx] ** 2
+        keep = ~self.LFC.iloc[:, self.contrast_idx].isna()
+        S = self.LFC[keep].iloc[:, self.contrast_idx] ** 2
         D = self.SE[keep] ** 2
 
         def objective(a):

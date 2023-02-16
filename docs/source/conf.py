@@ -62,13 +62,15 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
+    "anndata": ("https://anndata.readthedocs.io/en/latest/", None),
 }
 
 autosectionlabel_prefix_document = True
 
 # autodoc settings
 autodoc_default_options = {
-    "show-inheritance": True,
+    "show-inheritance": False,
+    "inherited-members": False,
     "members": True,
 }
 
@@ -76,10 +78,21 @@ add_module_names = False
 
 autoclass_content = "both"
 autodoc_typehints = "both"
-autosummary_generate = True
+autosummary_generate = False
 autodoc_member_order = "groupwise"
 autodoc_docstring_signature = True
 
+# # This is the expected signature of the handler for this event, cf doc
+# def autodoc_skip_member_handler(app, what, name, obj, skip, options):
+#     # Basic approach; you might want a regex instead
+#     return name.endswith("__")
+#
+#
+# # Automatically called by sphinx at startup
+# def setup(app):
+#     # Connect the autodoc-skip-member event from apidoc to the callback
+#     app.connect("autodoc-skip-member", autodoc_skip_member_handler)
+#
 
 # Bibliography
 bibtex_bibfiles = ["refs.bib"]
@@ -205,9 +218,9 @@ epub_exclude_files = ["search.html"]
 # The following elements are the link that auto doc were not able to do
 nitpick_ignore = [
     ("py:class", "pd.Series"),
-    ("py:class", "pd.DataFrame"),
+    #    ("py:class", "anndata.AnnData"),
+    #    ("py:class", "anndata._core.anndata.AnnData"),
     ("py:class", "ndarray"),
-    ("py:class", "numpy._typing._generic_alias.ScalarType"),
     ("py:class", "pydantic.main.BaseModel"),
     ("py:class", "torch.nn.modules.module.Module"),
     ("py:class", "torch.nn.modules.loss._Loss"),
