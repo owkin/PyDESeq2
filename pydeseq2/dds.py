@@ -345,7 +345,7 @@ class DeseqDataSet(ad.AnnData):
 
         print("Fitting dispersion trend curve...")
         start = time.time()
-        self.varm["_normed_means"] = self.varm["normed_counts"].mean(0)
+        self.varm["_normed_means"] = self.layers["normed_counts"].mean(0)
 
         # Exclude all-zero counts
         targets = pd.Series(
