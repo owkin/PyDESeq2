@@ -225,7 +225,7 @@ class DeseqDataSet(ad.AnnData):
     def fit_size_factors(self):
         """Fit sample-wise deseq2 normalization (size) factors.
 
-        Uses the median-of-ratios method.
+        Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`.
         """
         print("Fitting size factors...")
         start = time.time()
