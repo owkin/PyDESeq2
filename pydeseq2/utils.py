@@ -584,8 +584,8 @@ def fit_alpha_mle(
 
     res = minimize(
         lambda x: loss(x[0]),
-        x0=[np.log(alpha_hat)],
-        jac=dloss,
+        x0=np.log(alpha_hat),
+        jac=lambda x: dloss(x[0]),
         method=optimizer,
         bounds=[(np.log(min_disp), np.log(max_disp))]
         if optimizer == "L-BFGS-B"
@@ -804,10 +804,10 @@ def fit_rough_dispersions(counts, size_factors, design_matrix):
 
     Parameters
     ----------
-    counts : pandas.DataFrame
-        Raw counts. One column per gene, rows are indexed by sample barcodes.
+    counts : ndarray
+        Raw counts. One column per gene, one row per sample.
 
-    size_factors : pandas.Series
+    size_factors : ndarray
         DESeq2 normalization factors.
 
     design_matrix : pandas.DataFrame
@@ -816,14 +816,17 @@ def fit_rough_dispersions(counts, size_factors, design_matrix):
 
     Returns
     -------
-    pandas.Series
+    ndarray
         Estimated dispersion parameter for each gene.
     """
 
     num_samples, num_vars = design_matrix.shape
-    normed_counts = counts.div(size_factors, 0)
+
+    normed_counts = counts / size_factors[:, None]
+
     # Exclude genes with all zeroes
-    normed_counts = normed_counts.loc[:, ~(normed_counts == 0).all()]
+    normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
+
     reg = LinearRegression(fit_intercept=False)
     reg.fit(design_matrix, normed_counts)
     y_hat = reg.predict(design_matrix)
@@ -841,27 +844,28 @@ def fit_moments_dispersions(counts, size_factors):
 
     Parameters
     ----------
-    counts : pandas.DataFrame
-        Raw counts. One column per gene, rows are indexed by sample barcodes.
+    counts : ndarray
+        Raw counts. One column per gene, one row per sample.
 
-    size_factors : pandas.Series
+    size_factors : ndarray
         DESeq2 normalization factors.
 
     Returns
     -------
-    pandas.Series
+    ndarray
         Estimated dispersion parameter for each gene.
     """
-    normed_counts = counts.div(size_factors, 0)
+
+    normed_counts = counts / size_factors[:, None]
     # Exclude genes with all zeroes
-    normed_counts = normed_counts.loc[:, ~(normed_counts == 0).all()]
+    normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
     # mean inverse size factor
     s_mean_inv = (1 / size_factors).mean()
     mu = normed_counts.mean(0)
     sigma = normed_counts.var(0, ddof=1)
     # ddof=1 is to use an unbiased estimator, as in R
     # NaN (variance = 0) are replaced with 0s
-    return ((sigma - s_mean_inv * mu) / mu**2).fillna(0)
+    return np.nan_to_num((sigma - s_mean_inv * mu) / mu**2)
 
 
 def robust_method_of_moments_disp(normed_counts, design_matrix):

@@ -5,13 +5,21 @@ from inspect import signature
 from typing import Optional
 
 import pytest
+from anndata import AnnData
 
 from tests.discover import all_estimators
 from tests.discover import all_functions
 
 numpydoc_validation = pytest.importorskip("numpydoc.validate")
 
-FUNCTION_DOCSTRING_IGNORE_LIST = []
+# Ignore methods that are imported from AnnData
+z = AnnData()
+anndata_methods_and_attributes = dir(z)
+FUNCTION_DOCSTRING_IGNORE_LIST = anndata_methods_and_attributes
+
+FUNCTION_DOCSTRING_IGNORE_LIST = [
+    "pydeseq2.dds.DeseqDataSet." + meth for meth in FUNCTION_DOCSTRING_IGNORE_LIST
+]
 
 FUNCTION_DOCSTRING_IGNORE_LIST = set(FUNCTION_DOCSTRING_IGNORE_LIST)
 

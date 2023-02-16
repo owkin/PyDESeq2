@@ -137,9 +137,9 @@ def test_lfc_shrinkage(tol=0.02):
 
     dds = DeseqDataSet(counts_df, clinical_df, design_factors="condition")
     dds.deseq2()
-    dds.size_factors = r_size_factors
-    dds.dispersions = r_dispersions
-    dds.LFCs.iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
+    dds.obsm["size_factors"] = r_size_factors.values
+    dds.varm["dispersions"] = r_dispersions.values
+    dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
     res = DeseqStats(dds)
     res.summary()
@@ -236,9 +236,9 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
 
     dds = DeseqDataSet(counts_df, clinical_df, design_factors=["group", "condition"])
     dds.deseq2()
-    dds.size_factors = r_size_factors
-    dds.dispersions = r_dispersions
-    dds.LFCs.iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
+    dds.obsm["size_factors"] = r_size_factors.values
+    dds.varm["dispersions"] = r_dispersions.values
+    dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
     res = DeseqStats(dds)
     res.summary()
