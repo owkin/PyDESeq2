@@ -102,7 +102,7 @@ dds = DeseqDataSet(
 
 dds.fit_size_factors()
 
-dds.size_factors
+dds.obsm["size_factors"]
 
 # %%
 # Fit genewise dispersions
@@ -110,22 +110,24 @@ dds.size_factors
 
 dds.fit_genewise_dispersions()
 
-dds.genewise_dispersions
+dds.varm["genewise_dispersions"]
 
 # %%
 # Fit dispersion trend coefficients
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 dds.fit_dispersion_trend()
-dds.trend_coeffs
-dds.fitted_dispersions
+dds.uns["trend_coeffs"]
+dds.varm["fitted_dispersions"]
 
 # %%
 # Dispersion priors
 # ^^^^^^^^^^^^^^^^^
 
 dds.fit_dispersion_prior()
-print(f"logres_prior={dds._squared_logres}, sigma_prior={dds.prior_disp_var}")
+print(
+    f"logres_prior={dds.uns['_squared_logres']}, sigma_prior={dds.uns['prior_disp_var']}"
+)
 
 # %%
 # MAP Dispersions
@@ -138,8 +140,8 @@ print(f"logres_prior={dds._squared_logres}, sigma_prior={dds.prior_disp_var}")
 # stored in `dds.dispersions`.
 
 dds.fit_MAP_dispersions()
-dds.MAP_dispersions
-dds.dispersions
+dds.varm["MAP_dispersions"]
+dds.varm["dispersions"]
 
 # %%
 # Fit log fold changes
@@ -150,7 +152,7 @@ dds.dispersions
 # `DeseqStats` displays LFCs in log2 scale (see later on).
 
 dds.fit_LFC()
-dds.LFCs
+dds.varm["LFC"]
 
 # %%
 # Calculate Cooks distances and refit

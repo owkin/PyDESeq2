@@ -9,8 +9,9 @@ PyDESeq2
     :toctree: docstrings
     :recursive:
 
-    dds.DeseqDataSet
-    ds.DeseqStats
+    ~dds.DeseqDataSet
+    ~ds.DeseqStats
     ~utils
     ~grid_search
     ~preprocessing
+
