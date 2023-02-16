@@ -27,6 +27,7 @@ setup(
     author_email="boris.muzellec@owkin.com",
     packages=find_packages(exclude=["tests*"]),
     install_requires=[
+        "anndata==0.8.0",
         "jupyter",
         "numpy>=1.23.0",
         "pandas>=1.4.0",
@@ -40,9 +41,9 @@ setup(
             "pytest>=6.2.4",
             "pre-commit>=2.13.0",
             "numpydoc",
-            "coverage",
             "mypy",
             "pandas-stubs",
+            "coverage",
         ],
     },
 )
