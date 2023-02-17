@@ -556,7 +556,7 @@ def fit_alpha_mle(
     assert optimizer in ["BFGS", "L-BFGS-B"]
 
     if prior_reg:
-        # Note: assertion is not work when using numpy
+        # Note: assertion is not working when using numpy
         assert (
             prior_disp_var is not None
         ), "Sigma_prior is required for prior regularization"
