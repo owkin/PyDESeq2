@@ -26,10 +26,10 @@ from pydeseq2.grid_search import grid_fit_shrink_beta
 
 def load_example_data(
     modality: Literal["raw_counts", "clinical"] = "raw_counts",
-    dataset="synthetic",
+    dataset: Literal["synthetic"] = "synthetic",
     debug: bool = False,
-    debug_seed=42,
-):
+    debug_seed: int = 42,
+) -> pd.DataFrame:
     """Load synthetic example data.
 
     May load either clinical or rna-seq data. For now, this function may only return the
@@ -211,7 +211,7 @@ def build_design_matrix(
 def dispersion_trend(
     normed_mean: Union[float, npt.NDArray],
     coeffs: Union["pd.Series[float]", npt.NDArray],
-):
+) -> Union[float, npt.NDArray]:
     r"""Return dispersion trend from normalized counts.
 
      :math:`a_1/ \mu + a_0`.
@@ -226,7 +226,7 @@ def dispersion_trend(
 
     Returns
     -------
-    float
+    float or ndarray
         Dispersion trend :math:`a_1/ \mu + a_0`.
     """
     if isinstance(coeffs, pd.Series):
@@ -235,7 +235,7 @@ def dispersion_trend(
         return coeffs[0] + coeffs[1] / normed_mean
 
 
-def nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray):
+def nb_nll(counts: npt.NDArray, mu: float, alpha: float) -> float:
     """Negative log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
 
     Unvectorized version.
@@ -302,7 +302,7 @@ def nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray):
     )
 
 
-def dnb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray) -> float:
+def dnb_nll(counts: npt.NDArray, mu: float, alpha: float) -> float:
     """Gradient of the negative log-likelihood of a negative binomial.
 
     Unvectorized.
@@ -343,31 +343,31 @@ def irls_solver(
     counts: npt.NDArray,
     size_factors: npt.NDArray,
     design_matrix: npt.NDArray,
-    disp: npt.NDArray,
-    min_mu=0.5,
-    beta_tol=1e-8,
-    min_beta=-30,
-    max_beta=30,
+    disp: float,
+    min_mu: float = 0.5,
+    beta_tol: float = 1e-8,
+    min_beta: float = -30,
+    max_beta: float = 30,
     optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
-    maxiter=250,
-):
+    maxiter: int = 250,
+) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray, bool]:
     r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 
     See equations (1-2) in the DESeq2 paper.
 
     Parameters
     ----------
-    counts : pandas.Series
+    counts : ndarray
         Raw counts for a given gene.
 
-    size_factors : pandas.Series
+    size_factors : ndarray
         Sample-wise scaling factors (obtained from median-of-ratios).
 
-    design_matrix : pandas.DataFrame
+    design_matrix : ndarray
         Design matrix.
 
-    disp : pandas.Series
-        Gene-wise dispersion priors.
+    disp : float
+        Gene-wise dispersion prior.
 
     min_mu : float
         Lower bound on estimated means, to ensure numerical stability. (default: 0.5).
@@ -376,10 +376,10 @@ def irls_solver(
         Stopping criterion for IRWLS:
         :math:`abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol`. (default: 1e-8).
 
-    min_beta : int
+    min_beta : float
         Lower-bound on LFC. (default: -30).
 
-    max_beta : int
+    max_beta : flaot
         Upper-bound on LFC. (default: -30).
 
     optimizer : str
@@ -403,23 +403,17 @@ def irls_solver(
 
     H: ndarray
         Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}` covariance matrix.
+
+    converged: bool
+        Whether IRLS or the optimizer converged. If not and if dimension allows it,
+        perform grid search.
     """
 
     assert optimizer in ["BFGS", "L-BFGS-B"]
 
     num_vars = design_matrix.shape[1]
-
-    # converting to numpy for speed
-    # if type(counts) == pd.Series:
-    #     counts = counts.values
-    # if type(size_factors) == pd.Series:
-    #     size_factors = size_factors.values
-    # if type(design_matrix) == pd.Series:
-    #     X = design_matrix.values
-    # else:
-    #     X = design_matrix
-
     X = design_matrix
+
     # if full rank, estimate initial betas for IRLS below
     if np.linalg.matrix_rank(X) == num_vars:
         Q, R = np.linalg.qr(X)
@@ -444,12 +438,12 @@ def irls_solver(
 
         if sum(np.abs(beta_hat) > max_beta) > 0 or i >= maxiter:
             # If IRLS starts diverging, use L-BFGS-B
-            def f(beta):
+            def f(beta: npt.NDArray) -> float:
                 # closure to minimize
                 mu_ = np.maximum(size_factors * np.exp(X @ beta), min_mu)
                 return nb_nll(counts, mu_, disp) + 0.5 * (ridge_factor @ beta**2).sum()
 
-            def df(beta):
+            def df(beta: npt.NDArray) -> npt.NDArray:
                 mu_ = np.maximum(size_factors * np.exp(X @ beta), min_mu)
                 return (
                     -X.T @ counts
@@ -511,7 +505,7 @@ def fit_alpha_mle(
     cr_reg: bool = True,
     prior_reg: bool = False,
     optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
-):
+) -> Tuple[float, bool]:
     """Estimate the dispersion parameter of a negative binomial GLM.
 
     Note: it is possible to pass counts, design_matrix and mu arguments in the form of
@@ -548,7 +542,7 @@ def fit_alpha_mle(
 
     optimizer : str
         Optimizing method to use. Accepted values: 'BFGS' or 'L-BFGS-B'.
-        (default: 'BFGS').
+        (default: 'L-BFGS-B').
 
     Returns
     -------
@@ -604,8 +598,8 @@ def fit_alpha_mle(
 
     res = minimize(
         lambda x: loss(x[0]),
-        x0=[np.log(alpha_hat)],
-        jac=dloss,
+        x0=np.log(alpha_hat),
+        jac=lambda x: dloss(x[0]),
         method=optimizer,
         bounds=[(np.log(min_disp), np.log(max_disp))]
         if optimizer == "L-BFGS-B"
@@ -623,7 +617,7 @@ def fit_alpha_mle(
         )
 
 
-def trimmed_mean(x, trim=0.1, **kwargs):
+def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, npt.NDArray]:
     """Return trimmed mean.
 
     Compute the mean after trimming data of its smallest and largest quantiles.
@@ -671,7 +665,7 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
     counts : pandas.DataFrame
         Sample-wise gene counts.
 
-    cells : pandas.DataFrame
+    cells : pandas.Series
         Cohort affiliation of each sample.
 
     Returns
@@ -684,7 +678,7 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
     trimratio = (1 / 3, 1 / 4, 1 / 8)
     # returns an index for the vector above for three sample size bins
 
-    def trimfn(x):
+    def trimfn(x: float) -> float:
         return 2 if x >= 23.5 else 1 if x >= 3.5 else 0
 
     ns = cells.value_counts()
@@ -707,7 +701,9 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
     return varEst.max(axis=1)
 
 
-def trimmed_variance(x: npt.NDArray, trim=0.125, axis=0) -> npt.NDArray:
+def trimmed_variance(
+    x: npt.NDArray[np.int32, float], trim: float = 0.125, axis: int = 0
+) -> Union[float, npt.NDArray]:
     """Return trimmed variance.
 
      Compute the variance after trimming data of its smallest and largest quantiles.
@@ -725,7 +721,7 @@ def trimmed_variance(x: npt.NDArray, trim=0.125, axis=0) -> npt.NDArray:
 
     Returns
     -------
-    ndarray
+    float or ndarray
         Trimmed variances.
     """
 
@@ -740,7 +736,7 @@ def fit_lin_mu(
     size_factors: npt.NDArray,
     design_matrix: npt.NDArray,
     min_mu: float = 0.5,
-):
+) -> npt.NDArray:
     """Estimate mean of negative binomial model using a linear regression.
 
     Used to initialize genewise dispersion models.
@@ -761,7 +757,7 @@ def fit_lin_mu(
 
     Returns
     -------
-    float
+    ndarray
         Estimated mean.
     """
 
@@ -793,7 +789,7 @@ def wald_test(
     disp : float
         Dispersion estimate.
 
-    lfc : float
+    lfc : ndarray
         Log-fold change estimate (in natural log scale).
 
     mu : float
@@ -830,18 +826,18 @@ def wald_test(
 
 
 def fit_rough_dispersions(
-    counts: pd.DataFrame, size_factors: pd.DataFrame, design_matrix: pd.DataFrame
-) -> pd.DataFrame:
+    counts: npt.NDArray, size_factors: npt.NDArray, design_matrix: pd.DataFrame
+) -> npt.NDArray:
     """ "Rough dispersion" estimates from linear model, as per the R code.
 
     Used as initial estimates in DeseqDataSet._fit_MoM_dispersions.
 
     Parameters
     ----------
-    counts : pandas.DataFrame
-        Raw counts. One column per gene, rows are indexed by sample barcodes.
+    counts : ndarray
+        Raw counts. One column per gene, one row per sample.
 
-    size_factors : pandas.DataFrame
+    size_factors : ndarray
         DESeq2 normalization factors.
 
     design_matrix : pandas.DataFrame
@@ -850,14 +846,17 @@ def fit_rough_dispersions(
 
     Returns
     -------
-    pandas.DataFrame
+    ndarray
         Estimated dispersion parameter for each gene.
     """
 
     num_samples, num_vars = design_matrix.shape
-    normed_counts = counts.div(size_factors, 0)
+
+    normed_counts = counts / size_factors[:, None]
+
     # Exclude genes with all zeroes
-    normed_counts = normed_counts.loc[:, ~(normed_counts == 0).all()]
+    normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
+
     reg = LinearRegression(fit_intercept=False)
     reg.fit(design_matrix, normed_counts)
     y_hat = reg.predict(design_matrix)
@@ -869,35 +868,36 @@ def fit_rough_dispersions(
 
 
 def fit_moments_dispersions(
-    counts: pd.DataFrame, size_factors: pd.DataFrame
-) -> pd.Series:
+    counts: npt.NDArray, size_factors: npt.NDArray
+) -> npt.NDArray:
     """Dispersion estimates based on moments, as per the R code.
 
     Used as initial estimates in DeseqDataSet._fit_MoM_dispersions.
 
     Parameters
     ----------
-    counts : pandas.DataFrame
-        Raw counts. One column per gene, rows are indexed by sample barcodes.
+    counts : ndarray
+        Raw counts. One column per gene, one row per sample.
 
-    size_factors : pandas.DataFrame
+    size_factors : ndarray
         DESeq2 normalization factors.
 
     Returns
     -------
-    pandas.Series
+    ndarray
         Estimated dispersion parameter for each gene.
     """
-    normed_counts = counts.div(size_factors, 0)
+
+    normed_counts = counts / size_factors[:, None]
     # Exclude genes with all zeroes
-    normed_counts = normed_counts.loc[:, ~(normed_counts == 0).all()]
+    normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
     # mean inverse size factor
     s_mean_inv = (1 / size_factors).mean()
     mu = normed_counts.mean(0)
     sigma = normed_counts.var(0, ddof=1)
     # ddof=1 is to use an unbiased estimator, as in R
     # NaN (variance = 0) are replaced with 0s
-    return ((sigma - s_mean_inv * mu) / mu**2).fillna(0)
+    return np.nan_to_num((sigma - s_mean_inv * mu) / mu**2)
 
 
 def robust_method_of_moments_disp(
@@ -978,7 +978,7 @@ def nbinomGLM(
     prior_scale: float,
     optimizer="L-BFGS-B",
     shrink_index: int = 1,
-):
+) -> Tuple[npt.NDArray, npt.NDArray, bool]:
     """Fit a negative binomial MAP LFC using an apeGLM prior.
 
     Only the LFC is shrinked, and not the intercept.
@@ -1043,7 +1043,7 @@ def nbinomGLM(
     )
     scale_cnst = np.maximum(scale_cnst, 1)
 
-    def f(beta, cnst=scale_cnst):
+    def f(beta: npt.NDArray, cnst: float = scale_cnst) -> float:
         # Function to optimize
         return (
             nbinomFn(
@@ -1059,7 +1059,7 @@ def nbinomGLM(
             / cnst
         )
 
-    def df(beta, cnst=scale_cnst):
+    def df(beta: npt.NDArray, cnst: float = scale_cnst) -> npt.NDArray:
         # Gradient of the function to optimize
         xbeta = design_matrix @ beta
         d_neg_prior = (
@@ -1073,7 +1073,7 @@ def nbinomGLM(
 
         return (d_neg_prior - d_nll) / cnst
 
-    def ddf(beta, cnst=scale_cnst):
+    def ddf(beta: npt.NDArray, cnst: float = scale_cnst) -> npt.NDArray:
         # Hessian of the function to optimize
         # Note: will only work if there is a single shrink index
         xbeta = design_matrix @ beta
@@ -1132,7 +1132,7 @@ def nbinomFn(
     prior_no_shrink_scale: float,
     prior_scale: float,
     shrink_index: int = 1,
-):
+) -> float:
     """Return the NB negative likelihood with apeGLM prior.
 
     Use for LFC shrinkage.

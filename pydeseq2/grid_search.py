@@ -7,7 +7,7 @@ from scipy.special import gammaln  # type: ignore
 import pydeseq2.utils
 
 
-def vec_nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray) -> float:
+def vec_nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray) -> npt.NDArray:
     """Return the negative log-likelihood of a negative binomial.
 
     Vectorized version.
@@ -26,7 +26,7 @@ def vec_nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray) -> floa
 
     Returns
     -------
-    float
+    ndarray
         Negative log likelihood of the observations counts following
         :math:`NB(\\mu, \\alpha)`.
     """
@@ -64,7 +64,7 @@ def grid_fit_alpha(
     cr_reg: bool = True,
     prior_reg: bool = False,
     grid_length: int = 100,
-):
+) -> float:
     """Find best dispersion parameter.
 
     Performs 1D grid search to maximize negative binomial log-likelihood.
@@ -111,7 +111,7 @@ def grid_fit_alpha(
     max_log_alpha = np.log(max_disp)
     grid = np.linspace(min_log_alpha, max_log_alpha, grid_length)
 
-    def loss(log_alpha):
+    def loss(log_alpha: npt.NDArray) -> npt.NDArray:
         # closure to minimize
         alpha = np.exp(log_alpha)
         W = mu[:, None] / (1 + mu[:, None] * alpha)
@@ -150,10 +150,10 @@ def grid_fit_beta(
     size_factors: npt.NDArray,
     design_matrix: npt.NDArray,
     disp: npt.NDArray,
-    min_mu=0.5,
-    grid_length=60,
-    min_beta=-30,
-    max_beta=30,
+    min_mu: float = 0.5,
+    grid_length: int = 60,
+    min_beta: float = -30,
+    max_beta: float = 30,
 ) -> npt.NDArray:
     """Find best LFC parameter.
 
@@ -180,22 +180,22 @@ def grid_fit_beta(
     grid_length : int
         Number of grid points. (default: 100).
 
-    min_beta : int
-        Lower-bound on LFC. (default: 30).
+    min_beta : float
+        Lower-bound on LFC. (default: 30.).
 
-    max_beta : int
-        Upper-bound on LFC. (default: 30).
+    max_beta : float
+        Upper-bound on LFC. (default: 30.).
 
     Returns
     -------
-    float
+    ndarray
         Fitted LFC parameter.
     """
     x_grid = np.linspace(min_beta, max_beta, grid_length)
     y_grid = np.linspace(min_beta, max_beta, grid_length)
     ll_grid = np.zeros((grid_length, grid_length))
 
-    def loss(beta):
+    def loss(beta: npt.NDArray) -> npt.NDArray:
         # closure to minimize
         mu = np.maximum(size_factors[:, None] * np.exp(design_matrix @ beta.T), min_mu)
         return vec_nb_nll(counts, mu, disp) + 0.5 * (1e-6 * beta**2).sum(1)
@@ -232,10 +232,10 @@ def grid_fit_shrink_beta(
     prior_no_shrink_scale: float,
     prior_scale: float,
     scale_cnst: float,
-    grid_length=60,
-    min_beta=-30,
-    max_beta=30,
-):
+    grid_length: int = 60,
+    min_beta: float = -30,
+    max_beta: float = 30,
+) -> npt.NDArray:
     """Find best LFC parameter.
 
     Performs 2D grid search to maximize MAP negative binomial
@@ -282,7 +282,7 @@ def grid_fit_shrink_beta(
     y_grid = np.linspace(min_beta, max_beta, grid_length)
     ll_grid = np.zeros((grid_length, grid_length))
 
-    def loss(beta):
+    def loss(beta: npt.NDArray) -> float:
         # closure to minimize
         return (
             pydeseq2.utils.nbinomFn(

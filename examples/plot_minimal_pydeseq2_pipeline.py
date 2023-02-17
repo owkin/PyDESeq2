@@ -10,6 +10,7 @@ RNAseq data, using PyDESeq2.
     :depth: 3
 
 We start by importing required packages and setting up an optional path to save results.
+
 """
 
 import os
@@ -175,13 +176,33 @@ if SAVE:
         pkl.dump(dds, f)
 
 # %%
-# If needed, we may now access the fitted dispersions and LFCs (in natural log scale):
+# The :class:`DeseqDataSet` class extends the
+# :class:`AnnData <anndata.AnnData>`
+# class.
 
-print(dds.dispersions)
+print(dds)
+
+# %%
+# Hence, parameters are stored according to the :class:`AnnData <anndata.AnnData>` data
+# structure, with key-based data fields. In particular,
+#
+# - ``X`` stores the count data,
+# - ``obs`` stores design factors,
+# - ``obsm`` stores sample-level data, such as ``"design_matrix"`` and
+#   ``"size_factors"``,
+# - ``varm`` stores gene-level data, such as ``"dispersions"`` and ``"LFC"``.
+#
+#
+# As an example, here is how we would access dispersions and LFCs
+# (in natural log scale):
 
 # %%
 
-print(dds.LFCs)
+print(dds.varm["dispersions"])
+
+# %%
+
+print(dds.varm["LFC"])
 
 # %%
 # .. currentmodule:: pydeseq2.ds
@@ -301,7 +322,7 @@ dds.deseq2()
 # Now, if we print log fold changes, we will have two columns in addition to the
 # intercept: one corresponding to the ``group`` variable, and the other to ``condition``.
 
-print(dds.LFCs)
+print(dds.varm["LFC"])
 
 # %%
 # .. currentmodule:: pydeseq2.ds
