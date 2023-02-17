@@ -235,7 +235,7 @@ def dispersion_trend(
         return coeffs[0] + coeffs[1] / normed_mean
 
 
-def nb_nll(counts: npt.NDArray, mu: float, alpha: float) -> float:
+def nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: float) -> float:
     """Negative log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
 
     Unvectorized version.
@@ -271,7 +271,7 @@ def nb_nll(counts: npt.NDArray, mu: float, alpha: float) -> float:
     counts : ndarray
         Observations.
 
-    mu : float
+    mu : ndarray
         Mean of the distribution :math:`\\mu`.
 
     alpha : float
@@ -302,7 +302,7 @@ def nb_nll(counts: npt.NDArray, mu: float, alpha: float) -> float:
     )
 
 
-def dnb_nll(counts: npt.NDArray, mu: float, alpha: float) -> float:
+def dnb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: float) -> float:
     """Gradient of the negative log-likelihood of a negative binomial.
 
     Unvectorized.
@@ -421,7 +421,7 @@ def irls_solver(
         beta_init = solve(R, Q.T @ y)
         beta = beta_init
 
-    dev = 1000
+    dev = 1000.
     dev_ratio = 1.0
 
     ridge_factor = np.diag(np.repeat(1e-6, num_vars))
@@ -678,7 +678,7 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
     trimratio = (1 / 3, 1 / 4, 1 / 8)
     # returns an index for the vector above for three sample size bins
 
-    def trimfn(x: float) -> float:
+    def trimfn(x: float) -> int:
         return 2 if x >= 23.5 else 1 if x >= 3.5 else 0
 
     ns = cells.value_counts()
@@ -702,7 +702,7 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
 
 
 def trimmed_variance(
-    x: npt.NDArray[np.int32, float], trim: float = 0.125, axis: int = 0
+    x: npt.NDArray, trim: float = 0.125, axis: int = 0
 ) -> Union[float, npt.NDArray]:
     """Return trimmed variance.
 

@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
-from IPython.display import display
+from IPython.display import display  # type: ignore
 from joblib import Parallel  # type: ignore
 from joblib import delayed  # type: ignore
 from joblib import parallel_backend  # type: ignore

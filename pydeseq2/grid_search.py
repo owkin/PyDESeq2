@@ -7,7 +7,7 @@ from scipy.special import gammaln  # type: ignore
 import pydeseq2.utils
 
 
-def vec_nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray) -> npt.NDArray:
+def vec_nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: float) -> npt.NDArray:
     """Return the negative log-likelihood of a negative binomial.
 
     Vectorized version.
@@ -17,7 +17,7 @@ def vec_nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: npt.NDArray) -> npt.
     counts : ndarray
         Observations.
 
-    mu : float
+    mu : ndarray
         Mean of the distribution.
 
     alpha : float
@@ -149,7 +149,7 @@ def grid_fit_beta(
     counts: npt.NDArray,
     size_factors: npt.NDArray,
     design_matrix: npt.NDArray,
-    disp: npt.NDArray,
+    disp: float,
     min_mu: float = 0.5,
     grid_length: int = 60,
     min_beta: float = -30,
