@@ -379,7 +379,7 @@ def irls_solver(
     min_beta : float
         Lower-bound on LFC. (default: -30).
 
-    max_beta : flaot
+    max_beta : float
         Upper-bound on LFC. (default: -30).
 
     optimizer : str
