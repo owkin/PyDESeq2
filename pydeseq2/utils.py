@@ -421,7 +421,7 @@ def irls_solver(
         beta_init = solve(R, Q.T @ y)
         beta = beta_init
 
-    dev = 1000.
+    dev = 1000.0
     dev_ratio = 1.0
 
     ridge_factor = np.diag(np.repeat(1e-6, num_vars))
