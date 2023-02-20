@@ -1,17 +1,22 @@
 import time
+from typing import List
+from typing import Optional
+from typing import cast
 
 # import anndata as ad
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
-import statsmodels.api as sm
-from IPython.display import display
-from joblib import Parallel
-from joblib import delayed
-from joblib import parallel_backend
-from scipy.optimize import root_scalar
-from scipy.stats import f
-from statsmodels.stats.multitest import multipletests
+import statsmodels.api as sm  # type: ignore
+from IPython.display import display  # type: ignore
+from joblib import Parallel  # type: ignore
+from joblib import delayed  # type: ignore
+from joblib import parallel_backend  # type: ignore
+from scipy.optimize import root_scalar  # type: ignore
+from scipy.stats import f  # type: ignore
+from statsmodels.stats.multitest import multipletests  # type: ignore
 
+from pydeseq2.dds import DeseqDataSet
 from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import nbinomGLM
 from pydeseq2.utils import wald_test
@@ -110,16 +115,16 @@ class DeseqStats:
 
     def __init__(
         self,
-        dds,
-        contrast=None,
-        alpha=0.05,
-        cooks_filter=True,
-        independent_filter=True,
-        n_cpus=None,
-        prior_LFC_var=None,
-        batch_size=128,
-        joblib_verbosity=0,
-    ):
+        dds: DeseqDataSet,
+        contrast: Optional[List[str]] = None,
+        alpha: float = 0.05,
+        cooks_filter: bool = True,
+        independent_filter: bool = True,
+        n_cpus: Optional[int] = None,
+        prior_LFC_var: Optional[npt.NDArray] = None,
+        batch_size: int = 128,
+        joblib_verbosity: int = 0,
+    ) -> None:
         assert (
             "LFC" in dds.varm
         ), "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
@@ -199,7 +204,7 @@ class DeseqStats:
                 "to False."
             )
 
-    def summary(self):
+    def summary(self) -> None:
         """Run the statistical analysis.
 
         The results are stored in the `results_df` attribute.
@@ -239,7 +244,7 @@ class DeseqStats:
         )
         display(self.results_df)
 
-    def run_wald_test(self):
+    def run_wald_test(self) -> None:
         """Perform a Wald test.
 
         Get gene-wise p-values for gene over/under-expression.`
@@ -294,18 +299,19 @@ class DeseqStats:
 
         pvals, stats, se = zip(*res)
 
-        self.p_values = pd.Series(pvals, index=self.dds.var_names)
-        self.statistics = pd.Series(stats, index=self.dds.var_names)
-        self.SE = pd.Series(se, index=self.dds.var_names)
+        # need casting because mypy recognize them as TimeStampSeries
+        # reason is unknown...
+        self.p_values = cast(pd.Series, pd.Series(pvals, index=self.dds.var_names))
+        self.statistics = cast(pd.Series, pd.Series(stats, index=self.dds.var_names))
+        self.SE = cast(pd.Series, pd.Series(se, index=self.dds.var_names))
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
         if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
+            self.SE.loc[self.dds.new_all_zeroes_genes] = 0.0
+            self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
+            self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
 
-            self.SE.loc[self.dds.new_all_zeroes_genes] = 0
-            self.statistics.loc[self.dds.new_all_zeroes_genes] = 0
-            self.p_values.loc[self.dds.new_all_zeroes_genes] = 1
-
-    def lfc_shrink(self):
+    def lfc_shrink(self) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
@@ -316,7 +322,6 @@ class DeseqStats:
             If pvalues were already computed, return the results DataFrame with MAP LFCs,
             but unmodified stats and pvalues.
         """
-
         size = 1.0 / self.dds.varm["dispersions"]
         offset = np.log(self.dds.obsm["size_factors"])
 
@@ -393,7 +398,7 @@ class DeseqStats:
 
             display(self.results_df)
 
-    def _independent_filtering(self):
+    def _independent_filtering(self) -> None:
         """Compute adjusted p-values using independent filtering.
 
         Corrects p-value trend (see :cite:p:`DeseqStats-love2014moderated`)
@@ -441,7 +446,7 @@ class DeseqStats:
 
         self.padj = result.loc[:, j]
 
-    def _p_value_adjustment(self):
+    def _p_value_adjustment(self) -> None:
         """Compute adjusted p-values using the Benjamini-Hochberg method.
 
 
@@ -457,7 +462,7 @@ class DeseqStats:
             self.p_values.dropna(), alpha=self.alpha, method="fdr_bh"
         )[1]
 
-    def _cooks_filtering(self):
+    def _cooks_filtering(self) -> None:
         """Filter p-values based on Cooks outliers."""
 
         # Check that p-values are available. If not, compute them.
@@ -507,7 +512,7 @@ class DeseqStats:
 
         self.p_values[cooks_outlier] = np.nan
 
-    def _fit_prior_var(self, min_var=1e-6, max_var=400):
+    def _fit_prior_var(self, min_var: float = 1e-6, max_var: float = 400.0) -> float:
         """Estimate the prior variance of the apeGLM model.
 
         Returns shrinkage factors.
@@ -530,7 +535,7 @@ class DeseqStats:
         S = self.LFC[keep].iloc[:, self.contrast_idx] ** 2
         D = self.SE[keep] ** 2
 
-        def objective(a):
+        def objective(a: float) -> float:
             # Equation to solve
             coeff = 1 / (2 * (a + D) ** 2)
             return ((S - D) * coeff).sum() / coeff.sum() - a

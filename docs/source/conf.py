@@ -218,9 +218,9 @@ epub_exclude_files = ["search.html"]
 # The following elements are the link that auto doc were not able to do
 nitpick_ignore = [
     ("py:class", "pd.Series"),
-    #    ("py:class", "anndata.AnnData"),
-    #    ("py:class", "anndata._core.anndata.AnnData"),
+    ("py:class", "pd.DataFrame"),
     ("py:class", "ndarray"),
+    ("py:class", "numpy._typing._generic_alias.ScalarType"),
     ("py:class", "pydantic.main.BaseModel"),
     ("py:class", "torch.nn.modules.module.Module"),
     ("py:class", "torch.nn.modules.loss._Loss"),

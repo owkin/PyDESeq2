@@ -37,6 +37,13 @@ setup(
         "matplotlib>=3.6.2",  # not sure why sphinx_gallery does not work without it
     ],  # external packages as dependencies
     extras_require={
-        "dev": ["pytest>=6.2.4", "pre-commit>=2.13.0", "numpydoc", "coverage"],
+        "dev": [
+            "pytest>=6.2.4",
+            "pre-commit>=2.13.0",
+            "numpydoc",
+            "coverage",
+            "mypy",
+            "pandas-stubs",
+        ],
     },
 )

@@ -1,10 +1,13 @@
+from typing import Optional
+
 import numpy as np
-from scipy.special import gammaln
+import numpy.typing as npt
+from scipy.special import gammaln  # type: ignore
 
 import pydeseq2.utils
 
 
-def vec_nb_nll(counts, mu, alpha):
+def vec_nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: float) -> npt.NDArray:
     """Return the negative log-likelihood of a negative binomial.
 
     Vectorized version.
@@ -14,7 +17,7 @@ def vec_nb_nll(counts, mu, alpha):
     counts : ndarray
         Observations.
 
-    mu : float
+    mu : ndarray
         Mean of the distribution.
 
     alpha : float
@@ -23,7 +26,7 @@ def vec_nb_nll(counts, mu, alpha):
 
     Returns
     -------
-    float
+    ndarray
         Negative log likelihood of the observations counts following
         :math:`NB(\\mu, \\alpha)`.
     """
@@ -51,17 +54,17 @@ def vec_nb_nll(counts, mu, alpha):
 
 
 def grid_fit_alpha(
-    counts,
-    design_matrix,
-    mu,
-    alpha_hat,
-    min_disp,
-    max_disp,
-    prior_disp_var=None,
-    cr_reg=True,
-    prior_reg=False,
-    grid_length=100,
-):
+    counts: npt.NDArray,
+    design_matrix: npt.NDArray,
+    mu: npt.NDArray,
+    alpha_hat: float,
+    min_disp: float,
+    max_disp: float,
+    prior_disp_var: Optional[float] = None,
+    cr_reg: bool = True,
+    prior_reg: bool = False,
+    grid_length: int = 100,
+) -> float:
     """Find best dispersion parameter.
 
     Performs 1D grid search to maximize negative binomial log-likelihood.
@@ -108,7 +111,7 @@ def grid_fit_alpha(
     max_log_alpha = np.log(max_disp)
     grid = np.linspace(min_log_alpha, max_log_alpha, grid_length)
 
-    def loss(log_alpha):
+    def loss(log_alpha: npt.NDArray) -> npt.NDArray:
         # closure to minimize
         alpha = np.exp(log_alpha)
         W = mu[:, None] / (1 + mu[:, None] * alpha)
@@ -121,6 +124,11 @@ def grid_fit_alpha(
                 )[1]
             )
         if prior_reg:
+            if prior_disp_var is None:
+                raise NotImplementedError(
+                    "If you use prior_reg, you need to specify prior_disp_var"
+                )
+
             reg += (np.log(alpha) - np.log(alpha_hat)) ** 2 / (2 * prior_disp_var)
         return vec_nb_nll(counts, mu, alpha) + reg
 
@@ -138,15 +146,15 @@ def grid_fit_alpha(
 
 
 def grid_fit_beta(
-    counts,
-    size_factors,
-    design_matrix,
-    disp,
-    min_mu=0.5,
-    grid_length=60,
-    min_beta=-30,
-    max_beta=30,
-):
+    counts: npt.NDArray,
+    size_factors: npt.NDArray,
+    design_matrix: npt.NDArray,
+    disp: float,
+    min_mu: float = 0.5,
+    grid_length: int = 60,
+    min_beta: float = -30,
+    max_beta: float = 30,
+) -> npt.NDArray:
     """Find best LFC parameter.
 
     Perform 2D grid search to maximize negative binomial
@@ -157,7 +165,7 @@ def grid_fit_beta(
     counts : ndarray
         Raw counts for a given gene.
 
-    size_factors : pandas.Series
+    size_factors : ndarray
         DESeq2 normalization factors.
 
     design_matrix : ndarray
@@ -172,22 +180,22 @@ def grid_fit_beta(
     grid_length : int
         Number of grid points. (default: 100).
 
-    min_beta : int
-        Lower-bound on LFC. (default: 30).
+    min_beta : float
+        Lower-bound on LFC. (default: 30.).
 
-    max_beta : int
-        Upper-bound on LFC. (default: 30).
+    max_beta : float
+        Upper-bound on LFC. (default: 30.).
 
     Returns
     -------
-    float
+    ndarray
         Fitted LFC parameter.
     """
     x_grid = np.linspace(min_beta, max_beta, grid_length)
     y_grid = np.linspace(min_beta, max_beta, grid_length)
     ll_grid = np.zeros((grid_length, grid_length))
 
-    def loss(beta):
+    def loss(beta: npt.NDArray) -> npt.NDArray:
         # closure to minimize
         mu = np.maximum(size_factors[:, None] * np.exp(design_matrix @ beta.T), min_mu)
         return vec_nb_nll(counts, mu, disp) + 0.5 * (1e-6 * beta**2).sum(1)
@@ -217,17 +225,17 @@ def grid_fit_beta(
 
 
 def grid_fit_shrink_beta(
-    counts,
-    offset,
-    design_matrix,
-    size,
-    prior_no_shrink_scale,
-    prior_scale,
-    scale_cnst,
-    grid_length=60,
-    min_beta=-30,
-    max_beta=30,
-):
+    counts: npt.NDArray,
+    offset: npt.NDArray,
+    design_matrix: npt.NDArray,
+    size: npt.NDArray,
+    prior_no_shrink_scale: float,
+    prior_scale: float,
+    scale_cnst: float,
+    grid_length: int = 60,
+    min_beta: float = -30,
+    max_beta: float = 30,
+) -> npt.NDArray:
     """Find best LFC parameter.
 
     Performs 2D grid search to maximize MAP negative binomial
@@ -274,7 +282,7 @@ def grid_fit_shrink_beta(
     y_grid = np.linspace(min_beta, max_beta, grid_length)
     ll_grid = np.zeros((grid_length, grid_length))
 
-    def loss(beta):
+    def loss(beta: npt.NDArray) -> float:
         # closure to minimize
         return (
             pydeseq2.utils.nbinomFn(

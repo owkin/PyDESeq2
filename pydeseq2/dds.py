@@ -1,17 +1,22 @@
 import time
 import warnings
+from typing import List
+from typing import Optional
+from typing import Union
+from typing import cast
 
-import anndata as ad
+import anndata as ad  # type: ignore
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
-import statsmodels.api as sm
-from joblib import Parallel
+import statsmodels.api as sm  # type: ignore
+from joblib import Parallel  # type: ignore
 from joblib import delayed
 from joblib import parallel_backend
-from scipy.special import polygamma
-from scipy.stats import f
+from scipy.special import polygamma  # type: ignore
+from scipy.stats import f  # type: ignore
 from scipy.stats import norm
-from statsmodels.tools.sm_exceptions import DomainWarning
+from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
 from pydeseq2.preprocessing import deseq2_norm
 from pydeseq2.utils import build_design_matrix
@@ -146,20 +151,20 @@ class DeseqDataSet(ad.AnnData):
 
     def __init__(
         self,
-        counts,
-        clinical,
-        design_factors="condition",
-        reference_level=None,
-        min_mu=0.5,
-        min_disp=1e-8,
-        max_disp=10.0,
-        refit_cooks=True,
-        min_replicates=7,
-        beta_tol=1e-8,
-        n_cpus=None,
-        batch_size=128,
-        joblib_verbosity=0,
-    ):
+        counts: pd.DataFrame,
+        clinical: pd.DataFrame,
+        design_factors: Union[str, List[str]] = "condition",
+        reference_level: Optional[str] = None,
+        min_mu: float = 0.5,
+        min_disp: float = 1e-8,
+        max_disp: float = 10.0,
+        refit_cooks: bool = True,
+        min_replicates: int = 7,
+        beta_tol: float = 1e-8,
+        n_cpus: Optional[int] = None,
+        batch_size: int = 128,
+        joblib_verbosity: int = 0,
+    ) -> None:
 
         # Test counts before going further
         test_valid_counts(counts)
@@ -195,7 +200,7 @@ class DeseqDataSet(ad.AnnData):
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
 
-    def deseq2(self):
+    def deseq2(self) -> None:
         """Perform dispersion and log fold-change (LFC) estimation.
 
         Wrapper for the first part of the PyDESeq2 pipeline.
@@ -222,7 +227,7 @@ class DeseqDataSet(ad.AnnData):
             # for genes that had outliers replaced
             self.refit()
 
-    def fit_size_factors(self):
+    def fit_size_factors(self) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
         Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`.
@@ -233,7 +238,7 @@ class DeseqDataSet(ad.AnnData):
         end = time.time()
         print(f"... done in {end - start:.2f} seconds.\n")
 
-    def fit_genewise_dispersions(self):
+    def fit_genewise_dispersions(self) -> None:
         """Fit gene-wise dispersion estimates.
 
         Fits a negative binomial per gene, independently.
@@ -246,6 +251,9 @@ class DeseqDataSet(ad.AnnData):
         self.varm["non_zero"] = ~(self.X == 0).all(axis=0)
         self.non_zero_idx = np.arange(self.n_vars)[self.varm["non_zero"]]
         self.non_zero_genes = self.var_names[self.varm["non_zero"]]
+
+        if isinstance(self.non_zero_genes, pd.MultiIndex):
+            raise ValueError("non_zero_genes should not be a MultiIndex")
 
         # Fit "method of moments" dispersion estimates
         self._fit_MoM_dispersions()
@@ -333,7 +341,7 @@ class DeseqDataSet(ad.AnnData):
         self.varm["_genewise_converged"] = np.full(self.n_vars, np.NaN)
         self.varm["_genewise_converged"][self.varm["non_zero"]] = l_bfgs_b_converged_
 
-    def fit_dispersion_trend(self):
+    def fit_dispersion_trend(self) -> None:
         r"""Fit the dispersion trend coefficients.
 
         .. math:: f(\mu) = \alpha_1/\mu + a_0.
@@ -372,7 +380,6 @@ class DeseqDataSet(ad.AnnData):
         coeffs = pd.Series([1.0, 1.0])
 
         while (np.log(np.abs(coeffs / old_coeffs)) ** 2).sum() >= 1e-6:
-
             glm_gamma = sm.GLM(
                 targets.values,
                 covariates.values,
@@ -409,7 +416,7 @@ class DeseqDataSet(ad.AnnData):
             self.uns["trend_coeffs"],
         )
 
-    def fit_dispersion_prior(self):
+    def fit_dispersion_prior(self) -> None:
         """Fit dispersion variance priors and standard deviation of log-residuals.
 
         The computation is based on genes whose dispersions are above 100 * min_disp.
@@ -433,6 +440,7 @@ class DeseqDataSet(ad.AnnData):
         above_min_disp = self[:, self.non_zero_genes].varm["genewise_dispersions"] >= (
             100 * self.min_disp
         )
+
         self.uns["_squared_logres"] = np.median(
             np.abs(disp_residuals[above_min_disp])
         ) ** 2 / norm.ppf(0.75)
@@ -441,7 +449,7 @@ class DeseqDataSet(ad.AnnData):
             0.25,
         )
 
-    def fit_MAP_dispersions(self):
+    def fit_MAP_dispersions(self) -> None:
         """Fit Maximum a Posteriori dispersion estimates.
 
         After MAP dispersions are fit, filter genes for which we don't apply shrinkage.
@@ -497,7 +505,7 @@ class DeseqDataSet(ad.AnnData):
             "genewise_dispersions"
         ][self.varm["_outlier_genes"]]
 
-    def fit_LFC(self):
+    def fit_LFC(self) -> None:
         """Fit log fold change (LFC) coefficients.
 
         In the 2-level setting, the intercept corresponds to the base mean,
@@ -559,7 +567,7 @@ class DeseqDataSet(ad.AnnData):
         self.varm["_LFC_converged"] = np.full(self.n_vars, np.NaN)
         self.varm["_LFC_converged"][self.varm["non_zero"]] = converged_
 
-    def calculate_cooks(self):
+    def calculate_cooks(self) -> None:
         """Compute Cook's distance for outlier detection.
 
         Measures the contribution of a single entry to the output of LFC estimation.
@@ -570,16 +578,15 @@ class DeseqDataSet(ad.AnnData):
             self.fit_MAP_dispersions()
 
         num_vars = self.obsm["design_matrix"].shape[-1]
-        nonzero_data = self[:, self.non_zero_genes]
 
         # Keep only non-zero genes
+        nonzero_data = self[:, self.non_zero_genes]
         normed_counts = pd.DataFrame(
             nonzero_data.X / self.obsm["size_factors"][:, None],
             index=self.obs_names,
             columns=self.non_zero_genes,
         )
 
-        # dispersions = pd.Series(np.NaN, index=self.var_names)
         dispersions = robust_method_of_moments_disp(
             normed_counts, self.obsm["design_matrix"]
         )
@@ -599,7 +606,7 @@ class DeseqDataSet(ad.AnnData):
             squared_pearson_res / num_vars * diag_mul
         )
 
-    def refit(self):
+    def refit(self) -> None:
         """Refit Cook outliers.
 
         Replace values that are filtered out based on the Cooks distance with imputed
@@ -613,7 +620,7 @@ class DeseqDataSet(ad.AnnData):
             # Refit dispersions and LFCs for genes that had outliers replaced
             self._refit_without_outliers()
 
-    def _fit_MoM_dispersions(self):
+    def _fit_MoM_dispersions(self) -> None:
         """ "Rough method of moments" initial dispersions fit.
         Estimates are the max of "robust" and "method of moments" estimates.
         """
@@ -635,7 +642,7 @@ class DeseqDataSet(ad.AnnData):
             alpha_hat, self.min_disp, self.max_disp
         )
 
-    def _replace_outliers(self):
+    def _replace_outliers(self) -> None:
         """Replace values that are filtered out based
         on the Cooks distance with imputed values.
         """
@@ -675,10 +682,13 @@ class DeseqDataSet(ad.AnnData):
         self.counts_to_refit = self[:, self.varm["replaced"]].copy()
 
         trim_base_mean = pd.DataFrame(
-            trimmed_mean(
-                self.counts_to_refit.X / self.obsm["size_factors"][:, None],
-                trim=0.2,
-                axis=0,
+            cast(
+                npt.NDArray,
+                trimmed_mean(
+                    self.counts_to_refit.X / self.obsm["size_factors"][:, None],
+                    trim=0.2,
+                    axis=0,
+                ),
             ),
             index=self.counts_to_refit.var_names,
         )
@@ -701,7 +711,7 @@ class DeseqDataSet(ad.AnnData):
 
     def _refit_without_outliers(
         self,
-    ):
+    ) -> None:
         """Re-run the whole DESeq2 pipeline with replaced outliers."""
         assert (
             self.refit_cooks
@@ -715,6 +725,9 @@ class DeseqDataSet(ad.AnnData):
         new_all_zeroes = (self.counts_to_refit.X == 0).all(axis=0)
         self.new_all_zeroes_genes = self.counts_to_refit.var_names[new_all_zeroes]
         self.counts_to_refit = self.counts_to_refit[:, ~new_all_zeroes].copy()
+
+        if isinstance(self.new_all_zero_genes, pd.MultiIndex):
+            raise ValueError
 
         sub_dds = DeseqDataSet(
             counts=pd.DataFrame(
