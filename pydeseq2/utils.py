@@ -73,16 +73,16 @@ def load_example_data(
     if dataset == "synthetic":
         path_to_data = datasets_path / "synthetic"
         if Path(path_to_data).is_dir():
-            path_to_data_counts = path_to_data / "test_counts.csv"
-            path_to_data_clinical = path_to_data / "test_clinical.csv"
+            path_to_data_counts = str(path_to_data / "test_counts.csv")
+            path_to_data_clinical = str(path_to_data / "test_clinical.csv")
         else:
             # if the path does not exist (as is the case in RDT) load it from github
             url_to_data = (
                 "https://raw.githubusercontent.com/owkin/"
                 "PyDESeq2/main/datasets/synthetic/"
             )
-            path_to_data_counts = Path(url_to_data + "/test_counts.csv")
-            path_to_data_clinical = Path(url_to_data + "/test_clinical.csv")
+            path_to_data_counts = url_to_data + "/test_counts.csv"
+            path_to_data_clinical = url_to_data + "/test_clinical.csv"
 
         if modality == "raw_counts":
             df = pd.read_csv(
