@@ -120,7 +120,7 @@ def test_valid_counts(counts_df: pd.DataFrame) -> None:
     if counts_df.isna().any().any():
         raise ValueError("NaNs are not allowed in the count matrix.")
     if ~counts_df.apply(
-        lambda s: pd.to_numeric(s, errors="coerce").notnull().all()  # type: ignore
+        lambda s: pd.to_numeric(s, errors="coerce").notnull().all()
     ).all():
         raise ValueError("The count matrix should only contain numbers.")
     if (counts_df % 1 != 0).any().any():
