@@ -225,11 +225,11 @@ class DeseqDataSet(ad.AnnData):
     def fit_size_factors(self):
         """Fit sample-wise deseq2 normalization (size) factors.
 
-        Uses the median-of-ratios method.
+        Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`.
         """
         print("Fitting size factors...")
         start = time.time()
-        _, self.obsm["size_factors"] = deseq2_norm(self.X)
+        self.layers["normed_counts"], self.obsm["size_factors"] = deseq2_norm(self.X)
         end = time.time()
         print(f"... done in {end - start:.2f} seconds.\n")
 
@@ -345,9 +345,7 @@ class DeseqDataSet(ad.AnnData):
 
         print("Fitting dispersion trend curve...")
         start = time.time()
-        self.varm["_normed_means"] = (self.X / self.obsm["size_factors"][:, None]).mean(
-            0
-        )
+        self.varm["_normed_means"] = self.layers["normed_counts"].mean(0)
 
         # Exclude all-zero counts
         targets = pd.Series(
