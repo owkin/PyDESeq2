@@ -24,6 +24,7 @@ repos:
     hooks:
     - id: mypy
       exclude: ^(tests/|docs/source/conf.py)
+      args: ["--check-untyped-defs", "--disallow-untyped-calls", "--disallow-untyped-defs", "--disallow-untyped-decorators", "--disallow-incomplete-defs"]
 - repo: https://github.com/nbQA-dev/nbQA #black and isort for Jupyter notebooks
   rev: 1.4.0
   hooks:
