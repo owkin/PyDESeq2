@@ -44,7 +44,7 @@ def test_rtd_example_data_loading(mocked_function, modality):
 
     # Mock the output of is_dir() as False to emulate not having access to the
     # ``datasets`` directory
-    pathlib.Path.is_dir.return_value = False
+    pathlib.Path.is_dir.return_value = [False, True]
 
     # Try loading data.
     load_example_data(
