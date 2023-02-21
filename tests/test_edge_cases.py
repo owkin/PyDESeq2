@@ -1,3 +1,6 @@
+import pathlib
+from unittest import mock
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -240,3 +243,29 @@ def test_few_samples():
 
     # Check that no gene was refit, as there are not enough samples.
     assert dds.varm["replaced"].sum() == 0
+
+
+# Test data loading from outside the package (e.g. on RTF)
+@mock.patch("pathlib.Path.is_dir")
+def test_rtd_example_data_loading(mocked_function):
+    """
+    Test that load_example_data still works when run from a place where the ``datasets``
+    directory is not accessible, as is when the documentation is built on readthedocs.
+    """
+
+    # Mock the output of is_dir() as False to emulate not having access to the
+    # ``datasets`` directory
+    pathlib.Path.is_dir.return_value = False
+
+    # Try loading data. Ignore flake8 "variable is assigned to but never used" error.
+    counts_df = load_example_data(  # noqa: F841
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(  # noqa: F841
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
