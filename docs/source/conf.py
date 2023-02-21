@@ -221,6 +221,7 @@ nitpick_ignore = [
     ("py:class", "pd.DataFrame"),
     ("py:class", "ndarray"),
     ("py:class", "numpy._typing._generic_alias.ScalarType"),
+    ("py:class", "SupportIndex"),
     ("py:class", "pydantic.main.BaseModel"),
     ("py:class", "torch.nn.modules.module.Module"),
     ("py:class", "torch.nn.modules.loss._Loss"),
