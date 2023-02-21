@@ -73,6 +73,8 @@ def load_example_data(
     if dataset == "synthetic":
         path_to_data = datasets_path / "synthetic"
         if Path(path_to_data).is_dir():
+            # Cast the Paths to strings to have coherent types wrt to the url case (that
+            # does not handle Paths), else mypy throws an error.
             path_to_data_counts = str(path_to_data / "test_counts.csv")
             path_to_data_clinical = str(path_to_data / "test_clinical.csv")
         else:
