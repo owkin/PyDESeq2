@@ -637,8 +637,8 @@ def trimmed_mean(
     trim : float
         Fraction of data to trim at each end. (default: 0.1).
 
-    **kwargs
-        Keyword arguments, useful to pass axis.
+    axis : Optional[SupportIndex]
+        Axis along which to sort.
 
     Returns
     -------
@@ -1011,7 +1011,7 @@ def nbinomGLM(
 
     optimizer : str
         Optimizing method to use in case IRLS starts diverging.
-        Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'. (default: 'Newton-CG').
+        Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'. (default: 'L-BFGS-B').
 
     shrink_index : int
         Index of the LFC coordinate to shrink. (default: 1).

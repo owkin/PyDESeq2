@@ -13,6 +13,3 @@ filterwarnings = [
     "error",
     "ignore::statsmodels.tools.sm_exceptions.DomainWarning", # due to fitting the dipersion curve with the identity link
 ]
-
-[mypy]
-plugins = "numpy.typing.mypy_plugin"
