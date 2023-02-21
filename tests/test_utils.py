@@ -1,6 +1,10 @@
+import pathlib
+from unittest import mock
+
 import numpy as np
 import pytest
 
+from pydeseq2.utils import load_example_data
 from pydeseq2.utils import nb_nll
 
 
@@ -27,3 +31,25 @@ def test_nb_nll_moments(mu, alpha):
     assert np.abs(diff) < 0.2 * deviation
     error_var = np.abs(sample.var() - var_th) / var_th
     assert error_var < 1 / np.sqrt(n_montecarlo)
+
+
+# Test data loading from outside the package (e.g. on RTF)
+@pytest.mark.parametrize("modality", ["raw_counts", "clinical"])
+@pytest.mark.parametrize("mocked_dir_flag", [True, False])
+@mock.patch("pathlib.Path.is_dir")
+def test_rtd_example_data_loading(mocked_function, modality, mocked_dir_flag):
+    """
+    Test that load_example_data still works when run from a place where the ``datasets``
+    directory is not accessible, as is when the documentation is built on readthedocs.
+    """
+
+    # Mock the output of is_dir() as False to emulate not having access to the
+    # ``datasets`` directory
+    pathlib.Path.is_dir.return_value = mocked_dir_flag
+
+    # Try loading data.
+    load_example_data(
+        modality=modality,
+        dataset="synthetic",
+        debug=False,
+    )
