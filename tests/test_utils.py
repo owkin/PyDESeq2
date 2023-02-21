@@ -34,9 +34,9 @@ def test_nb_nll_moments(mu, alpha):
 
 
 # Test data loading from outside the package (e.g. on RTF)
-@pytest.mark.parametrize("return_value", [True, False])
+@pytest.mark.parametrize("modality", ["raw_counts", "clinical"])
 @mock.patch("pathlib.Path.is_dir")
-def test_rtd_example_data_loading(mocked_function):
+def test_rtd_example_data_loading(mocked_function, modality):
     """
     Test that load_example_data still works when run from a place where the ``datasets``
     directory is not accessible, as is when the documentation is built on readthedocs.
@@ -46,15 +46,9 @@ def test_rtd_example_data_loading(mocked_function):
     # ``datasets`` directory
     pathlib.Path.is_dir.return_value = False
 
-    # Try loading data. Ignore flake8 "variable is assigned to but never used" error.
-    counts_df = load_example_data(  # noqa: F841
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    clinical_df = load_example_data(  # noqa: F841
-        modality="clinical",
+    # Try loading data.
+    load_example_data(
+        modality=modality,
         dataset="synthetic",
         debug=False,
     )
