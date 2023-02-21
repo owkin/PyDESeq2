@@ -34,6 +34,7 @@ def test_nb_nll_moments(mu, alpha):
 
 
 # Test data loading from outside the package (e.g. on RTF)
+@pytest.mark.parametrize("return_value", [True, False])
 @mock.patch("pathlib.Path.is_dir")
 def test_rtd_example_data_loading(mocked_function):
     """
