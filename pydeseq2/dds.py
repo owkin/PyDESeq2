@@ -165,7 +165,6 @@ class DeseqDataSet(ad.AnnData):
         batch_size: int = 128,
         joblib_verbosity: int = 0,
     ) -> None:
-
         # Test counts before going further
         test_valid_counts(counts)
 

@@ -242,7 +242,7 @@ class DeseqStats:
             f"Log2 fold change & Wald test p-value: "
             f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
         )
-        display(self.results_df)
+        display(self.results_df)  # type: ignore [no-untyped-call]
 
     def run_wald_test(self) -> None:
         """Perform a Wald test.
@@ -396,7 +396,7 @@ class DeseqStats:
                 f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
             )
 
-            display(self.results_df)
+            display(self.results_df)  # type: ignore [no-untyped-call]
 
     def _independent_filtering(self) -> None:
         """Compute adjusted p-values using independent filtering.

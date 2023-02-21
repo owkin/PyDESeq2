@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List
 from typing import Literal
 from typing import Optional
+from typing import SupportsIndex
 from typing import Tuple
 from typing import Union
 from typing import cast
@@ -117,11 +118,13 @@ def test_valid_counts(counts_df: pd.DataFrame) -> None:
     counts_df : pandas.DataFrame
         Raw counts. One column per gene, rows are indexed by sample barcodes.
     """
+
+    def test_count_numeric(s: pd.Series) -> bool:
+        return pd.to_numeric(s, errors="coerce").notnull().all()
+
     if counts_df.isna().any().any():
         raise ValueError("NaNs are not allowed in the count matrix.")
-    if ~counts_df.apply(
-        lambda s: pd.to_numeric(s, errors="coerce").notnull().all()
-    ).all():
+    if ~counts_df.apply(lambda s: test_count_numeric(s)).all():
         raise ValueError("The count matrix should only contain numbers.")
     if (counts_df % 1 != 0).any().any():
         raise ValueError("The count matrix should only contain integers.")
@@ -561,7 +564,7 @@ def fit_alpha_mle(
             prior_disp_var is not None
         ), "Sigma_prior is required for prior regularization"
 
-    def loss(log_alpha):
+    def loss(log_alpha: npt.NDArray) -> float:
         # closure to be minimized
         alpha = np.exp(log_alpha)
         W = mu / (1 + mu * alpha)
@@ -575,7 +578,7 @@ def fit_alpha_mle(
             reg += (np.log(alpha) - np.log(alpha_hat)) ** 2 / (2 * prior_disp_var)
         return nb_nll(counts, mu, alpha) + reg
 
-    def dloss(log_alpha):
+    def dloss(log_alpha: npt.NDArray) -> float:
         # gradient closure
         alpha = np.exp(log_alpha)
         W = mu / (1 + mu * alpha)
@@ -617,7 +620,11 @@ def fit_alpha_mle(
         )
 
 
-def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, npt.NDArray]:
+def trimmed_mean(
+    x: npt.NDArray,
+    trim: float = 0.1,
+    axis: Optional[SupportsIndex] = None,
+) -> Union[float, npt.NDArray]:
     """Return trimmed mean.
 
     Compute the mean after trimming data of its smallest and largest quantiles.
@@ -640,8 +647,7 @@ def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, npt.NDArray]:
     """
 
     assert trim <= 0.5
-    if "axis" in kwargs:
-        axis = kwargs.get("axis")
+    if axis is not None:
         s = np.sort(x, axis=axis)
         n = x.shape[axis]
         ntrim = floor(n * trim)
@@ -976,7 +982,7 @@ def nbinomGLM(
     offset: npt.NDArray,
     prior_no_shrink_scale: float,
     prior_scale: float,
-    optimizer="L-BFGS-B",
+    optimizer: Literal["L-BFGS-B", "BFGS", "Newton-CG"] = "L-BFGS-B",
     shrink_index: int = 1,
 ) -> Tuple[npt.NDArray, npt.NDArray, bool]:
     """Fit a negative binomial MAP LFC using an apeGLM prior.
