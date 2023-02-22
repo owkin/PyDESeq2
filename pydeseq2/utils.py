@@ -9,7 +9,6 @@ from typing import Union
 from typing import cast
 
 import numpy as np
-import numpy.typing as npt
 import pandas as pd
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
@@ -211,9 +210,9 @@ def build_design_matrix(
 
 
 def dispersion_trend(
-    normed_mean: Union[float, npt.NDArray],
-    coeffs: Union["pd.Series[float]", npt.NDArray],
-) -> Union[float, npt.NDArray]:
+    normed_mean: Union[float, np.ndarray],
+    coeffs: Union["pd.Series[float]", np.ndarray],
+) -> Union[float, np.ndarray]:
     r"""Return dispersion trend from normalized counts.
 
      :math:`a_1/ \mu + a_0`.
@@ -237,7 +236,7 @@ def dispersion_trend(
         return coeffs[0] + coeffs[1] / normed_mean
 
 
-def nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: float) -> float:
+def nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
     """Negative log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
 
     Unvectorized version.
@@ -304,7 +303,7 @@ def nb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: float) -> float:
     )
 
 
-def dnb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: float) -> float:
+def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
     """Gradient of the negative log-likelihood of a negative binomial.
 
     Unvectorized.
@@ -342,9 +341,9 @@ def dnb_nll(counts: npt.NDArray, mu: npt.NDArray, alpha: float) -> float:
 
 
 def irls_solver(
-    counts: npt.NDArray,
-    size_factors: npt.NDArray,
-    design_matrix: npt.NDArray,
+    counts: np.ndarray,
+    size_factors: np.ndarray,
+    design_matrix: np.ndarray,
     disp: float,
     min_mu: float = 0.5,
     beta_tol: float = 1e-8,
@@ -352,7 +351,7 @@ def irls_solver(
     max_beta: float = 30,
     optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
     maxiter: int = 250,
-) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray, bool]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, bool]:
     r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 
     See equations (1-2) in the DESeq2 paper.
@@ -441,12 +440,12 @@ def irls_solver(
 
         if sum(np.abs(beta_hat) > max_beta) > 0 or i >= maxiter:
             # If IRLS starts diverging, use L-BFGS-B
-            def f(beta: npt.NDArray) -> float:
+            def f(beta: np.ndarray) -> float:
                 # closure to minimize
                 mu_ = np.maximum(size_factors * np.exp(X @ beta), min_mu)
                 return nb_nll(counts, mu_, disp) + 0.5 * (ridge_factor @ beta**2).sum()
 
-            def df(beta: npt.NDArray) -> npt.NDArray:
+            def df(beta: np.ndarray) -> np.ndarray:
                 mu_ = np.maximum(size_factors * np.exp(X @ beta), min_mu)
                 return (
                     -X.T @ counts
@@ -498,9 +497,9 @@ def irls_solver(
 
 
 def fit_alpha_mle(
-    counts: npt.NDArray,
-    design_matrix: npt.NDArray,
-    mu: npt.NDArray,
+    counts: np.ndarray,
+    design_matrix: np.ndarray,
+    mu: np.ndarray,
     alpha_hat: float,
     min_disp: float,
     max_disp: float,
@@ -564,7 +563,7 @@ def fit_alpha_mle(
             prior_disp_var is not None
         ), "Sigma_prior is required for prior regularization"
 
-    def loss(log_alpha):
+    def loss(log_alpha: float) -> float:
         # closure to be minimized
         alpha = np.exp(log_alpha)
         W = mu / (1 + mu * alpha)
@@ -578,7 +577,7 @@ def fit_alpha_mle(
             reg += (np.log(alpha) - np.log(alpha_hat)) ** 2 / (2 * prior_disp_var)
         return nb_nll(counts, mu, alpha) + reg
 
-    def dloss(log_alpha):
+    def dloss(log_alpha: float) -> float:
         # gradient closure
         alpha = np.exp(log_alpha)
         W = mu / (1 + mu * alpha)
@@ -620,7 +619,7 @@ def fit_alpha_mle(
         )
 
 
-def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, npt.NDArray]:
+def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
     """Return trimmed mean.
 
     Compute the mean after trimming data of its smallest and largest quantiles.
@@ -705,8 +704,8 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
 
 
 def trimmed_variance(
-    x: npt.NDArray, trim: float = 0.125, axis: int = 0
-) -> Union[float, npt.NDArray]:
+    x: np.ndarray, trim: float = 0.125, axis: int = 0
+) -> Union[float, np.ndarray]:
     """Return trimmed variance.
 
      Compute the variance after trimming data of its smallest and largest quantiles.
@@ -735,11 +734,11 @@ def trimmed_variance(
 
 
 def fit_lin_mu(
-    counts: npt.NDArray,
-    size_factors: npt.NDArray,
-    design_matrix: npt.NDArray,
+    counts: np.ndarray,
+    size_factors: np.ndarray,
+    design_matrix: np.ndarray,
     min_mu: float = 0.5,
-) -> npt.NDArray:
+) -> np.ndarray:
     """Estimate mean of negative binomial model using a linear regression.
 
     Used to initialize genewise dispersion models.
@@ -772,11 +771,11 @@ def fit_lin_mu(
 
 
 def wald_test(
-    design_matrix: npt.NDArray,
+    design_matrix: np.ndarray,
     disp: float,
-    lfc: npt.NDArray,
+    lfc: np.ndarray,
     mu: float,
-    ridge_factor: npt.NDArray,
+    ridge_factor: np.ndarray,
     idx: int = -1,
 ) -> Tuple[float, float, float]:
     """Run Wald test for differential expression.
@@ -829,8 +828,8 @@ def wald_test(
 
 
 def fit_rough_dispersions(
-    counts: npt.NDArray, size_factors: npt.NDArray, design_matrix: pd.DataFrame
-) -> npt.NDArray:
+    counts: np.ndarray, size_factors: np.ndarray, design_matrix: pd.DataFrame
+) -> np.ndarray:
     """ "Rough dispersion" estimates from linear model, as per the R code.
 
     Used as initial estimates in DeseqDataSet._fit_MoM_dispersions.
@@ -870,9 +869,7 @@ def fit_rough_dispersions(
     return np.maximum(alpha_rde, 0)
 
 
-def fit_moments_dispersions(
-    counts: npt.NDArray, size_factors: npt.NDArray
-) -> npt.NDArray:
+def fit_moments_dispersions(counts: np.ndarray, size_factors: np.ndarray) -> np.ndarray:
     """Dispersion estimates based on moments, as per the R code.
 
     Used as initial estimates in DeseqDataSet._fit_MoM_dispersions.
@@ -973,15 +970,15 @@ def get_num_processes(n_cpus: Optional[int] = None) -> int:
 
 
 def nbinomGLM(
-    design_matrix: npt.NDArray,
-    counts: npt.NDArray,
-    size: npt.NDArray,
-    offset: npt.NDArray,
+    design_matrix: np.ndarray,
+    counts: np.ndarray,
+    size: np.ndarray,
+    offset: np.ndarray,
     prior_no_shrink_scale: float,
     prior_scale: float,
     optimizer="L-BFGS-B",
     shrink_index: int = 1,
-) -> Tuple[npt.NDArray, npt.NDArray, bool]:
+) -> Tuple[np.ndarray, np.ndarray, bool]:
     """Fit a negative binomial MAP LFC using an apeGLM prior.
 
     Only the LFC is shrinked, and not the intercept.
@@ -1046,7 +1043,7 @@ def nbinomGLM(
     )
     scale_cnst = np.maximum(scale_cnst, 1)
 
-    def f(beta: npt.NDArray, cnst: float = scale_cnst) -> float:
+    def f(beta: np.ndarray, cnst: float = scale_cnst) -> float:
         # Function to optimize
         return (
             nbinomFn(
@@ -1062,7 +1059,7 @@ def nbinomGLM(
             / cnst
         )
 
-    def df(beta: npt.NDArray, cnst: float = scale_cnst) -> npt.NDArray:
+    def df(beta: np.ndarray, cnst: float = scale_cnst) -> np.ndarray:
         # Gradient of the function to optimize
         xbeta = design_matrix @ beta
         d_neg_prior = (
@@ -1076,7 +1073,7 @@ def nbinomGLM(
 
         return (d_neg_prior - d_nll) / cnst
 
-    def ddf(beta: npt.NDArray, cnst: float = scale_cnst) -> npt.NDArray:
+    def ddf(beta: np.ndarray, cnst: float = scale_cnst) -> np.ndarray:
         # Hessian of the function to optimize
         # Note: will only work if there is a single shrink index
         xbeta = design_matrix @ beta
@@ -1127,11 +1124,11 @@ def nbinomGLM(
 
 
 def nbinomFn(
-    beta: npt.NDArray,
-    design_matrix: npt.NDArray,
-    counts: npt.NDArray,
-    size: npt.NDArray,
-    offset: npt.NDArray,
+    beta: np.ndarray,
+    design_matrix: np.ndarray,
+    counts: np.ndarray,
+    size: np.ndarray,
+    offset: np.ndarray,
     prior_no_shrink_scale: float,
     prior_scale: float,
     shrink_index: int = 1,

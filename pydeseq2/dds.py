@@ -7,7 +7,6 @@ from typing import cast
 
 import anndata as ad  # type: ignore
 import numpy as np
-import numpy.typing as npt
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
 from joblib import Parallel  # type: ignore
@@ -683,7 +682,7 @@ class DeseqDataSet(ad.AnnData):
 
         trim_base_mean = pd.DataFrame(
             cast(
-                npt.NDArray,
+                np.ndarray,
                 trimmed_mean(
                     self.counts_to_refit.X / self.obsm["size_factors"][:, None],
                     trim=0.2,

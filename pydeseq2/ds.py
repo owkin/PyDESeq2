@@ -5,7 +5,6 @@ from typing import cast
 
 # import anndata as ad
 import numpy as np
-import numpy.typing as npt
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
 from IPython.display import display  # type: ignore
@@ -121,7 +120,7 @@ class DeseqStats:
         cooks_filter: bool = True,
         independent_filter: bool = True,
         n_cpus: Optional[int] = None,
-        prior_LFC_var: Optional[npt.NDArray] = None,
+        prior_LFC_var: Optional[np.ndarray] = None,
         batch_size: int = 128,
         joblib_verbosity: int = 0,
     ) -> None:
