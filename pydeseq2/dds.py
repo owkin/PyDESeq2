@@ -60,45 +60,43 @@ class DeseqDataSet(ad.AnnData):
     design_factors
         Name of the columns of clinical to be used as design variables. If a list,
         the last factor will be considered the variable of interest by default.
-        Only bi-level factors are supported. (default: 'condition').
+        Only bi-level factors are supported.
 
     reference_level
         The factor to use as a reference. Must be one of the values taken by the design.
         If None, the reference will be chosen alphabetically (last in order).
-        (default: None).
 
     min_mu
-        Threshold for mean estimates. (default: 0.5).
+        Threshold for mean estimates.
 
     min_disp
-        Lower threshold for dispersion parameters. (default: 1e-8).
+        Lower threshold for dispersion parameters.
 
     max_disp
         Upper threshold for dispersion parameters.
         NB: The threshold that is actually enforced is max(max_disp, len(counts)).
-        (default: 10).
 
     refit_cooks
-        Whether to refit cooks outliers. (default: True).
+        Whether to refit cooks outliers.
 
     min_replicates
         Minimum number of replicates a condition should have
-        to allow refitting its samples. (default: 7).
+        to allow refitting its samples.
 
     beta_tol
-        Stopping criterion for IRWLS. (default: 1e-8).
+        Stopping criterion for IRWLS.
 
         .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
 
     n_cpus
-        Number of cpus to use. If None, all available cpus will be used. (default: None).
+        Number of cpus to use. If None, all available cpus will be used.
 
     batch_size
-        Number of tasks to allocate to each joblib parallel worker. (default: 128).
+        Number of tasks to allocate to each joblib parallel worker.
 
     joblib_verbosity
         The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported. (default: 0).
+        are reported.
 
     Attributes
     ----------

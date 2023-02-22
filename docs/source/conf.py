@@ -84,6 +84,7 @@ autosummary_generate = False
 autodoc_member_order = "groupwise"
 autodoc_docstring_signature = True
 python_use_unqualified_type_names = True
+typehints_defaults = "comma"
 
 # # This is the expected signature of the handler for this event, cf doc
 # def autodoc_skip_member_handler(app, what, name, obj, skip, options):
