@@ -31,10 +31,10 @@ class DeseqStats:
 
     Parameters
     ----------
-    dds : DeseqDataSet
+    dds
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
-    contrast : list[str] or None
+    contrast
         A list of three strings, in the following format:
         ['variable_of_interest', 'tested_level', 'reference_level'].
         Names must correspond to the clinical data passed to the DeseqDataSet.
@@ -43,28 +43,28 @@ class DeseqStats:
         as the variable of interest, and the reference level is picked alphabetically.
         (default: None).
 
-    alpha : float
+    alpha
         P-value and adjusted p-value significance threshold (usually 0.05).
         (default: 0.05).
 
-    cooks_filter : bool
+    cooks_filter
         Whether to filter p-values based on cooks outliers. (default: True).
 
-    independent_filter : bool
+    independent_filter
         Whether to perform independent filtering to correct p-value trends.
         (default: True).
 
-    n_cpus : int
+    n_cpus
         Number of cpus to use for multiprocessing.
         If None, all available CPUs will be used. (default: None).
 
-    prior_LFC_var : ndarray
+    prior_LFC_var
         Prior variance for LFCs, used for ridge regularization. (default: None).
 
-    batch_size : int
+    batch_size
         Number of tasks to allocate to each joblib parallel worker. (default: 128).
 
-    joblib_verbosity : int
+    joblib_verbosity
         The verbosity level for joblib tasks. The higher the value, the more updates
         are reported. (default: 0).
 
@@ -317,7 +317,6 @@ class DeseqStats:
 
         Returns
         -------
-        pandas.DataFrame or None
             If pvalues were already computed, return the results DataFrame with MAP LFCs,
             but unmodified stats and pvalues.
         """
@@ -518,15 +517,14 @@ class DeseqStats:
 
         Parameters
         ----------
-        min_var : float
+        min_var
             Lower bound for prior variance. (default: 1e-6).
 
-        max_var : float
+        max_var
             Upper bound for prior variance. (default: 400).
 
         Returns
         -------
-        float
             Estimated prior variance.
         """
 
