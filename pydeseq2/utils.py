@@ -376,7 +376,8 @@ def irls_solver(
 
     beta_tol : float
         Stopping criterion for IRWLS:
-        :math:`abs(dev - old_dev) / (abs(dev) + 0.1) < beta_tol`. (default: 1e-8).
+        :math:`\vert dev - dev_{old}\vert / \vert dev + 0.1 \vert < \beta_{tol}`.
+        (default: 1e-8).
 
     min_beta : float
         Lower-bound on LFC. (default: -30).
@@ -401,7 +402,7 @@ def irls_solver(
 
     mu: ndarray
         Means estimated from size factors and beta:
-        :math:`\\mu = s_{ij} \\exp(\\beta^t design_matrix)`.
+        :math:`\mu = s_{ij} \exp(\beta^t X)`.
 
     H: ndarray
         Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}` covariance matrix.
