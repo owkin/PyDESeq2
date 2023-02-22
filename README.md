@@ -39,7 +39,7 @@ In case there is a feature you would particularly like to be implemented, feel f
 We recommend installing within a conda environment:
 
 ```
-conda env create -n pydeseq2
+conda create -n pydeseq2
 conda activate pydeseq2
 pip install pydeseq2
 ```
