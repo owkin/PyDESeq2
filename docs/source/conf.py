@@ -50,6 +50,7 @@ extensions = [
     "sphinx_rtd_theme",
     "sphinx.ext.ifconfig",
     "myst_parser",
+    "sphinx_autodoc_typehints",
     "sphinx.ext.autosummary",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.intersphinx",
@@ -78,9 +79,11 @@ add_module_names = False
 
 autoclass_content = "both"
 autodoc_typehints = "both"
+autodoc_typehints_format = "short"
 autosummary_generate = False
 autodoc_member_order = "groupwise"
 autodoc_docstring_signature = True
+python_use_unqualified_type_names = True
 
 # # This is the expected signature of the handler for this event, cf doc
 # def autodoc_skip_member_handler(app, what, name, obj, skip, options):
