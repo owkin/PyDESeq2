@@ -76,18 +76,16 @@ autodoc_default_options = {
 }
 
 add_module_names = False
-
-autoclass_content = "both"
-autodoc_typehints = "both"
-autodoc_typehints_format = "short"
-autosummary_generate = False
-autodoc_member_order = "groupwise"
-autodoc_docstring_signature = True
-python_use_unqualified_type_names = True
-
-typehints_defaults = "comma"
-typehints_use_signature_return = True
-typehints_use_rtype = True
+autosummary_generate = False  # Don't generate rst files automatically from autosummary
+autoclass_content = "class"  # Don't document class __init__'s
+autodoc_typehints = (
+    "both"  # Show typehints in the signature + as content of the function
+)
+autodoc_typehints_format = "short"  # Shorten type hints
+autodoc_member_order = (
+    "groupwise"  # Sort automatically documented members by member type
+)
+python_use_unqualified_type_names = True  # Suppress module names
 
 # # This is the expected signature of the handler for this event, cf doc
 # def autodoc_skip_member_handler(app, what, name, obj, skip, options):
@@ -112,7 +110,7 @@ suppress_warnings = ["bibtex.duplicate_label"]
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
-napoleon_preprocess_types = True
+napoleon_preprocess_types = True  # generate hyperlinks for parameter types
 
 napoleon_type_aliases = {
     "DeseqDataSet": ":class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`",
