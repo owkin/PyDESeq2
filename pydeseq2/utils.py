@@ -401,8 +401,7 @@ def irls_solver(
         Fitted (basemean, lfc) coefficients of negative binomial GLM.
 
     mu: ndarray
-        Means estimated from size factors and beta:
-        :math:`\mu = s_{ij} \exp(\beta^t X).`
+        Means estimated from size factors and beta: :math:`\mu = s_{ij} \exp(\beta^t X)`.
 
     H: ndarray
         Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}` covariance matrix.
