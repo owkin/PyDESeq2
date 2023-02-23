@@ -835,7 +835,6 @@ def fit_rough_dispersions(
     Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions()
     <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
 
-
     Parameters
     ----------
     counts : ndarray
