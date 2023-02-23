@@ -873,7 +873,8 @@ def fit_rough_dispersions(
 def fit_moments_dispersions(counts: np.ndarray, size_factors: np.ndarray) -> np.ndarray:
     """Dispersion estimates based on moments, as per the R code.
 
-    Used as initial estimates in DeseqDataSet._fit_MoM_dispersions.
+    Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions()
+    <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
 
     Parameters
     ----------
@@ -949,8 +950,8 @@ def get_num_processes(n_cpus: Optional[int] = None) -> int:
 
     Parameters
     ----------
-    n_cpus : int
-        Desired number of cpus. If None, will return the number of available cpus.
+    n_cpus : int or None
+        Desired number of cpus. If ``None``, will return the number of available cpus.
         (default: ``None``).
 
     Returns

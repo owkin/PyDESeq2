@@ -206,7 +206,7 @@ class DeseqStats:
     def summary(self) -> None:
         """Run the statistical analysis.
 
-        The results are stored in the `results_df` attribute.
+        The results are stored in the ``results_df`` attribute.
         """
 
         if not hasattr(self, "p_values"):
