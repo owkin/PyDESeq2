@@ -37,22 +37,24 @@ def load_example_data(
 
     Parameters
     ----------
-    modality
+    modality : str
         Data modality. "raw_counts" or "clinical".
 
-    dataset
+    dataset : str
         The dataset for which to return gene expression data.
         If "synthetic", will return the synthetic data that is used for CI unit tests.
+        (default: "synthetic").
 
-    debug
+    debug : bool
         If true, subsample 10 samples and 100 genes at random.
-        (Note that the "synthetic" dataset is already 10 x 100.).
+        (Note that the "synthetic" dataset is already 10 x 100.) (default: False).
 
-    debug_seed
-        Seed for the debug mode.
+    debug_seed : int
+        Seed for the debug mode. (default: 42).
 
     Returns
     -------
+    pandas.DataFrame
         Requested data modality.
     """
 
@@ -113,7 +115,7 @@ def test_valid_counts(counts_df: pd.DataFrame) -> None:
 
     Parameters
     ----------
-    counts_df
+    counts_df : pandas.DataFrame
         Raw counts. One column per gene, rows are indexed by sample barcodes.
     """
     if counts_df.isna().any().any():
@@ -143,25 +145,29 @@ def build_design_matrix(
 
     Parameters
     ----------
-    clinical_df
+    clinical_df : pandas.DataFrame
         DataFrame containing clinical information.
         Must be indexed by sample barcodes.
 
-    design_factors
+    design_factors : str or list
         Name of the columns of clinical_df to be used as design_matrix variables.
+        (default: "condition").
 
-    ref
+    ref : str
         The factor to use as a reference. Must be one of the values taken by the design.
         If None, the reference will be chosen alphabetically (last in order).
+        (default: None).
 
-    expanded
+    expanded : bool
         If true, use one column per category. Else, use a single column.
+        (default: False).
 
-    intercept
-        If true, add an intercept (a column containing only ones).
+    intercept : bool
+        If true, add an intercept (a column containing only ones). (default: True).
 
     Returns
     -------
+    pandas.DataFrame
         A DataFrame with experiment design information (to split cohorts).
         Indexed by sample barcodes.
     """
@@ -205,7 +211,7 @@ def build_design_matrix(
 
 def dispersion_trend(
     normed_mean: Union[float, np.ndarray],
-    coeffs: Union[pd.Series, np.ndarray],
+    coeffs: Union["pd.Series[float]", np.ndarray],
 ) -> Union[float, np.ndarray]:
     r"""Return dispersion trend from normalized counts.
 
@@ -213,14 +219,15 @@ def dispersion_trend(
 
     Parameters
     ----------
-    normed_mean
+    normed_mean : float or ndarray
         Mean of normalized counts for a given gene or set of genes.
 
-    coeffs
+    coeffs : ndarray or pd.Series
         Fitted dispersion trend coefficients :math:`a_0` and :math:`a_1`.
 
     Returns
     -------
+    float or ndarray
         Dispersion trend :math:`a_1/ \mu + a_0`.
     """
     if isinstance(coeffs, pd.Series):
@@ -262,18 +269,19 @@ def nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Observations.
 
-    mu
+    mu : ndarray
         Mean of the distribution :math:`\\mu`.
 
-    alpha
+    alpha : float
         Dispersion of the distribution :math:`\\alpha`,
         s.t. the variance is :math:`\\mu + \\alpha \\mu^2`.
 
     Returns
     -------
+    float
         Negative log likelihood of the observations counts
         following :math:`NB(\\mu, \\alpha)`.
 
@@ -302,18 +310,19 @@ def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Observations.
 
-    mu
+    mu : float
         Mean of the distribution.
 
-    alpha
+    alpha : float
         Dispersion of the distribution,
         s.t. the variance is :math:`\\mu + \\alpha * \\mu^2`.
 
     Returns
     -------
+    float
         Derivative of negative log likelihood of NB w.r.t. :math:`\\alpha`.
     """
 
@@ -349,53 +358,55 @@ def irls_solver(
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Raw counts for a given gene.
 
-    size_factors
+    size_factors : ndarray
         Sample-wise scaling factors (obtained from median-of-ratios).
 
-    design_matrix
+    design_matrix : ndarray
         Design matrix.
 
-    disp
+    disp : float
         Gene-wise dispersion prior.
 
-    min_mu
-        Lower bound on estimated means, to ensure numerical stability.
+    min_mu : float
+        Lower bound on estimated means, to ensure numerical stability. (default: 0.5).
 
-    beta_tol
+    beta_tol : float
         Stopping criterion for IRWLS:
         :math:`\vert dev - dev_{old}\vert / \vert dev + 0.1 \vert < \beta_{tol}`.
+        (default: 1e-8).
 
-    min_beta
-        Lower-bound on LFC.
+    min_beta : float
+        Lower-bound on LFC. (default: -30).
 
-    max_beta
-        Upper-bound on LFC.
+    max_beta : float
+        Upper-bound on LFC. (default: -30).
 
-    optimizer
+    optimizer : str
         Optimizing method to use in case IRLS starts diverging.
         Accepted values: 'BFGS' or 'L-BFGS-B'.
         NB: only 'L-BFGS-B' ensures that LFCS will
-        lay in the [min_beta, max_beta] range.
+        lay in the [min_beta, max_beta] range. (default: 'L-BFGS-B').
 
-    maxiter
+    maxiter : int
         Maximum number of IRLS iterations to perform before switching to L-BFGS-B.
+        (default: 250).
 
     Returns
     -------
-    beta
+    beta: ndarray
         Fitted (basemean, lfc) coefficients of negative binomial GLM.
 
-    mu
+    mu: ndarray
         Means estimated from size factors and beta:
         :math:`\mu = s_{ij} \exp(\beta^t X)`.
 
-    H
+    H: ndarray
         Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}` covariance matrix.
 
-    converged
+    converged: bool
         Whether IRLS or the optimizer converged. If not and if dimension allows it,
         perform grid search.
     """
@@ -504,40 +515,43 @@ def fit_alpha_mle(
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Raw counts for a given gene.
 
-    design_matrix
+    design_matrix : ndarray
         Design matrix.
 
-    mu
+    mu : ndarray
         Mean estimation for the NB model.
 
-    alpha_hat
+    alpha_hat : float
         Initial dispersion estimate.
 
-    min_disp
+    min_disp : float
         Lower threshold for dispersion parameters.
 
-    max_disp
+    max_disp : float
         Upper threshold for dispersion parameters.
 
-    prior_disp_var
+    prior_disp_var : float
         Prior dispersion variance.
 
-    cr_reg
-        Whether to use Cox-Reid regularization.
+    cr_reg : bool
+        Whether to use Cox-Reid regularization. (default: True).
 
-    prior_reg
-        Whether to use prior log-residual regularization.
+    prior_reg : bool
+        Whether to use prior log-residual regularization. (default: False).
 
-    optimizer
+    optimizer : str
         Optimizing method to use. Accepted values: 'BFGS' or 'L-BFGS-B'.
+        (default: 'L-BFGS-B').
 
     Returns
     -------
+    float
         Dispersion estimate.
 
+    bool
         Whether L-BFGS-B converged. If not, dispersion is estimated using grid search.
     """
 
@@ -605,26 +619,25 @@ def fit_alpha_mle(
         )
 
 
-def trimmed_mean(
-    x: Union[np.ndarray, pd.DataFrame], trim: float = 0.1, **kwargs
-) -> Union[float, np.ndarray]:
+def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
     """Return trimmed mean.
 
     Compute the mean after trimming data of its smallest and largest quantiles.
 
     Parameters
     ----------
-    x
+    x : ndarray
         Data whose mean to compute.
 
-    trim
-        Fraction of data to trim at each end.
+    trim : float
+        Fraction of data to trim at each end. (default: 0.1).
 
     **kwargs
         Keyword arguments, useful to pass axis.
 
     Returns
     -------
+    float or ndarray :
         Trimmed mean.
     """
 
@@ -651,14 +664,15 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
 
     Parameters
     ----------
-    counts
+    counts : pandas.DataFrame
         Sample-wise gene counts.
 
-    cells
+    cells : pandas.Series
         Cohort affiliation of each sample.
 
     Returns
     -------
+    pandas.Series :
         Gene-wise trimmed variance estimate.
     """
 
@@ -698,17 +712,18 @@ def trimmed_variance(
 
     Parameters
     ----------
-    x
+    x : ndarray
         Data whose trimmed variance to compute.
 
-    trim
-        Fraction of data to trim at each end.
+    trim : float
+        Fraction of data to trim at each end. (default: 0.125).
 
-    axis
-        Dimension along which to compute variance.
+    axis : int
+        Dimension along which to compute variance. (default: 0).
 
     Returns
     -------
+    float or ndarray
         Trimmed variances.
     """
 
@@ -730,20 +745,21 @@ def fit_lin_mu(
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Raw counts for a given gene.
 
-    size_factors
+    size_factors : ndarray
         Sample-wise scaling factors (obtained from median-of-ratios).
 
-    design_matrix
+    design_matrix : ndarray
         Design matrix.
 
-    min_mu
-        Lower threshold for fitted means, for numerical stability.
+    min_mu : float
+        Lower threshold for fitted means, for numerical stability. (default: 0.5).
 
     Returns
     -------
+    ndarray
         Estimated mean.
     """
 
@@ -769,33 +785,33 @@ def wald_test(
 
     Parameters
     ----------
-    design_matrix
+    design_matrix : ndarray
         Design matrix.
 
-    disp
+    disp : float
         Dispersion estimate.
 
-    lfc
+    lfc : ndarray
         Log-fold change estimate (in natural log scale).
 
-    mu
+    mu : float
         Mean estimation for the NB model.
 
-    ridge_factor
+    ridge_factor : ndarray
         Regularization factors.
 
-    idx
-        Index of design factor (in design matrix).
+    idx : int
+        Index of design factor (in design matrix). (default: -1).
 
     Returns
     -------
-    wald_p_value
+    wald_p_value : float
         Estimated p-value.
 
-    wald_statistic
+    wald_statistic : float
         Wald statistic.
 
-    wald_se
+    wald_se : float
         Standard error of the Wald statistic.
     """
 
@@ -820,18 +836,19 @@ def fit_rough_dispersions(
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Raw counts. One column per gene, one row per sample.
 
-    size_factors
+    size_factors : ndarray
         DESeq2 normalization factors.
 
-    design_matrix
+    design_matrix : pandas.DataFrame
         A DataFrame with experiment design information (to split cohorts).
         Indexed by sample barcodes. Unexpanded, *with* intercept.
 
     Returns
     -------
+    ndarray
         Estimated dispersion parameter for each gene.
     """
 
@@ -859,14 +876,15 @@ def fit_moments_dispersions(counts: np.ndarray, size_factors: np.ndarray) -> np.
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Raw counts. One column per gene, one row per sample.
 
-    size_factors
+    size_factors : ndarray
         DESeq2 normalization factors.
 
     Returns
     -------
+    ndarray
         Estimated dispersion parameter for each gene.
     """
 
@@ -891,15 +909,16 @@ def robust_method_of_moments_disp(
 
     Parameters
     ----------
-    normed_counts
+    normed_counts : pandas.DataFrame
         DF of deseq2-normalized read counts. Rows: samples, columns: genes.
 
-    design_matrix
+    design_matrix : pandas.DataFrame
         A DataFrame with experiment design information (to split cohorts).
         Indexed by sample barcodes. Unexpanded, *with* intercept.
 
     Returns
     -------
+    pandas.Series
         Trimmed method of moment dispersion estimates.
         Used for outlier detection based on Cook's distance.
     """
@@ -929,11 +948,13 @@ def get_num_processes(n_cpus: Optional[int] = None) -> int:
 
     Parameters
     ----------
-    n_cpus
+    n_cpus : int
         Desired number of cpus. If None, will return the number of available cpus.
+        (default: None).
 
     Returns
     -------
+    int
         Number of processes to spawn.
     """
 
@@ -964,40 +985,40 @@ def nbinomGLM(
 
     Parameters
     ----------
-    design_matrix
+    design_matrix : ndarray
         Design matrix.
 
-    counts
+    counts : ndarray
         Raw counts.
 
-    size
+    size : ndarray
         Size parameter of NB family (inverse of dispersion).
 
-    offset
+    offset : ndarray
         Natural logarithm of size factor.
 
-    prior_no_shrink_scale
+    prior_no_shrink_scale : float
         Prior variance for the intercept.
 
-    prior_scale
+    prior_scale : float
         Prior variance for the LFC parameter.
 
-    optimizer
+    optimizer : str
         Optimizing method to use in case IRLS starts diverging.
-        Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'.
+        Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'. (default: 'Newton-CG').
 
-    shrink_index
-        Index of the LFC coordinate to shrink.
+    shrink_index : int
+        Index of the LFC coordinate to shrink. (default: 1).
 
     Returns
     -------
-    beta
+    beta: ndarray
         2-element array, containing the intercept (first) and the LFC (second).
 
-    inv_hessian
+    inv_hessian: ndarray
         Inverse of the Hessian of the objective at the estimated MAP LFC.
 
-    converged
+    converged: bool
         Whether L-BFGS-B converged.
     """
 
@@ -1118,32 +1139,33 @@ def nbinomFn(
 
     Parameters
     ----------
-    beta
+    beta : ndarray
         2-element array: intercept and LFC coefficients.
 
-    design_matrix
+    design_matrix : ndarray
         Design matrix.
 
-    counts
+    counts : ndarray
         Raw counts.
 
-    size
+    size : ndarray
         Size parameter of NB family (inverse of dispersion).
 
-    offset
+    offset : ndarray
         Natural logarithm of size factor.
 
-    prior_no_shrink_scale
+    prior_no_shrink_scale : float
         Prior variance for the intercept.
 
-    prior_scale
+    prior_scale : float
         Prior variance for the intercept.
 
-    shrink_index
-        Index of the LFC coordinate to shrink.
+    shrink_index : int
+        Index of the LFC coordinate to shrink. (default: 1).
 
     Returns
     -------
+    float
         Sum of the NB negative likelihood and apeGLM prior.
     """
 

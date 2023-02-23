@@ -12,16 +12,16 @@ def deseq2_norm(counts: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     Parameters
     ----------
-    counts
+    counts : ndarray
             Raw counts. One column per gene, one row per sample.
 
     Returns
     -------
-    deseq2_counts
+    deseq2_counts : pandas.DataFrame
         DESeq2 normalized counts.
         One column per gene, rows are indexed by sample barcodes.
 
-    size_factors
+    size_factors : pandas.DataFrame
         DESeq2 normalization factors.
     """
 

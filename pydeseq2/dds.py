@@ -50,53 +50,55 @@ class DeseqDataSet(ad.AnnData):
 
     Parameters
     ----------
-    counts
+    counts : pandas.DataFrame
         Raw counts. One column per gene, rows are indexed by sample barcodes.
 
-    clinical
+    clinical : pandas.DataFrame
         DataFrame containing clinical information.
         Must be indexed by sample barcodes.
 
-    design_factors
+    design_factors : str or list
         Name of the columns of clinical to be used as design variables. If a list,
         the last factor will be considered the variable of interest by default.
-        Only bi-level factors are supported.
+        Only bi-level factors are supported. (default: 'condition').
 
-    reference_level
+    reference_level : str
         The factor to use as a reference. Must be one of the values taken by the design.
         If None, the reference will be chosen alphabetically (last in order).
+        (default: None).
 
-    min_mu
-        Threshold for mean estimates.
+    min_mu : float
+        Threshold for mean estimates. (default: 0.5).
 
-    min_disp
-        Lower threshold for dispersion parameters.
+    min_disp : float
+        Lower threshold for dispersion parameters. (default: 1e-8).
 
-    max_disp
+    max_disp : float
         Upper threshold for dispersion parameters.
         NB: The threshold that is actually enforced is max(max_disp, len(counts)).
+        (default: 10).
 
-    refit_cooks
-        Whether to refit cooks outliers.
+    refit_cooks : bool
+        Whether to refit cooks outliers. (default: True).
 
-    min_replicates
+    min_replicates : int
         Minimum number of replicates a condition should have
-        to allow refitting its samples.
+        to allow refitting its samples. (default: 7).
 
-    beta_tol
-        Stopping criterion for IRWLS.
+    beta_tol : float
+        Stopping criterion for IRWLS. (default: 1e-8).
 
         .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
 
-    n_cpus
-        Number of cpus to use. If None, all available cpus will be used.
+    n_cpus : int
+        Number of cpus to use. If None, all available cpus will be used. (default: None).
 
-    batch_size
-        Number of tasks to allocate to each joblib parallel worker.
+    batch_size : int
+        Number of tasks to allocate to each joblib parallel worker. (default: 128).
 
-    joblib_verbosity
+    joblib_verbosity : int
         The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported.
+        are reported. (default: 0).
 
     Attributes
     ----------
@@ -341,7 +343,7 @@ class DeseqDataSet(ad.AnnData):
     def fit_dispersion_trend(self) -> None:
         r"""Fit the dispersion trend coefficients.
 
-        :math:`f(\mu) = \alpha_1/\mu + a_0.`
+        :math:`f(\mu) = \alpha_1/\mu + a_0`.
         """
 
         # Check that genewise dispersions are available. If not, compute them.

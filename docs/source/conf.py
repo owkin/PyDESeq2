@@ -50,11 +50,11 @@ extensions = [
     "sphinx_rtd_theme",
     "sphinx.ext.ifconfig",
     "myst_parser",
-    "sphinx_autodoc_typehints",
     "sphinx.ext.autosummary",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.intersphinx",
     "sphinx_gallery.gen_gallery",
+    "sphinx_autodoc_typehints",
     "sphinxcontrib.bibtex",
 ]
 
@@ -84,7 +84,10 @@ autosummary_generate = False
 autodoc_member_order = "groupwise"
 autodoc_docstring_signature = True
 python_use_unqualified_type_names = True
+
 typehints_defaults = "comma"
+typehints_use_signature_return = True
+typehints_use_rtype = True
 
 # # This is the expected signature of the handler for this event, cf doc
 # def autodoc_skip_member_handler(app, what, name, obj, skip, options):
@@ -109,6 +112,11 @@ suppress_warnings = ["bibtex.duplicate_label"]
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
+napoleon_preprocess_types = True
+
+napoleon_type_aliases = {
+    "DeseqDataSet": "`:class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`",
+}
 
 # Add any paths that contain templates here, relative to this directory.
 # templates_path = []

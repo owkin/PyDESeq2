@@ -13,18 +13,19 @@ def vec_nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> np.ndarray:
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Observations.
 
-    mu
+    mu : ndarray
         Mean of the distribution.
 
-    alpha
+    alpha : float
         Dispersion of the distribution, s.t. the variance is
         :math:`\\mu + \\alpha * \\mu^2`.
 
     Returns
     -------
+    ndarray
         Negative log likelihood of the observations counts following
         :math:`NB(\\mu, \\alpha)`.
     """
@@ -69,38 +70,39 @@ def grid_fit_alpha(
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Raw counts for a given gene.
 
-    design_matrix
+    design_matrix : ndarray
         Design matrix.
 
-    mu
+    mu : ndarray
         Mean estimation for the NB model.
 
-    alpha_hat
+    alpha_hat : float
         Initial dispersion estimate.
 
-    min_disp
+    min_disp : float
         Lower threshold for dispersion parameters.
 
-    max_disp
+    max_disp : float
         Upper threshold for dispersion parameters.
 
-    prior_disp_var
+    prior_disp_var : float
         Prior dispersion variance.
 
-    cr_reg
-        Whether to use Cox-Reid regularization.
+    cr_reg : bool
+        Whether to use Cox-Reid regularization. (default: True).
 
-    prior_reg
-        Whether to use prior log-residual regularization.
+    prior_reg : bool
+        Whether to use prior log-residual regularization. (default: False).
 
-    grid_length
-        Number of grid points.
+    grid_length : int
+        Number of grid points. (default: 100).
 
     Returns
     -------
+    float
         Logarithm of the fitted dispersion parameter.
     """
 
@@ -159,32 +161,33 @@ def grid_fit_beta(
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Raw counts for a given gene.
 
-    size_factors
+    size_factors : ndarray
         DESeq2 normalization factors.
 
-    design_matrix
+    design_matrix : ndarray
         Design matrix.
 
-    disp
+    disp : float
         Gene-wise dispersion prior.
 
-    min_mu
+    min_mu : float
         Lower threshold for dispersion parameters.
 
-    grid_length
-        Number of grid points.
+    grid_length : int
+        Number of grid points. (default: 100).
 
-    min_beta
-        Lower-bound on LFC.
+    min_beta : float
+        Lower-bound on LFC. (default: 30.).
 
-    max_beta
-        Upper-bound on LFC.
+    max_beta : float
+        Upper-bound on LFC. (default: 30.).
 
     Returns
     -------
+    ndarray
         Fitted LFC parameter.
     """
     x_grid = np.linspace(min_beta, max_beta, grid_length)
@@ -239,38 +242,39 @@ def grid_fit_shrink_beta(
 
     Parameters
     ----------
-    counts
+    counts : ndarray
         Raw counts for a given gene.
 
-    offset
+    offset : ndarray
         Natural logarithm of size factor.
 
-    design_matrix
+    design_matrix : ndarray
         Design matrix.
 
-    size
+    size : ndarray
         Size parameter of NB family (inverse of dispersion).
 
-    prior_no_shrink_scale
+    prior_no_shrink_scale : float
         Prior variance for the intercept.
 
-    prior_scale
+    prior_scale : float
         Prior variance for the LFC coefficient.
 
-    scale_cnst
+    scale_cnst : float
         Scaling factor for the optimization.
 
-    grid_length
-        Number of grid points.
+    grid_length : int
+        Number of grid points. (default: 100).
 
-    min_beta
-        Lower-bound on LFC.
+    min_beta : int
+        Lower-bound on LFC. (default: 30).
 
-    max_beta
-        Upper-bound on LFC.
+    max_beta : int
+        Upper-bound on LFC. (default: 30).
 
     Returns
     -------
+    float
         Fitted MAP LFC parameter.
     """
     x_grid = np.linspace(min_beta, max_beta, grid_length)
