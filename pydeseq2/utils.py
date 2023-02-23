@@ -215,7 +215,7 @@ def dispersion_trend(
 ) -> Union[float, np.ndarray]:
     r"""Return dispersion trend from normalized counts.
 
-     :math:`a_1/ \mu + a_0`.
+    :math:`a_1/ \mu + a_0`.
 
     Parameters
     ----------
@@ -708,7 +708,7 @@ def trimmed_variance(
 ) -> Union[float, np.ndarray]:
     """Return trimmed variance.
 
-     Compute the variance after trimming data of its smallest and largest quantiles.
+    Compute the variance after trimming data of its smallest and largest quantiles.
 
     Parameters
     ----------
@@ -832,7 +832,9 @@ def fit_rough_dispersions(
 ) -> np.ndarray:
     """ "Rough dispersion" estimates from linear model, as per the R code.
 
-    Used as initial estimates in DeseqDataSet._fit_MoM_dispersions.
+    Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions()
+    <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
+
 
     Parameters
     ----------

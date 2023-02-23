@@ -274,7 +274,7 @@ def grid_fit_shrink_beta(
 
     Returns
     -------
-    float
+    ndarray
         Fitted MAP LFC parameter.
     """
     x_grid = np.linspace(min_beta, max_beta, grid_length)
