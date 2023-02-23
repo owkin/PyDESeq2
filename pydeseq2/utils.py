@@ -43,14 +43,14 @@ def load_example_data(
     dataset : str
         The dataset for which to return gene expression data.
         If "synthetic", will return the synthetic data that is used for CI unit tests.
-        (default: "synthetic").
+        (default: ``"synthetic"``).
 
     debug : bool
         If true, subsample 10 samples and 100 genes at random.
-        (Note that the "synthetic" dataset is already 10 x 100.) (default: False).
+        (Note that the "synthetic" dataset is already 10 x 100.) (default: ``False``).
 
     debug_seed : int
-        Seed for the debug mode. (default: 42).
+        Seed for the debug mode. (default: ``42``).
 
     Returns
     -------
@@ -151,19 +151,19 @@ def build_design_matrix(
 
     design_factors : str or list
         Name of the columns of clinical_df to be used as design_matrix variables.
-        (default: "condition").
+        (default: ``"condition"``).
 
     ref : str
         The factor to use as a reference. Must be one of the values taken by the design.
         If None, the reference will be chosen alphabetically (last in order).
-        (default: None).
+        (default: ``None``).
 
     expanded : bool
         If true, use one column per category. Else, use a single column.
-        (default: False).
+        (default: ``False``).
 
     intercept : bool
-        If true, add an intercept (a column containing only ones). (default: True).
+        If true, add an intercept (a column containing only ones). (default: ``True``).
 
     Returns
     -------
@@ -371,28 +371,29 @@ def irls_solver(
         Gene-wise dispersion prior.
 
     min_mu : float
-        Lower bound on estimated means, to ensure numerical stability. (default: 0.5).
+        Lower bound on estimated means, to ensure numerical stability.
+        (default: ``0.5``).
 
     beta_tol : float
         Stopping criterion for IRWLS:
         :math:`\vert dev - dev_{old}\vert / \vert dev + 0.1 \vert < \beta_{tol}`.
-        (default: 1e-8).
+        (default: ``1e-8``).
 
     min_beta : float
-        Lower-bound on LFC. (default: -30).
+        Lower-bound on LFC. (default: ``-30``).
 
     max_beta : float
-        Upper-bound on LFC. (default: -30).
+        Upper-bound on LFC. (default: ``-30``).
 
     optimizer : str
         Optimizing method to use in case IRLS starts diverging.
         Accepted values: 'BFGS' or 'L-BFGS-B'.
         NB: only 'L-BFGS-B' ensures that LFCS will
-        lay in the [min_beta, max_beta] range. (default: 'L-BFGS-B').
+        lay in the [min_beta, max_beta] range. (default: ``'L-BFGS-B'``).
 
     maxiter : int
         Maximum number of IRLS iterations to perform before switching to L-BFGS-B.
-        (default: 250).
+        (default: ``250``).
 
     Returns
     -------
@@ -537,14 +538,14 @@ def fit_alpha_mle(
         Prior dispersion variance.
 
     cr_reg : bool
-        Whether to use Cox-Reid regularization. (default: True).
+        Whether to use Cox-Reid regularization. (default: ``True``).
 
     prior_reg : bool
-        Whether to use prior log-residual regularization. (default: False).
+        Whether to use prior log-residual regularization. (default: ``False``).
 
     optimizer : str
         Optimizing method to use. Accepted values: 'BFGS' or 'L-BFGS-B'.
-        (default: 'L-BFGS-B').
+        (default: ``'L-BFGS-B'``).
 
     Returns
     -------
@@ -630,7 +631,7 @@ def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
         Data whose mean to compute.
 
     trim : float
-        Fraction of data to trim at each end. (default: 0.1).
+        Fraction of data to trim at each end. (default: ``0.1``).
 
     **kwargs
         Keyword arguments, useful to pass axis.
@@ -716,10 +717,10 @@ def trimmed_variance(
         Data whose trimmed variance to compute.
 
     trim : float
-        Fraction of data to trim at each end. (default: 0.125).
+        Fraction of data to trim at each end. (default: ``0.125``).
 
     axis : int
-        Dimension along which to compute variance. (default: 0).
+        Dimension along which to compute variance. (default: ``0``).
 
     Returns
     -------
@@ -755,7 +756,7 @@ def fit_lin_mu(
         Design matrix.
 
     min_mu : float
-        Lower threshold for fitted means, for numerical stability. (default: 0.5).
+        Lower threshold for fitted means, for numerical stability. (default: ``0.5``).
 
     Returns
     -------
@@ -801,7 +802,7 @@ def wald_test(
         Regularization factors.
 
     idx : int
-        Index of design factor (in design matrix). (default: -1).
+        Index of design factor (in design matrix). (default: ``-1``).
 
     Returns
     -------
@@ -950,7 +951,7 @@ def get_num_processes(n_cpus: Optional[int] = None) -> int:
     ----------
     n_cpus : int
         Desired number of cpus. If None, will return the number of available cpus.
-        (default: None).
+        (default: ``None``).
 
     Returns
     -------
@@ -1005,10 +1006,10 @@ def nbinomGLM(
 
     optimizer : str
         Optimizing method to use in case IRLS starts diverging.
-        Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'. (default: 'Newton-CG').
+        Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'. (default: ``'Newton-CG'``).
 
     shrink_index : int
-        Index of the LFC coordinate to shrink. (default: 1).
+        Index of the LFC coordinate to shrink. (default: ``1``).
 
     Returns
     -------
@@ -1161,7 +1162,7 @@ def nbinomFn(
         Prior variance for the intercept.
 
     shrink_index : int
-        Index of the LFC coordinate to shrink. (default: 1).
+        Index of the LFC coordinate to shrink. (default: ``1``).
 
     Returns
     -------

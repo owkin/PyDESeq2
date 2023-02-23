@@ -60,45 +60,46 @@ class DeseqDataSet(ad.AnnData):
     design_factors : str or list
         Name of the columns of clinical to be used as design variables. If a list,
         the last factor will be considered the variable of interest by default.
-        Only bi-level factors are supported. (default: 'condition').
+        Only bi-level factors are supported. (default: ``'condition'``).
 
     reference_level : str
         The factor to use as a reference. Must be one of the values taken by the design.
         If None, the reference will be chosen alphabetically (last in order).
-        (default: None).
+        (default: ``None``).
 
     min_mu : float
-        Threshold for mean estimates. (default: 0.5).
+        Threshold for mean estimates. (default: ``0.5``).
 
     min_disp : float
-        Lower threshold for dispersion parameters. (default: 1e-8).
+        Lower threshold for dispersion parameters. (default: ``1e-8``).
 
     max_disp : float
         Upper threshold for dispersion parameters.
         NB: The threshold that is actually enforced is max(max_disp, len(counts)).
-        (default: 10).
+        (default: ``10``).
 
     refit_cooks : bool
-        Whether to refit cooks outliers. (default: True).
+        Whether to refit cooks outliers. (default: ``True``).
 
     min_replicates : int
         Minimum number of replicates a condition should have
-        to allow refitting its samples. (default: 7).
+        to allow refitting its samples. (default: ``7``).
 
     beta_tol : float
-        Stopping criterion for IRWLS. (default: 1e-8).
+        Stopping criterion for IRWLS. (default: ``1e-8``).
 
         .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
 
     n_cpus : int
-        Number of cpus to use. If None, all available cpus will be used. (default: None).
+        Number of cpus to use. If None, all available cpus will be used.
+        (default: ``None``).
 
     batch_size : int
-        Number of tasks to allocate to each joblib parallel worker. (default: 128).
+        Number of tasks to allocate to each joblib parallel worker. (default: ``128``).
 
     joblib_verbosity : int
         The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported. (default: 0).
+        are reported. (default: ``0``).
 
     Attributes
     ----------

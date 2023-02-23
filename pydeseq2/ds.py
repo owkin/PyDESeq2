@@ -36,37 +36,37 @@ class DeseqStats:
 
     contrast : list or None
         A list of three strings, in the following format:
-        ['variable_of_interest', 'tested_level', 'reference_level'].
+        ``['variable_of_interest', 'tested_level', 'reference_level']``.
         Names must correspond to the clinical data passed to the DeseqDataSet.
-        E.g., ['condition', 'B', 'A'] will measure the LFC of 'condition B' compared to
-        'condition A'. If None, the last variable from the design matrix is chosen
+        E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared
+        to 'condition A'. If None, the last variable from the design matrix is chosen
         as the variable of interest, and the reference level is picked alphabetically.
-        (default: None).
+        (default: ``None``).
 
     alpha : float
         P-value and adjusted p-value significance threshold (usually 0.05).
-        (default: 0.05).
+        (default: ``0.05``).
 
     cooks_filter : bool
-        Whether to filter p-values based on cooks outliers. (default: True).
+        Whether to filter p-values based on cooks outliers. (default: ``True``).
 
     independent_filter : bool
         Whether to perform independent filtering to correct p-value trends.
-        (default: True).
+        (default: ``True``).
 
     n_cpus : int
         Number of cpus to use for multiprocessing.
-        If None, all available CPUs will be used. (default: None).
+        If None, all available CPUs will be used. (default: ``None``).
 
     prior_LFC_var : ndarray
-        Prior variance for LFCs, used for ridge regularization. (default: None).
+        Prior variance for LFCs, used for ridge regularization. (default: ``None``).
 
     batch_size : int
-        Number of tasks to allocate to each joblib parallel worker. (default: 128).
+        Number of tasks to allocate to each joblib parallel worker. (default: ``128``).
 
     joblib_verbosity : int
         The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported. (default: 0).
+        are reported. (default: ``0``).
 
     Attributes
     ----------
@@ -519,10 +519,10 @@ class DeseqStats:
         Parameters
         ----------
         min_var : float
-            Lower bound for prior variance. (default: 1e-6).
+            Lower bound for prior variance. (default: ``1e-6``).
 
         max_var : float
-            Upper bound for prior variance. (default: 400).
+            Upper bound for prior variance. (default: ``400``).
 
         Returns
         -------
