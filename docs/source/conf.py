@@ -115,7 +115,7 @@ napoleon_numpy_docstring = True
 napoleon_preprocess_types = True
 
 napoleon_type_aliases = {
-    "DeseqDataSet": "`:class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`",
+    "DeseqDataSet": ":class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`",
 }
 
 # Add any paths that contain templates here, relative to this directory.
