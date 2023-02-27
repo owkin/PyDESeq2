@@ -428,7 +428,7 @@ class DeseqDataSet(ad.AnnData):
 
         # Exclude genes with all zeroes
         num_genes = len(self.non_zero_genes)
-        num_vars = self.n_vars
+        num_vars = self.obsm["design_matrix"].shape[-1]
 
         # Fit dispersions to the curve, and compute log residuals
         disp_residuals = np.log(
