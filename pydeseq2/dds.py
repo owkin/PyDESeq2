@@ -726,7 +726,7 @@ class DeseqDataSet(ad.AnnData):
         self.new_all_zeroes_genes = self.counts_to_refit.var_names[new_all_zeroes]
         self.counts_to_refit = self.counts_to_refit[:, ~new_all_zeroes].copy()
 
-        if isinstance(self.new_all_zero_genes, pd.MultiIndex):
+        if isinstance(self.new_all_zeroes_genes, pd.MultiIndex):
             raise ValueError
 
         sub_dds = DeseqDataSet(
