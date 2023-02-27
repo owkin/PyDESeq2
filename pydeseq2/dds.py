@@ -785,7 +785,7 @@ class DeseqDataSet(ad.AnnData):
         self.varm["dispersions"][to_replace] = sub_dds.varm["dispersions"]
 
         replace_cooks = pd.DataFrame(self.layers["cooks"].copy())
-        replace_cooks.loc[self.obsm["replaceable"], to_replace] = 0
+        replace_cooks.loc[self.obsm["replaceable"], to_replace] = 0.0
 
         self.layers["replace_cooks"] = replace_cooks
         # Take into account new all-zero genes
