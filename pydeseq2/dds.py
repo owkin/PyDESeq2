@@ -348,7 +348,7 @@ class DeseqDataSet(ad.AnnData):
         """
 
         # Check that genewise dispersions are available. If not, compute them.
-        if not "genewise_dispersions" not in self.varm:
+        if "genewise_dispersions" not in self.varm:
             self.fit_genewise_dispersions()
 
         print("Fitting dispersion trend curve...")
