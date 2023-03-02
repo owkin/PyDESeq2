@@ -12,4 +12,5 @@ profile = "black"
 filterwarnings = [
     "error",
     "ignore::statsmodels.tools.sm_exceptions.DomainWarning", # due to fitting the dipersion curve with the identity link
+    "ignore::FutureWarning" # Ignore AnnData FutureWarning about implicit conversion
 ]

@@ -692,11 +692,12 @@ class DeseqDataSet(ad.AnnData):
             ),
             index=self.counts_to_refit.var_names,
         )
+
         replacement_counts = (
             pd.DataFrame(
                 trim_base_mean.values * self.obsm["size_factors"],
                 index=self.counts_to_refit.var_names,
-                columns=self.obs_names,
+                columns=self.counts_to_refit.obs_names,
             )
             .astype(int)
             .T
@@ -704,9 +705,9 @@ class DeseqDataSet(ad.AnnData):
 
         if sum(self.varm["replaced"] > 0):
             self.counts_to_refit.X[
-                idx[self.obsm["replaceable"]][:, self.varm["replaced"]]
+                self.obsm["replaceable"][:, None] & idx[:, self.varm["replaced"]]
             ] = replacement_counts.values[
-                idx[self.obsm["replaceable"]][:, self.varm["replaced"]]
+                self.obsm["replaceable"][:, None] & idx[:, self.varm["replaced"]]
             ]
 
     def _refit_without_outliers(
@@ -748,7 +749,7 @@ class DeseqDataSet(ad.AnnData):
         )
 
         # Use the same size factors
-        sub_dds.obsm["size_factors"] = self.obsm["size_factors"]
+        sub_dds.obsm["size_factors"] = self.counts_to_refit.obsm["size_factors"]
 
         # Estimate gene-wise dispersions.
         sub_dds.fit_genewise_dispersions()
@@ -757,7 +758,7 @@ class DeseqDataSet(ad.AnnData):
         # Note: the trend curve is not refitted.
         sub_dds.uns["trend_coeffs"] = self.uns["trend_coeffs"]
         sub_dds.varm["_normed_means"] = (
-            self.counts_to_refit.X / self.obsm["size_factors"][:, None]
+            self.counts_to_refit.X / self.counts_to_refit.obsm["size_factors"][:, None]
         ).mean(0)
         sub_dds.varm["fitted_dispersions"] = dispersion_trend(
             sub_dds.varm["_normed_means"],
@@ -784,7 +785,7 @@ class DeseqDataSet(ad.AnnData):
         self.varm["dispersions"][to_replace] = sub_dds.varm["dispersions"]
 
         replace_cooks = pd.DataFrame(self.layers["cooks"].copy())
-        replace_cooks.loc[self.obsm["replaceable"], to_replace] = 0
+        replace_cooks.loc[self.obsm["replaceable"], to_replace] = 0.0
 
         self.layers["replace_cooks"] = replace_cooks
         # Take into account new all-zero genes
