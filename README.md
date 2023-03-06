@@ -111,7 +111,7 @@ PyDESeq2 is a living project and any contributions are welcome! Feel free to ope
 
 Here are some of the features and improvements we plan to implement in the future:
 
-- [ ] Integration to the [scverse](https://scverse.org/) ecosystem:
+- [x] Integration to the [scverse](https://scverse.org/) ecosystem:
   * [x] Refactoring to use the [AnnData](https://anndata.readthedocs.io/) data structure
   * [x] Submitting a PR to be listed as an [scverse ecosystem](https://github.com/scverse/ecosystem-packages/) package
 - [ ] Variance-stabilizing transformation
