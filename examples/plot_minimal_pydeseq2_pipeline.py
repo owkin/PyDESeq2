@@ -301,8 +301,8 @@ print(clinical_df)
 #
 
 dds = DeseqDataSet(
-    counts_df,
-    clinical_df,
+    counts=counts_df,
+    clinical=clinical_df,
     design_factors=["group", "condition"],
     refit_cooks=True,
     n_cpus=8,
