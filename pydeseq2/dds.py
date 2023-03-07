@@ -180,7 +180,7 @@ class DeseqDataSet(ad.AnnData):
         # Initialize the AnnData part
         if adata is not None:
             # Test counts before going further
-            test_valid_counts(adata.X)  # TODO: check that this still works
+            test_valid_counts(adata.X)
             # Copy fields from original AnnData
             self.__dict__.update(adata.__dict__)
         else:

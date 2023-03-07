@@ -129,8 +129,8 @@ counts_df = counts_df[genes_to_keep]
 #
 
 dds = DeseqDataSet(
-    counts_df,
-    clinical_df,
+    counts=counts_df,
+    clinical=clinical_df,
     design_factors="condition",
     refit_cooks=True,
     n_cpus=8,
