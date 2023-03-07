@@ -108,25 +108,31 @@ def load_example_data(
     return df
 
 
-def test_valid_counts(counts_df: pd.DataFrame) -> None:
+def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
     """Test that the count matrix contains valid inputs.
 
     More precisely, test that inputs are non-negative integers.
 
     Parameters
     ----------
-    counts_df : pandas.DataFrame
+    counts : pandas.DataFrame or ndarray
         Raw counts. One column per gene, rows are indexed by sample barcodes.
     """
-    if counts_df.isna().any().any():
-        raise ValueError("NaNs are not allowed in the count matrix.")
-    if ~counts_df.apply(
-        lambda s: pd.to_numeric(s, errors="coerce").notnull().all()
-    ).all():
-        raise ValueError("The count matrix should only contain numbers.")
-    if (counts_df % 1 != 0).any().any():
+    if isinstance(counts, pd.DataFrame):
+        if counts.isna().any().any():
+            raise ValueError("NaNs are not allowed in the count matrix.")
+        if ~counts.apply(
+            lambda s: pd.to_numeric(s, errors="coerce").notnull().all()
+        ).all():
+            raise ValueError("The count matrix should only contain numbers.")
+    else:
+        if np.isnan(counts).any().any():
+            raise ValueError("NaNs are not allowed in the count matrix.")
+        if not np.issubdtype(counts.dtype, np.number):
+            raise ValueError("The count matrix should only contain numbers.")
+    if (counts % 1 != 0).any().any():
         raise ValueError("The count matrix should only contain integers.")
-    if (counts_df < 0).any().any():
+    if (counts < 0).any().any():
         raise ValueError("The count matrix should only contain non-negative values.")
 
 
