@@ -35,7 +35,9 @@ def test_deseq(tol=0.02):
         os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
     )
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors="condition"
+    )
     dds.deseq2()
 
     res = DeseqStats(dds)
@@ -80,7 +82,10 @@ def test_deseq_no_refit_cooks(tol=0.02):
     )
 
     dds = DeseqDataSet(
-        counts_df, clinical_df, design_factors="condition", refit_cooks=False
+        counts=counts_df,
+        clinical=clinical_df,
+        design_factors="condition",
+        refit_cooks=False,
     )
     dds.deseq2()
 
@@ -135,7 +140,9 @@ def test_lfc_shrinkage(tol=0.02):
         os.path.join(test_path, "data/single_factor/r_test_dispersions.csv"), index_col=0
     ).squeeze()
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors="condition"
+    )
     dds.deseq2()
     dds.obsm["size_factors"] = r_size_factors.values
     dds.varm["dispersions"] = r_dispersions.values
@@ -180,7 +187,9 @@ def test_multifactor_deseq(tol=0.02):
         os.path.join(test_path, "data/multi_factor/r_test_res.csv"), index_col=0
     )
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors=["group", "condition"])
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors=["group", "condition"]
+    )
     dds.deseq2()
 
     res = DeseqStats(dds)
@@ -234,7 +243,9 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
         os.path.join(test_path, "data/multi_factor/r_test_dispersions.csv"), index_col=0
     ).squeeze()
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors=["group", "condition"])
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors=["group", "condition"]
+    )
     dds.deseq2()
     dds.obsm["size_factors"] = r_size_factors.values
     dds.varm["dispersions"] = r_dispersions.values
@@ -271,7 +282,9 @@ def test_contrast():
         debug=False,
     )
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors=["group", "condition"])
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors=["group", "condition"]
+    )
     dds.deseq2()
 
     res_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"])
