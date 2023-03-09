@@ -46,4 +46,5 @@ setup(
             "pandas-stubs",
         ],
     },
+    include_package_data=True,
 )
