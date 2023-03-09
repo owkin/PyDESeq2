@@ -1,1 +1,1 @@
-recursive-include datasets *.csv
+recursive-include datasets/*.csv
