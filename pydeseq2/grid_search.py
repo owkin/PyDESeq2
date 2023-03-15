@@ -6,7 +6,7 @@ from scipy.special import gammaln  # type: ignore
 import pydeseq2.utils
 
 
-def vec_nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> np.ndarray:
+def vec_nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: np.ndarray) -> np.ndarray:
     """Return the negative log-likelihood of a negative binomial.
 
     Vectorized version.
@@ -19,7 +19,7 @@ def vec_nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> np.ndarray:
     mu : ndarray
         Mean of the distribution.
 
-    alpha : float
+    alpha : ndarray
         Dispersion of the distribution, s.t. the variance is
         :math:`\\mu + \\alpha * \\mu^2`.
 
