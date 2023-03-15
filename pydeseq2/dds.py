@@ -50,6 +50,11 @@ class DeseqDataSet(ad.AnnData):
 
     Parameters
     ----------
+    adata : anndata.AnnData
+        AnnData from which to initialize the DeseqDataSet. Must have counts ('X') and
+         clinical metadata ('obs') fields. If ``None``, both ``counts`` and ``clinical``
+         arguments must be provided.
+
     counts : pandas.DataFrame
         Raw counts. One column per gene, rows are indexed by sample barcodes.
 
@@ -151,8 +156,10 @@ class DeseqDataSet(ad.AnnData):
 
     def __init__(
         self,
-        counts: pd.DataFrame,
-        clinical: pd.DataFrame,
+        *,
+        adata: Optional[ad.AnnData] = None,
+        counts: Optional[pd.DataFrame] = None,
+        clinical: Optional[pd.DataFrame] = None,
         design_factors: Union[str, List[str]] = "condition",
         reference_level: Optional[str] = None,
         min_mu: float = 0.5,
@@ -166,11 +173,21 @@ class DeseqDataSet(ad.AnnData):
         joblib_verbosity: int = 0,
     ) -> None:
 
-        # Test counts before going further
-        test_valid_counts(counts)
+        if adata is None and (counts is None or clinical is None):
+            raise ValueError(
+                "Either adata or both counts and clinical arguments must be provided."
+            )
 
         # Initialize the AnnData part
-        super().__init__(X=counts, obs=clinical, dtype=int)
+        if adata is not None:
+            # Test counts before going further
+            test_valid_counts(adata.X)
+            # Copy fields from original AnnData
+            self.__dict__.update(adata.__dict__)
+        else:
+            # Test counts before going further
+            test_valid_counts(counts)
+            super().__init__(X=counts, obs=clinical, dtype=int)
 
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (

@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import anndata as ad
 import numpy as np
 import pandas as pd
 
@@ -35,7 +36,9 @@ def test_deseq(tol=0.02):
         os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
     )
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors="condition"
+    )
     dds.deseq2()
 
     res = DeseqStats(dds)
@@ -80,7 +83,10 @@ def test_deseq_no_refit_cooks(tol=0.02):
     )
 
     dds = DeseqDataSet(
-        counts_df, clinical_df, design_factors="condition", refit_cooks=False
+        counts=counts_df,
+        clinical=clinical_df,
+        design_factors="condition",
+        refit_cooks=False,
     )
     dds.deseq2()
 
@@ -135,7 +141,9 @@ def test_lfc_shrinkage(tol=0.02):
         os.path.join(test_path, "data/single_factor/r_test_dispersions.csv"), index_col=0
     ).squeeze()
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors="condition"
+    )
     dds.deseq2()
     dds.obsm["size_factors"] = r_size_factors.values
     dds.varm["dispersions"] = r_dispersions.values
@@ -180,7 +188,9 @@ def test_multifactor_deseq(tol=0.02):
         os.path.join(test_path, "data/multi_factor/r_test_res.csv"), index_col=0
     )
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors=["group", "condition"])
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors=["group", "condition"]
+    )
     dds.deseq2()
 
     res = DeseqStats(dds)
@@ -234,7 +244,9 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
         os.path.join(test_path, "data/multi_factor/r_test_dispersions.csv"), index_col=0
     ).squeeze()
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors=["group", "condition"])
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors=["group", "condition"]
+    )
     dds.deseq2()
     dds.obsm["size_factors"] = r_size_factors.values
     dds.varm["dispersions"] = r_dispersions.values
@@ -271,7 +283,9 @@ def test_contrast():
         debug=False,
     )
 
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors=["group", "condition"])
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors=["group", "condition"]
+    )
     dds.deseq2()
 
     res_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"])
@@ -296,3 +310,60 @@ def test_contrast():
     np.testing.assert_almost_equal(
         res_B_vs_A.results_df.stat.values, -res_A_vs_B.results_df.stat.values, decimal=8
     )
+
+
+def test_anndata_init(tol=0.02):
+    """
+    Test initializing dds with an AnnData object that already has filled in fields,
+    including with the same names as those used by pydeseq2.
+    """
+    np.random.seed(42)
+
+    # Load data
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Make an anndata object
+    adata = ad.AnnData(X=counts_df, obs=clinical_df, dtype=int)
+
+    # Put some dummy data in unused fields
+    adata.obsm["dummy_metadata"] = np.random.choice(2, adata.n_obs)
+    adata.varm["dummy_param"] = np.random.randn(adata.n_vars)
+
+    # Put values in the dispersions field
+    adata.varm["dispersions"] = np.random.randn(adata.n_vars) ** 2
+
+    # Load R data
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    r_res = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
+    )
+
+    # Initialize DeseqDataSet from anndata and test results
+    dds = DeseqDataSet(adata=adata, design_factors="condition")
+    dds.deseq2()
+
+    res = DeseqStats(dds)
+    res.summary()
+    res_df = res.results_df
+
+    # check that the same p-values are NaN
+    assert (res_df.pvalue.isna() == r_res.pvalue.isna()).all()
+    assert (res_df.padj.isna() == r_res.padj.isna()).all()
+
+    # Check that the same LFC, p-values and adjusted p-values are found (up to tol)
+    assert (
+        abs(r_res.log2FoldChange - res_df.log2FoldChange) / abs(r_res.log2FoldChange)
+    ).max() < tol
+    assert (abs(r_res.pvalue - res_df.pvalue) / r_res.pvalue).max() < tol
+    assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol

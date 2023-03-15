@@ -32,7 +32,9 @@ def test_zero_genes():
     counts_df[zero_genes] = 0
 
     # Run analysis
-    dds = DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors="condition"
+    )
     dds.deseq2()
 
     # check that the corresponding parameters are NaN
@@ -61,7 +63,7 @@ def test_nan_counts():
     clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
 
 
 def test_numeric_counts():
@@ -74,7 +76,7 @@ def test_numeric_counts():
     clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
 
 
 def test_integer_counts():
@@ -86,7 +88,7 @@ def test_integer_counts():
     clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
 
 
 def test_non_negative_counts():
@@ -98,7 +100,7 @@ def test_non_negative_counts():
     clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
 
 
 # Tests on the clinical data (design factors)
@@ -110,7 +112,7 @@ def test_nan_factors():
     clinical_df = pd.DataFrame({"condition": [0, np.NaN]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
 
 
 def test_one_factors():
@@ -121,7 +123,7 @@ def test_one_factors():
     clinical_df = pd.DataFrame({"condition": [0, 0]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
 
 
 def test_too_many_factors():
@@ -136,7 +138,7 @@ def test_too_many_factors():
     )
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts_df, clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
 
 
 def test_reference_level():
@@ -149,7 +151,10 @@ def test_reference_level():
 
     with pytest.raises(KeyError):
         DeseqDataSet(
-            counts_df, clinical_df, design_factors="condition", reference_level="control"
+            counts=counts_df,
+            clinical=clinical_df,
+            design_factors="condition",
+            reference_level="control",
         )
 
 
@@ -163,8 +168,8 @@ def test_indexes():
 
     with pytest.raises(ValueError):  # Should be raised by AnnData
         DeseqDataSet(
-            counts_df,
-            clinical_df,
+            counts=counts_df,
+            clinical=clinical_df,
             design_factors="condition",
         )
 
@@ -188,8 +193,8 @@ def test_cooks_not_refitted():
 
     # Run analysis
     dds = DeseqDataSet(
-        counts_df,
-        clinical_df,
+        counts=counts_df,
+        clinical=clinical_df,
         refit_cooks=False,
         design_factors="condition",
     )
@@ -231,7 +236,10 @@ def test_few_samples():
 
     # Run analysis. Should not throw an error.
     dds = DeseqDataSet(
-        counts_df, clinical_df, refit_cooks=True, design_factors="condition"
+        counts=counts_df,
+        clinical=clinical_df,
+        refit_cooks=True,
+        design_factors="condition",
     )
     dds.deseq2()
 
@@ -284,7 +292,10 @@ def test_few_samples_and_outlier():
 
     # Run analysis. Should not throw an error.
     dds = DeseqDataSet(
-        counts_df, clinical_df, refit_cooks=True, design_factors="condition"
+        counts=counts_df,
+        clinical=clinical_df,
+        refit_cooks=True,
+        design_factors="condition",
     )
     dds.deseq2()
 

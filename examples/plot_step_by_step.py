@@ -88,8 +88,8 @@ clinical_df = load_example_data(
 #   outliers.
 
 dds = DeseqDataSet(
-    counts_df,
-    clinical_df,
+    counts=counts_df,
+    clinical=clinical_df,
     design_factors="condition",  # compare samples based on the "condition"
     # column ("B" vs "A")
     refit_cooks=True,
