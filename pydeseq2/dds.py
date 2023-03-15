@@ -156,6 +156,7 @@ class DeseqDataSet(ad.AnnData):
 
     def __init__(
         self,
+        *,
         adata: Optional[ad.AnnData] = None,
         counts: Optional[pd.DataFrame] = None,
         clinical: Optional[pd.DataFrame] = None,
