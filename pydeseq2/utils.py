@@ -236,10 +236,10 @@ def dispersion_trend(
         return coeffs[0] + coeffs[1] / normed_mean
 
 
-def nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
+def nb_nll(
+    counts: np.ndarray, mu: np.ndarray, alpha: Union[float, np.ndarray]
+) -> Union[float, np.ndarray]:
     """Negative log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
-
-    Unvectorized version.
 
     Mathematically, if ``counts`` is a vector of counting entries :math:`y_i`
     then the likelihood of each entry :math:`y_i` to be drawn from a negative
@@ -275,13 +275,13 @@ def nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
     mu : ndarray
         Mean of the distribution :math:`\\mu`.
 
-    alpha : float
+    alpha : float or ndarray
         Dispersion of the distribution :math:`\\alpha`,
         s.t. the variance is :math:`\\mu + \\alpha \\mu^2`.
 
     Returns
     -------
-    float
+    float or ndarray
         Negative log likelihood of the observations counts
         following :math:`NB(\\mu, \\alpha)`.
 
@@ -293,14 +293,21 @@ def nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
     n = len(counts)
     alpha_neg1 = 1 / alpha
     logbinom = gammaln(counts + alpha_neg1) - gammaln(counts + 1) - gammaln(alpha_neg1)
-    return (
-        n * alpha_neg1 * np.log(alpha)
-        + (
+    if hasattr(alpha, "__len__") and len(alpha) > 1:
+        return alpha_neg1 * np.log(alpha) + (
             -logbinom
-            + (counts + alpha_neg1) * np.log(alpha_neg1 + mu)
-            - counts * np.log(mu)
-        ).sum()
-    )
+            + (counts + alpha_neg1) * np.log(mu + alpha_neg1)
+            - (counts * np.log(mu))
+        ).sum(0)
+    else:
+        return (
+            n * alpha_neg1 * np.log(alpha)
+            + (
+                -logbinom
+                + (counts + alpha_neg1) * np.log(alpha_neg1 + mu)
+                - counts * np.log(mu)
+            ).sum()
+        )
 
 
 def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
@@ -1187,3 +1194,23 @@ def nbinomFn(
     ).sum(0)
 
     return prior - nll
+
+
+def mean_absolute_deviation(x: np.ndarray) -> float:
+    """
+    Compute a scaled estimator of the mean absolute deviation.
+
+    Used in :meth:`pydeseq2.dds.DeseqDataSet.fit_dispersion_prior()`.
+
+    Parameters
+    ----------
+    x : ndarray
+        1D array whose MAD to compute.
+
+    Returns
+    -------
+    float
+        Mean absolute deviation estimator.
+    """
+    center = np.median(x)
+    return np.median(np.abs(x - center)) / norm.ppf(0.75)
