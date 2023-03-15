@@ -834,7 +834,6 @@ class DeseqDataSet(ad.AnnData):
 
         """
 
-        # TODO : deal with all zero genes
         self.obsm["size_factors"] = np.ones(self.n_obs)
 
         # Reduce the design matrix to an intercept and reconstruct at the end
@@ -852,6 +851,7 @@ class DeseqDataSet(ad.AnnData):
                 (self.varm["genewise_dispersions"] > 10 * self.min_disp)
                 & self.varm["non_zero"]
             ]
+
             mean_disp = trimmed_mean(
                 self[:, use_for_mean_genes].varm["genewise_dispersions"], trim=0.001
             )

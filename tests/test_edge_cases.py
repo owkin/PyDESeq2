@@ -290,3 +290,31 @@ def test_few_samples_and_outlier():
 
     res = DeseqStats(dds)
     res.summary()
+
+
+def test_zero_inflated():
+    """
+    Test the pydeseq2 runs bug-free when there is at least one zero per gene.
+    TODO: test correctness of the outputs. An issue is that DESeq2 fails in this setting.
+    """
+
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Artificially zero-inflate the data
+    # Each gene will have at least one zero
+    np.random.seed(42)
+    idx = np.random.choice(len(counts_df), counts_df.shape[-1])
+    counts_df.iloc[idx, :] = 0
+
+    dds = DeseqDataSet(counts=counts_df, clinical=clinical_df)
+    dds.deseq2()
