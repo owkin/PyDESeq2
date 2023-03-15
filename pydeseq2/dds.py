@@ -237,7 +237,7 @@ class DeseqDataSet(ad.AnnData):
 
         Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`,
         unless each gene has at least one zero, in which case it switches to
-        :func:`pydeseq2.dds.DeseqDataSet._fit_iterate_size_factors`.
+        the ``iterative`` method.
 
         Parameters
         ----------
