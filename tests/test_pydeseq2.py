@@ -367,3 +367,49 @@ def test_anndata_init(tol=0.02):
     ).max() < tol
     assert (abs(r_res.pvalue - res_df.pvalue) / r_res.pvalue).max() < tol
     assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
+
+
+def test_vst(tol=0.02):
+    """
+    Test the output of VST compared with DESeq2.
+    """
+
+    # Load data
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Load R data
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    r_vst = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_vst.csv"), index_col=0
+    ).T
+
+    r_vst_with_design = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_vst_with_design.csv"), index_col=0
+    ).T
+
+    # Test blind design
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors=["condition"]
+    )
+    dds.vst(use_design=False)
+    assert (np.abs(r_vst - dds.layers["vst_counts"]) / r_vst).max().max() < tol
+
+    # Test full design
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors=["condition"]
+    )
+    dds.vst(use_design=True)
+    assert (
+        np.abs(r_vst_with_design - dds.layers["vst_counts"]) / r_vst_with_design
+    ).max().max() < tol
