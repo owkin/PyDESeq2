@@ -35,7 +35,8 @@ warnings.simplefilter("ignore", DomainWarning)
 # Ignore AnnData's FutureWarning about implicit data conversion.
 warnings.simplefilter("ignore", FutureWarning)
 
-# TODO: support loading / saving DeseqDataSets from AnnData objects.
+
+# TODO: implement a quiet (non-verbose) mode ?
 
 
 class DeseqDataSet(ad.AnnData):
@@ -216,6 +217,50 @@ class DeseqDataSet(ad.AnnData):
         self.n_processes = get_num_processes(n_cpus)
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
+
+    def vst(self, use_design: bool = False) -> None:
+        """
+        Fit a variance stabilizing transformation, and apply it to normalized counts.
+
+        Results are stored in ``dds.layers["vst_counts"]``.
+
+        Parameters
+        ----------
+        use_design : bool
+            Whether to use the full design matrix to fit dispersions and the trend curve.
+            If False, only an intercept is used. (default: ``False``).
+        """
+
+        # Start by fitting median-of-ratio size factors, if not already present.
+        if "size_factors" not in self.obsm:
+            self.fit_size_factors()
+
+        if use_design:
+            # Check that the dispersion trend curve was fitted. If not, fit it.
+            # This will call previous functions in a cascade.
+            if "trend_coeffs" not in self.uns:
+                self.fit_dispersion_trend()
+        else:
+            # Reduce the design matrix to an intercept and reconstruct at the end
+            self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
+            self.obsm["design_matrix"] = pd.DataFrame(
+                1, index=self.obs_names, columns=[["intercept"]]
+            )
+            # Fit the trend curve with an intercept design
+            self.fit_genewise_dispersions()
+            self.fit_dispersion_trend()
+
+            # Restore the design matrix and free buffer
+            self.obsm["design_matrix"] = self.obsm["design_matrix_buffer"].copy()
+            del self.obsm["design_matrix_buffer"]
+
+        # Apply VST
+        a0, a1 = self.uns["trend_coeffs"]
+        cts = self.layers["normed_counts"]
+        self.layers["vst_counts"] = np.log2(
+            (1 + a1 + 2 * a0 * cts + 2 * np.sqrt(a0 * cts * (1 + a1 + a0 * cts)))
+            / (4 * a0)
+        )
 
     def deseq2(self) -> None:
         """Perform dispersion and log fold-change (LFC) estimation.
