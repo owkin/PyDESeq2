@@ -179,6 +179,16 @@ def build_design_matrix(
 
     design_matrix = pd.get_dummies(clinical_df[design_factors], drop_first=not expanded)
 
+    if not expanded:
+        # Add reference level as column name suffix
+        for factor in design_factors:
+            # TODO : not the most efficient method
+            ref_level = np.unique(clinical_df[factor])[0]
+            design_matrix.columns = [
+                col + f"_vs_{ref_level}" if col.startswith(factor) else col
+                for col in design_matrix.columns
+            ]
+
     if intercept:
         design_matrix.insert(0, "intercept", 1)
     return design_matrix

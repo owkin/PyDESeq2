@@ -63,8 +63,7 @@ class DeseqDataSet(ad.AnnData):
         Must be indexed by sample barcodes.
 
     design_factors : str or list
-        Name of the columns of clinical to be used as design variables. If a list,
-        the last factor will be considered the variable of interest by default.
+        Name of the columns of clinical to be used as design variables.
         Only bi-level factors are supported. (default: ``'condition'``).
 
     min_mu : float

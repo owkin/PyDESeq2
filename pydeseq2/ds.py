@@ -1,7 +1,6 @@
 import time
 from typing import List
 from typing import Optional
-from typing import cast
 
 # import anndata as ad
 import numpy as np
@@ -279,11 +278,9 @@ class DeseqStats:
 
         pvals, stats, se = zip(*res)
 
-        # need casting because mypy recognize them as TimeStampSeries
-        # reason is unknown...
-        self.p_values = cast(pd.Series, pd.Series(pvals, index=self.dds.var_names))
-        self.statistics = cast(pd.Series, pd.Series(stats, index=self.dds.var_names))
-        self.SE = cast(pd.Series, pd.Series(se, index=self.dds.var_names))
+        self.p_values = pd.Series(pvals, index=self.dds.var_names)
+        self.statistics = pd.Series(stats, index=self.dds.var_names)
+        self.SE = pd.Series(se, index=self.dds.var_names)
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
         if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
