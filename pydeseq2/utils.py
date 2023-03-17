@@ -185,13 +185,6 @@ def build_design_matrix(
 
     design_matrix = pd.get_dummies(clinical_df[design_factors])
 
-    for factor in design_factors:
-        # Check that each factor has exactly 2 levels
-        if len(np.unique(clinical_df[factor])) != 2:
-            raise ValueError(
-                f"Factors should take exactly two values, but {factor} "
-                f"takes values {np.unique(clinical_df[factor])}."
-            )
     factor = design_factors[-1]
     if ref is None:
         ref = "_".join([factor, np.sort(np.unique(clinical_df[factor]).astype(str))[0]])
@@ -206,10 +199,16 @@ def build_design_matrix(
             )
             raise e
     design_matrix.insert(design_matrix.shape[-1], ref, ref_level)
-    if not expanded:  # drop duplicate factors
+    if not expanded:
+        # drop duplicate factors : remove the first column of each one-hoted factor
+        factor_lengths = [
+            len(np.unique(clinical_df[factor])) for factor in design_factors
+        ]
         design_matrix.drop(
-            columns=[col for col in design_matrix.columns[::-2]], axis=1, inplace=True
-        )  # Drops every other column, starting from the last
+            columns=design_matrix.columns[[i * k for i, k in enumerate(factor_lengths)]],
+            axis=1,
+            inplace=True,
+        )
     if intercept:
         design_matrix.insert(0, "intercept", 1)
     return design_matrix
