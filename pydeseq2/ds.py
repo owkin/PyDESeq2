@@ -112,6 +112,11 @@ class DeseqStats:
         :keyprefix: DeseqStats-
     """
 
+    SE: pd.Series
+    statistics: pd.Series
+    p_values: pd.Series
+    padj: pd.Series
+
     def __init__(
         self,
         dds: DeseqDataSet,
@@ -142,14 +147,14 @@ class DeseqStats:
             self.contrast = contrast
         else:  # Build contrast if None
             factor = self.dds.design_factors[-1]
-            levels = np.unique(self.dds.obs[factor]).astype(str)
-            if (
-                "_".join([factor, levels[0]])
-                == self.dds.obsm["design_matrix"].columns[-1]
-            ):
-                self.contrast = [factor, levels[0], levels[1]]
-            else:
-                self.contrast = [factor, levels[1], levels[0]]
+            # TODO: why build a list if I only care about last?
+            factor_col = [
+                col
+                for col in self.dds.obsm["design_matrix"].columns
+                if col.startswith(factor)
+            ][-1]
+            split_col = factor_col.split("_")
+            self.contrast = [split_col[0], split_col[1], split_col[-1]]
 
         self.alpha = alpha
         self.cooks_filter = cooks_filter
@@ -161,33 +166,9 @@ class DeseqStats:
         # same as in dds, keep them unchanged. Otherwise, change reference level.
         self.design_matrix = self.dds.obsm["design_matrix"].copy()
         self.LFC = self.dds.varm["LFC"].copy()
-        if self.contrast is None:
-            alternative_level = self.dds.obsm["design_matrix"].columns[-1]
-        else:
-            alternative_level = "_".join([self.contrast[0], self.contrast[1]])
 
-        if alternative_level in self.dds.obsm["design_matrix"].columns:
-            self.contrast_idx = self.dds.varm["LFC"].columns.get_loc(alternative_level)
-        else:  # The reference level is not the same as in dds: change it
-            reference_level = "_".join([self.contrast[0], self.contrast[2]])
-            self.contrast_idx = self.dds.varm["LFC"].columns.get_loc(reference_level)
-            # Change the design matrix reference level
-            self.design_matrix.rename(
-                columns={
-                    self.design_matrix.columns[self.contrast_idx]: alternative_level
-                },
-                inplace=True,
-            )
-            self.design_matrix.iloc[:, self.contrast_idx] = (
-                1 - self.design_matrix.iloc[:, self.contrast_idx]
-            )
-            # Rename and update LFC coefficients accordingly
-            self.LFC.rename(
-                columns={self.LFC.columns[self.contrast_idx]: alternative_level},
-                inplace=True,
-            )
-            self.LFC.iloc[:, 0] += self.LFC.iloc[:, self.contrast_idx]
-            self.LFC.iloc[:, self.contrast_idx] *= -1
+        self._adapt_to_contrast()
+
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
         self.n_processes = get_num_processes(n_cpus)
@@ -544,3 +525,62 @@ class DeseqStats:
             return min_var
         else:
             return root_scalar(objective, bracket=[min_var, max_var]).root
+
+    def _adapt_to_contrast(self) -> None:
+        """
+        Check whether the current design matrix and LFC comply with the desired contrast.
+
+        If not, change column names and compute new coefficients.
+        """
+
+        alternative_level = (
+            f"{self.contrast[0]}_{self.contrast[1]}_vs_{self.contrast[2]}"
+        )
+
+        if alternative_level in self.design_matrix.columns:
+            # Nothing to do: the contrast is already encoded by an existing variable
+            self.contrast_idx = self.dds.varm["LFC"].columns.get_loc(alternative_level)
+        else:
+            # Need to build a variable encoding the desired contrast
+            # Rename columns
+            to_change_cols = [
+                col
+                for col in self.design_matrix.columns
+                if col.startswith(self.contrast[0])
+            ]
+            new_cols = [
+                "_".join(col.split("_")[:-1]) + f"_{self.contrast[2]}"
+                if col.split("_")[1] != self.contrast[2]
+                else f"{self.contrast[0]}_{col.split('_')[-1]}_vs_{self.contrast[2]}"
+                for col in to_change_cols
+            ]
+
+            self.design_matrix = self.design_matrix.rename(
+                {old: new for (old, new) in zip(to_change_cols, new_cols)},
+                axis="columns",
+            )
+
+            self.LFC = self.LFC.rename(
+                {old: new for (old, new) in zip(to_change_cols, new_cols)},
+                axis="columns",
+            )
+
+            new_col_indices = [
+                self.LFC.columns.get_loc(c) for c in new_cols if c in self.LFC
+            ]
+
+            old_ref = to_change_cols[0].split("_")[-1]
+            self.contrast_idx = self.LFC.columns.get_loc(alternative_level)
+
+            # Update LFC coefficients
+            if old_ref == self.contrast[2]:
+                new_ref_idx = self.contrast_idx
+            else:
+                new_ref_idx = self.LFC.columns.get_loc(
+                    f"{self.contrast[0]}_{old_ref}_vs_{self.contrast[2]}"
+                )
+
+            buffer_LFC = self.LFC.iloc[:, new_ref_idx].copy()
+            self.LFC.iloc[:, 0] += buffer_LFC
+            self.LFC.iloc[:, new_col_indices] -= buffer_LFC[:, None]
+            self.LFC.iloc[:, self.contrast_idx] = -buffer_LFC
