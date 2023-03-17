@@ -139,7 +139,6 @@ def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
 def build_design_matrix(
     clinical_df: pd.DataFrame,
     design_factors: Union[str, List[str]] = "condition",
-    ref: Optional[str] = None,
     expanded: bool = False,
     intercept: bool = True,
 ) -> pd.DataFrame:
@@ -158,11 +157,6 @@ def build_design_matrix(
     design_factors : str or list
         Name of the columns of clinical_df to be used as design_matrix variables.
         (default: ``"condition"``).
-
-    ref : str
-        The factor to use as a reference. Must be one of the values taken by the design.
-        If None, the reference will be chosen alphabetically (last in order).
-        (default: ``None``).
 
     expanded : bool
         If true, use one column per category. Else, use a single column.
@@ -183,32 +177,8 @@ def build_design_matrix(
     ):  # if there is a single factor, convert to singleton list
         design_factors = [design_factors]
 
-    design_matrix = pd.get_dummies(clinical_df[design_factors])
+    design_matrix = pd.get_dummies(clinical_df[design_factors], drop_first=not expanded)
 
-    factor = design_factors[-1]
-    if ref is None:
-        ref = "_".join([factor, np.sort(np.unique(clinical_df[factor]).astype(str))[0]])
-        ref_level = design_matrix.pop(ref)
-    else:  # Put reference level last
-        try:
-            ref_level = design_matrix.pop(f"{factor}_{ref}")
-        except KeyError as e:
-            print(
-                "The reference level must correspond to"
-                " one of the design factor values."
-            )
-            raise e
-    design_matrix.insert(design_matrix.shape[-1], ref, ref_level)
-    if not expanded:
-        # drop duplicate factors : remove the first column of each one-hoted factor
-        factor_lengths = [
-            len(np.unique(clinical_df[factor])) for factor in design_factors
-        ]
-        design_matrix.drop(
-            columns=design_matrix.columns[[i * k for i, k in enumerate(factor_lengths)]],
-            axis=1,
-            inplace=True,
-        )
     if intercept:
         design_matrix.insert(0, "intercept", 1)
     return design_matrix
