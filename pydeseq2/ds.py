@@ -105,6 +105,8 @@ class DeseqStats:
     n_processes : int
         Number of threads to use for multiprocessing.
 
+    TODO add contrast_vector, remove contrast_idx ?
+
     References
     ----------
     .. bibliography::
@@ -129,33 +131,14 @@ class DeseqStats:
 
         self.dds = dds
 
-        if contrast is not None:  # Test contrast if provided
-            # TODO: test that levels that are being compared belong to the same factor
-            assert len(contrast) == 3, "The contrast should contain three strings."
-            assert (
-                contrast[0] in self.dds.design_factors
-            ), "The contrast variable should be one of the design factors."
-            assert (
-                contrast[1] in self.dds.obs[contrast[0]].values
-                and contrast[2] in self.dds.obs[contrast[0]].values
-            ), "The contrast levels should correspond to design factors levels."
-            self.contrast = contrast
-        else:  # Build contrast if None
-            factor = self.dds.design_factors[-1]
-            # TODO: why build a list if I only care about last? use next
-            factor_col = [
-                col
-                for col in self.dds.obsm["design_matrix"].columns
-                if col.startswith(factor)
-            ][-1]
-            split_col = factor_col.split("_")
-            self.contrast = [split_col[0], split_col[1], split_col[-1]]
-
         self.alpha = alpha
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
         self.base_mean = self.dds.varm["_normed_means"].copy()
         self.prior_LFC_var = prior_LFC_var
+
+        # Check the validity of the contrast (if provided) or build it.
+        self._build_contrast(contrast)
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
@@ -523,6 +506,45 @@ class DeseqStats:
             return min_var
         else:
             return root_scalar(objective, bracket=[min_var, max_var]).root
+
+    def _build_contrast(self, contrast: Optional[List[str]] = None) -> None:
+        """
+        Check the validity of the contrast (if provided).
+
+        If not, build a default contrast, corresponding to the last column of the design
+        matrix.
+
+        Parameters
+        ----------
+        contrast : list or None
+            A list of three strings, in the following format:
+            ``['variable_of_interest', 'tested_level', 'reference_level']``.
+            Names must correspond to the clinical data passed to the DeseqDataSet.
+            E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B'
+            compared to 'condition A'. If None, the last variable from the design matrix
+            is chosen as the variable of interest, and the reference level is picked
+            alphabetically. (default: ``None``).
+        """
+
+        if contrast is not None:  # Test contrast if provided
+            assert len(contrast) == 3, "The contrast should contain three strings."
+            assert (
+                contrast[0] in self.dds.design_factors
+            ), "The contrast variable should be one of the design factors."
+            assert (
+                contrast[1] in self.dds.obs[contrast[0]].values
+                and contrast[2] in self.dds.obs[contrast[0]].values
+            ), "The contrast levels should correspond to design factors levels."
+            self.contrast = contrast
+        else:  # Build contrast if None
+            factor = self.dds.design_factors[-1]
+            factor_col = next(
+                col
+                for col in self.dds.obsm["design_matrix"].columns
+                if col.startswith(factor)
+            )
+            split_col = factor_col.split("_")
+            self.contrast = [split_col[0], split_col[1], split_col[-1]]
 
     def _build_contrast_vector(self) -> None:
         """
