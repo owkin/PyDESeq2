@@ -184,14 +184,24 @@ def build_design_matrix(
     ):  # if there is a single factor, convert to singleton list
         design_factors = [design_factors]
 
+    for factor in design_factors:
+        # Check that each factor has at least 2 levels
+        if len(np.unique(clinical_df[factor])) < 2:
+            raise ValueError(
+                f"Factors should take at least two values, but {factor} "
+                f"takes the single value '{np.unique(clinical_df[factor])}'."
+            )
+
     design_matrix = pd.get_dummies(clinical_df[design_factors], drop_first=not expanded)
 
     if tested_level is not None:
-        assert len(tested_level) == 2, "The tested level should contain 2 strings."
-        assert tested_level[1] in clinical_df[tested_level[0]].values, (
-            f"The clinical data should contain a '{tested_level[0]}' column"
-            f" with a '{tested_level[1]}' level."
-        )
+        if len(tested_level) != 2:
+            raise KeyError("The tested level should contain 2 strings.")
+        if tested_level[1] not in clinical_df[tested_level[0]].values:
+            raise KeyError(
+                f"The clinical data should contain a '{tested_level[0]}' column"
+                f" with a '{tested_level[1]}' level."
+            )
 
         # Check that the reference level is still in the matrix
         test_level = "_".join(tested_level)

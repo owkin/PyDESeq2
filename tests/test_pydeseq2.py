@@ -152,7 +152,7 @@ def test_lfc_shrinkage(tol=0.02):
     res = DeseqStats(dds)
     res.summary()
     res.SE = r_res.lfcSE * np.log(2)
-    res.lfc_shrink()
+    res.lfc_shrink(coeff="condition_B_vs_A")
     shrunk_res = res.results_df
 
     # Check that the same LFC are found (up to tol)
@@ -255,7 +255,7 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
     res = DeseqStats(dds)
     res.summary()
     res.SE = r_res.lfcSE * np.log(2)
-    res.lfc_shrink()
+    res.lfc_shrink(coeff="condition_B_vs_A")
     shrunk_res = res.results_df
 
     # Check that the same LFC found (up to tol)

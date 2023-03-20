@@ -72,6 +72,9 @@ class DeseqStats:
     base_mean : pandas.Series
         Genewise means of normalized counts.
 
+    contrast_vector : ndarray
+        Vector encoding the contrast (variable being tested).
+
     contrast_idx : int
         Index of the LFC column corresponding to the variable being tested.
 
@@ -104,8 +107,6 @@ class DeseqStats:
 
     n_processes : int
         Number of threads to use for multiprocessing.
-
-    TODO add contrast_vector, remove contrast_idx ?
 
     References
     ----------
@@ -247,7 +248,6 @@ class DeseqStats:
                     lfc=LFCs[i],
                     mu=mu[:, i],
                     ridge_factor=ridge_factor,
-                    # idx=self.contrast_idx,
                     contrast=self.contrast_vector,
                 )
                 for i in range(num_genes)
@@ -267,25 +267,32 @@ class DeseqStats:
             self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
 
-    def lfc_shrink(self) -> None:
+    def lfc_shrink(self, coeff: str) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
 
-        TODO : adapt to n-level
-
-        Returns
-        -------
-        pandas.DataFrame or None
-            If pvalues were already computed, return the results DataFrame with MAP LFCs,
-            but unmodified stats and pvalues.
+        Parameters
+        ----------
+        coeff : str
+            The LFC coefficient to shrink.
+            If the desired coefficient is not available, it may be set from the
+            :class:`pydeseq2.dds.DeseqDataSet` argument ``tested_level``.
         """
+
+        assert coeff in self.LFC.columns, (
+            "The coeff argument should be one the LFC columns. If not available,"
+            " it can be set from DeseqDataSet's `tested_level`argument."
+        )
+
+        coeff_idx = self.LFC.columns.get_loc(coeff)
+
         size = 1.0 / self.dds.varm["dispersions"]
         offset = np.log(self.dds.obsm["size_factors"])
 
         # Set priors
         prior_no_shrink_scale = 15
-        prior_var = self._fit_prior_var()
+        prior_var = self._fit_prior_var(coeff_idx=coeff_idx)
         prior_scale = np.minimum(np.sqrt(prior_var), 1)
 
         design_matrix = self.design_matrix.values
@@ -306,7 +313,7 @@ class DeseqStats:
                     prior_no_shrink_scale=prior_no_shrink_scale,
                     prior_scale=prior_scale,
                     optimizer="L-BFGS-B",
-                    shrink_index=self.contrast_idx,
+                    shrink_index=coeff_idx,
                 )
                 for i in self.dds.non_zero_idx
             )
@@ -315,9 +322,9 @@ class DeseqStats:
 
         lfcs, inv_hessians, l_bfgs_b_converged_ = zip(*res)
 
-        self.LFC.iloc[:, self.contrast_idx].update(
+        self.LFC.iloc[:, coeff_idx].update(
             pd.Series(
-                np.array(lfcs)[:, self.contrast_idx],
+                np.array(lfcs)[:, coeff_idx],
                 index=self.dds.non_zero_genes,
             )
         )
@@ -326,7 +333,7 @@ class DeseqStats:
             pd.Series(
                 np.array(
                     [
-                        np.sqrt(np.abs(inv_hess[self.contrast_idx, self.contrast_idx]))
+                        np.sqrt(np.abs(inv_hess[coeff_idx, coeff_idx]))
                         for inv_hess in inv_hessians
                     ]
                 ),
@@ -344,9 +351,7 @@ class DeseqStats:
 
         # Replace in results dataframe, if it exists
         if hasattr(self, "results_df"):
-            self.results_df["log2FoldChange"] = self.LFC.iloc[
-                :, self.contrast_idx
-            ] / np.log(2)
+            self.results_df["log2FoldChange"] = self.LFC.iloc[:, coeff_idx] / np.log(2)
             self.results_df["lfcSE"] = self.SE / np.log(2)
 
             print(
@@ -406,7 +411,6 @@ class DeseqStats:
 
     def _p_value_adjustment(self) -> None:
         """Compute adjusted p-values using the Benjamini-Hochberg method.
-
 
         Does not correct the p-value trend.
         This method and the `_independent_filtering` are mutually exclusive.
@@ -470,15 +474,18 @@ class DeseqStats:
 
         self.p_values[cooks_outlier] = np.nan
 
-    def _fit_prior_var(self, min_var: float = 1e-6, max_var: float = 400.0) -> float:
+    def _fit_prior_var(
+        self, coeff_idx: str, min_var: float = 1e-6, max_var: float = 400.0
+    ) -> float:
         """Estimate the prior variance of the apeGLM model.
 
         Returns shrinkage factors.
 
-        TODO : adapt for n-level
-
         Parameters
         ----------
+        coeff_idx : str
+            Index of the coefficient to shrink.
+
         min_var : float
             Lower bound for prior variance. (default: ``1e-6``).
 
@@ -491,8 +498,8 @@ class DeseqStats:
             Estimated prior variance.
         """
 
-        keep = ~self.LFC.iloc[:, self.contrast_idx].isna()
-        S = self.LFC[keep].iloc[:, self.contrast_idx] ** 2
+        keep = ~self.LFC.iloc[:, coeff_idx].isna()
+        S = self.LFC[keep].iloc[:, coeff_idx] ** 2
         D = self.SE[keep] ** 2
 
         def objective(a: float) -> float:
