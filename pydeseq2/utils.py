@@ -182,7 +182,6 @@ def build_design_matrix(
     if not expanded:
         # Add reference level as column name suffix
         for factor in design_factors:
-            # TODO : not the most efficient method
             ref_level = np.unique(clinical_df[factor])[0]
             design_matrix.columns = [
                 col + f"_vs_{ref_level}" if col.startswith(factor) else col
@@ -761,7 +760,7 @@ def wald_test(
     lfc: np.ndarray,
     mu: float,
     ridge_factor: np.ndarray,
-    idx: int = -1,
+    contrast: np.ndarray,
 ) -> Tuple[float, float, float]:
     """Run Wald test for differential expression.
 
@@ -785,8 +784,8 @@ def wald_test(
     ridge_factor : ndarray
         Regularization factors.
 
-    idx : int
-        Index of design factor (in design matrix). (default: ``-1``).
+    contrast : ndarray
+        Vector encoding the contrast that is being tested.
 
     Returns
     -------
@@ -804,10 +803,10 @@ def wald_test(
     W = np.diag(mu / (1 + mu * disp))
     M = design_matrix.T @ W @ design_matrix
     H = np.linalg.inv(M + ridge_factor)
-    S = H @ M @ H
+    Hc = H @ contrast
     # Evaluate standard error and Wald statistic
-    wald_se: float = np.sqrt(S[idx, idx])
-    wald_statistic: float = lfc[idx] / wald_se
+    wald_se: float = np.sqrt(Hc.T @ M @ Hc)
+    wald_statistic: float = contrast @ lfc / wald_se
     wald_p_value = 2 * norm.sf(np.abs(wald_statistic))
     return wald_p_value, wald_statistic, wald_se
 

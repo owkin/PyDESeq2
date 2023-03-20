@@ -111,11 +111,6 @@ class DeseqStats:
         :keyprefix: DeseqStats-
     """
 
-    SE: pd.Series
-    statistics: pd.Series
-    p_values: pd.Series
-    padj: pd.Series
-
     def __init__(
         self,
         dds: DeseqDataSet,
@@ -135,6 +130,7 @@ class DeseqStats:
         self.dds = dds
 
         if contrast is not None:  # Test contrast if provided
+            # TODO: test that levels that are being compared belong to the same factor
             assert len(contrast) == 3, "The contrast should contain three strings."
             assert (
                 contrast[0] in self.dds.design_factors
@@ -146,7 +142,7 @@ class DeseqStats:
             self.contrast = contrast
         else:  # Build contrast if None
             factor = self.dds.design_factors[-1]
-            # TODO: why build a list if I only care about last?
+            # TODO: why build a list if I only care about last? use next
             factor_col = [
                 col
                 for col in self.dds.obsm["design_matrix"].columns
@@ -158,15 +154,16 @@ class DeseqStats:
         self.alpha = alpha
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
-        self.prior_LFC_var = prior_LFC_var
         self.base_mean = self.dds.varm["_normed_means"].copy()
+        self.prior_LFC_var = prior_LFC_var
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
         self.design_matrix = self.dds.obsm["design_matrix"].copy()
         self.LFC = self.dds.varm["LFC"].copy()
 
-        self._adapt_to_contrast()
+        # Build a contrast vector corresponding to the variable and levels of interest
+        self._build_contrast_vector()
 
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
@@ -209,9 +206,7 @@ class DeseqStats:
         # Store the results in a DataFrame, in log2 scale for LFCs.
         self.results_df = pd.DataFrame(index=self.dds.var_names)
         self.results_df["baseMean"] = self.base_mean
-        self.results_df["log2FoldChange"] = self.LFC.iloc[:, self.contrast_idx] / np.log(
-            2
-        )
+        self.results_df["log2FoldChange"] = self.LFC @ self.contrast_vector / np.log(2)
         self.results_df["lfcSE"] = self.SE / np.log(2)
         self.results_df["stat"] = self.statistics
         self.results_df["pvalue"] = self.p_values
@@ -269,7 +264,8 @@ class DeseqStats:
                     lfc=LFCs[i],
                     mu=mu[:, i],
                     ridge_factor=ridge_factor,
-                    idx=self.contrast_idx,
+                    # idx=self.contrast_idx,
+                    contrast=self.contrast_vector,
                 )
                 for i in range(num_genes)
             )
@@ -278,9 +274,9 @@ class DeseqStats:
 
         pvals, stats, se = zip(*res)
 
-        self.p_values = pd.Series(pvals, index=self.dds.var_names)
-        self.statistics = pd.Series(stats, index=self.dds.var_names)
-        self.SE = pd.Series(se, index=self.dds.var_names)
+        self.p_values: pd.Series = pd.Series(pvals, index=self.dds.var_names)
+        self.statistics: pd.Series = pd.Series(stats, index=self.dds.var_names)
+        self.SE: pd.Series = pd.Series(se, index=self.dds.var_names)
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
         if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
@@ -292,6 +288,8 @@ class DeseqStats:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
+
+        TODO : adapt to n-level
 
         Returns
         -------
@@ -454,6 +452,7 @@ class DeseqStats:
         # maximum cooks sample, don't count this gene as an outlier.
         # Do this only if there are 2 cohorts.
         if num_vars == 2:
+            # TODO : adapt for n level
             # Check whether cohorts have enough samples to allow refitting
             # Only consider conditions with 3 or more samples (same as in R)
             n_or_more = self.design_matrix.iloc[:, self.contrast_idx].value_counts() >= 3
@@ -494,6 +493,8 @@ class DeseqStats:
 
         Returns shrinkage factors.
 
+        TODO : adapt for n-level
+
         Parameters
         ----------
         min_var : float
@@ -523,61 +524,37 @@ class DeseqStats:
         else:
             return root_scalar(objective, bracket=[min_var, max_var]).root
 
-    def _adapt_to_contrast(self) -> None:
+    def _build_contrast_vector(self) -> None:
         """
-        Check whether the current design matrix and LFC comply with the desired contrast.
+        Build a vector corresponding to the desired contrast.
 
-        If not, change column names and compute new coefficients.
+        Allows to test any pair of levels without refitting LFCs.
         """
+        # TODO : does contrast_idx still have a meaning?
+        factor = self.contrast[0]
+        alternative = self.contrast[1]
+        ref = self.contrast[2]
+        contrast_level = f"{factor}_{alternative}_vs_{ref}"
 
-        alternative_level = (
-            f"{self.contrast[0]}_{self.contrast[1]}_vs_{self.contrast[2]}"
-        )
-
-        if alternative_level in self.design_matrix.columns:
-            # Nothing to do: the contrast is already encoded by an existing variable
-            self.contrast_idx = self.dds.varm["LFC"].columns.get_loc(alternative_level)
+        self.contrast_vector = np.zeros(self.LFC.shape[-1])
+        if contrast_level in self.design_matrix.columns:
+            self.contrast_idx = self.LFC.columns.get_loc(contrast_level)
+            self.contrast_vector[self.contrast_idx] = 1
+        elif f"{factor}_{ref}_vs_{alternative}" in self.design_matrix.columns:
+            # Reference and alternative are inverted
+            self.contrast_idx = self.LFC.columns.get_loc(
+                f"{factor}_{ref}_vs_{alternative}"
+            )
+            self.contrast_vector[self.contrast_idx] = -1
         else:
-            # Need to build a variable encoding the desired contrast
-            # Rename columns
-            to_change_cols = [
-                col
-                for col in self.design_matrix.columns
-                if col.startswith(self.contrast[0])
-            ]
-            new_cols = [
-                "_".join(col.split("_")[:-1]) + f"_{self.contrast[2]}"
-                if col.split("_")[1] != self.contrast[2]
-                else f"{self.contrast[0]}_{col.split('_')[-1]}_vs_{self.contrast[2]}"
-                for col in to_change_cols
-            ]
-
-            self.design_matrix = self.design_matrix.rename(
-                {old: new for (old, new) in zip(to_change_cols, new_cols)},
-                axis="columns",
+            # Need to change reference
+            # Get any column corresponding to the desired factor and extract old ref
+            old_ref = next(
+                col for col in self.LFC.columns if col.startswith(factor)
+            ).split("_")[-1]
+            new_alternative_idx = self.LFC.columns.get_loc(
+                f"{factor}_{alternative}_vs_{old_ref}"
             )
-
-            self.LFC = self.LFC.rename(
-                {old: new for (old, new) in zip(to_change_cols, new_cols)},
-                axis="columns",
-            )
-
-            new_col_indices = [
-                self.LFC.columns.get_loc(c) for c in new_cols if c in self.LFC
-            ]
-
-            old_ref = to_change_cols[0].split("_")[-1]
-            self.contrast_idx = self.LFC.columns.get_loc(alternative_level)
-
-            # Update LFC coefficients
-            if old_ref == self.contrast[2]:
-                new_ref_idx = self.contrast_idx
-            else:
-                new_ref_idx = self.LFC.columns.get_loc(
-                    f"{self.contrast[0]}_{old_ref}_vs_{self.contrast[2]}"
-                )
-
-            buffer_LFC = self.LFC.iloc[:, new_ref_idx].copy()
-            self.LFC.iloc[:, 0] += buffer_LFC
-            self.LFC.iloc[:, new_col_indices] -= buffer_LFC[:, None]
-            self.LFC.iloc[:, self.contrast_idx] = -buffer_LFC
+            new_ref_idx = self.LFC.columns.get_loc(f"{factor}_{ref}_vs_{old_ref}")
+            self.contrast_vector[new_alternative_idx] = 1
+            self.contrast_vector[new_ref_idx] = -1
