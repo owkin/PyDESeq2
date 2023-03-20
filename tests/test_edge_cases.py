@@ -154,7 +154,7 @@ def test_reference_level():
             counts=counts_df,
             clinical=clinical_df,
             design_factors="condition",
-            reference_level="control",
+            tested_level="control",
         )
 
 

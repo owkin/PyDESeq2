@@ -35,7 +35,7 @@ class DeseqStats:
 
     contrast : list or None
         A list of three strings, in the following format:
-        ``['variable_of_interest', 'tested_level', 'reference_level']``.
+        ``['variable_of_interest', 'tested_level', 'tested_level']``.
         Names must correspond to the clinical data passed to the DeseqDataSet.
         E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared
         to 'condition A'. If None, the last variable from the design matrix is chosen
@@ -435,7 +435,6 @@ class DeseqStats:
         # maximum cooks sample, don't count this gene as an outlier.
         # Do this only if there are 2 cohorts.
         if num_vars == 2:
-            # TODO : adapt for n level
             # Check whether cohorts have enough samples to allow refitting
             # Only consider conditions with 3 or more samples (same as in R)
             n_or_more = self.design_matrix.iloc[:, self.contrast_idx].value_counts() >= 3
@@ -518,7 +517,7 @@ class DeseqStats:
         ----------
         contrast : list or None
             A list of three strings, in the following format:
-            ``['variable_of_interest', 'tested_level', 'reference_level']``.
+            ``['variable_of_interest', 'tested_level', 'tested_level']``.
             Names must correspond to the clinical data passed to the DeseqDataSet.
             E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B'
             compared to 'condition A'. If None, the last variable from the design matrix
@@ -552,7 +551,6 @@ class DeseqStats:
 
         Allows to test any pair of levels without refitting LFCs.
         """
-        # TODO : does contrast_idx still have a meaning?
         factor = self.contrast[0]
         alternative = self.contrast[1]
         ref = self.contrast[2]

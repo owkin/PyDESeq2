@@ -139,6 +139,7 @@ def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
 def build_design_matrix(
     clinical_df: pd.DataFrame,
     design_factors: Union[str, List[str]] = "condition",
+    tested_level: Optional[List[str]] = None,
     expanded: bool = False,
     intercept: bool = True,
 ) -> pd.DataFrame:
@@ -157,6 +158,12 @@ def build_design_matrix(
     design_factors : str or list
         Name of the columns of clinical_df to be used as design_matrix variables.
         (default: ``"condition"``).
+
+    tested_level : list or None
+        An optional list of two strings of the form ``["factor", "ref_level"]``
+        specifying the factor of interest and the desired reference level, e.g.
+        ``["condition", "A"]``.
+        (default: ``None``).
 
     expanded : bool
         If true, use one column per category. Else, use a single column.
@@ -179,12 +186,38 @@ def build_design_matrix(
 
     design_matrix = pd.get_dummies(clinical_df[design_factors], drop_first=not expanded)
 
+    if tested_level is not None:
+        assert len(tested_level) == 2, "The tested level should contain 2 strings."
+        assert tested_level[1] in clinical_df[tested_level[0]].values, (
+            f"The clinical data should contain a '{tested_level[0]}' column"
+            f" with a '{tested_level[1]}' level."
+        )
+
+        # Check that the reference level is still in the matrix
+        test_level = "_".join(tested_level)
+        if test_level not in design_matrix.columns:
+            # Add the desired level and remove one
+            factor_cols = [
+                col for col in design_matrix.columns if col.startswith(tested_level[0])
+            ]
+            design_matrix[test_level] = 1 - design_matrix[factor_cols].sum(1)
+            design_matrix.drop(factor_cols[0], axis="columns", inplace=True)
+
     if not expanded:
         # Add reference level as column name suffix
         for factor in design_factors:
-            ref_level = np.unique(clinical_df[factor])[0]
+            if tested_level is not None and factor == tested_level[0]:
+                # The reference is the unique level that is no longer there
+                ref = next(
+                    level
+                    for level in clinical_df[factor]
+                    if f"{factor}_{level}" not in design_matrix.columns
+                )
+            else:
+                # The first level is the one that should have been dropped
+                ref = np.unique(clinical_df[factor])[0]
             design_matrix.columns = [
-                col + f"_vs_{ref_level}" if col.startswith(factor) else col
+                f"{col}_vs_{ref}" if col.startswith(factor) else col
                 for col in design_matrix.columns
             ]
 
