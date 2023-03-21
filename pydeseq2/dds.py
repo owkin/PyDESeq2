@@ -248,7 +248,7 @@ class DeseqDataSet(ad.AnnData):
         start = time.time()
         if fit_type == "iterative":
             self._fit_iterate_size_factors()
-        # Test whether median it is possible to use median-of-ratios.
+        # Test whether it is possible to use median-of-ratios.
         elif (self.X == 0).any(0).all():
             # There is at least a zero for each gene
             print(
