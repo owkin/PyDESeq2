@@ -251,9 +251,11 @@ class DeseqDataSet(ad.AnnData):
         # Test whether it is possible to use median-of-ratios.
         elif (self.X == 0).any(0).all():
             # There is at least a zero for each gene
-            print(
+            warnings.warn(
                 "Every gene contains at least one zero, "
-                "cannot compute log geometric means. Switching to iterative mode."
+                "cannot compute log geometric means. Switching to iterative mode.",
+                RuntimeWarning,
+                stacklevel=2,
             )
             self._fit_iterate_size_factors()
         else:
