@@ -842,6 +842,19 @@ class DeseqDataSet(ad.AnnData):
             1, index=self.obs_names, columns=[["intercept"]]
         )
 
+        # Fit size factors using MLE
+        def objective(p):
+            sf = np.exp(p - np.mean(p))
+            nll = nb_nll(
+                counts=self[:, self.non_zero_genes].X,
+                mu=self[:, self.non_zero_genes].layers["_mu_hat"]
+                / self.obsm["size_factors"][:, None]
+                * sf[:, None],
+                alpha=self[:, self.non_zero_genes].varm["dispersions"],
+            )
+            # Take out the lowest likelihoods (highest neg) from the sum
+            return np.sum(nll[nll < np.quantile(nll, quant)])
+
         for i in range(niter):
             # Estimate dispersions based on current size factors
             self.fit_genewise_dispersions()
@@ -861,19 +874,7 @@ class DeseqDataSet(ad.AnnData):
             old_sf = self.obsm["size_factors"].copy()
 
             # Fit size factors using MLE
-            def fn(p):
-                sf = np.exp(p - np.mean(p))
-                nll = nb_nll(
-                    counts=self[:, self.non_zero_genes].X,
-                    mu=self[:, self.non_zero_genes].layers["_mu_hat"]
-                    / self.obsm["size_factors"][:, None]
-                    * sf[:, None],
-                    alpha=self[:, self.non_zero_genes].varm["dispersions"],
-                )
-                # Take out the lowest likelihoods (highest neg) from the sum
-                return np.sum(nll[nll < np.quantile(nll, quant)])
-
-            res = minimize(fn, np.log(old_sf), method="Powell")
+            res = minimize(objective, np.log(old_sf), method="Powell")
 
             self.obsm["size_factors"] = np.exp(res.x - np.mean(res.x))
 
