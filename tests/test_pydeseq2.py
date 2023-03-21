@@ -154,6 +154,41 @@ def test_lfc_shrinkage(tol=0.02):
     ).max() < tol
 
 
+def test_iterative_size_factors(tol=0.02):
+    """Test that the outputs of the iterative size factor method match those of the
+    original R package (starting from the same inputs), up to a tolerance in relative
+    error.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    r_size_factors = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_iterative_size_factors.csv"),
+        index_col=0,
+    ).squeeze()
+
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors="condition"
+    )
+    dds._fit_iterate_size_factors()
+
+    # Check that the same LFC are found (up to tol)
+    assert (
+        abs(r_size_factors - dds.obsm["size_factors"]) / abs(r_size_factors)
+    ).max() < tol
+
+
 # Multi-factor tests
 
 
