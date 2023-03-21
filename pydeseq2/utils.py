@@ -294,8 +294,9 @@ def nb_nll(
     alpha_neg1 = 1 / alpha
     logbinom = gammaln(counts + alpha_neg1) - gammaln(counts + 1) - gammaln(alpha_neg1)
     if hasattr(alpha, "__len__") and len(alpha) > 1:
-        return alpha_neg1 * np.log(alpha) + (
-            -logbinom
+        return (
+            alpha_neg1 * np.log(alpha)
+            - logbinom
             + (counts + alpha_neg1) * np.log(mu + alpha_neg1)
             - (counts * np.log(mu))
         ).sum(0)
