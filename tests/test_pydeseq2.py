@@ -163,8 +163,6 @@ def test_lfc_shrinkage(tol=0.02):
 
 
 # Multi-factor tests
-
-
 def test_multifactor_deseq(tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.

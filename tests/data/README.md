@@ -2,9 +2,13 @@
 
 This folder contains data for the pytest CI.
 
-The `tests_clinical.csv` and `test_counts.csv` files were generated using the `makeExampleDESeqDataSet` 
-of [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) (with parameters `m = 100`, `n = 10`,
-and `betaSD = 1`).
+The files in `single_factor` and `multi_factor` contain the outputs of DESeq2 (v1.34.0) on the synthetic data provided
+in `/datasets/synthetic/`, respectively using `~condition` and `~condition + group` as design. More precisely:
 
-The remainder of the files (`r_test_*`) correspond to the output of DESeq2 (v1.34.0) with default settings on this dataset, 
-against which the output of PyDESeq2 is tested in the `test_pydeseq2.py` pytest when opening PRs.
+- `r_iterative_size_factors.csv` contains DESeq2's `estimateSizeFactorsIterate` output,
+- `r_lfc_shrink.csv` contains DESeq2 results after running `lfcShrink`,
+- `r_test_dispersions.csv` contains DESeq2 dispersions estimates (post-filtering and refitting),
+- `r_test_res.csv` contains DESeq2's `results` output,
+- `r_test_size_factors.csv` contains DESeq2's `estimateSizeFactors` output,
+- `r_vst.csv` contains DESeq2's `varianceStabilizingTransformation` output with `blind=TRUE` and `fitType="parametric"`,
+- `r_vst_with_design.csv` contains DESeq2's `varianceStabilizingTransformation` output with `blind=FALSE` and `fitType="parametric"`.
