@@ -873,15 +873,12 @@ class DeseqDataSet(ad.AnnData):
                 # Take out the lowest likelihoods (highest neg) from the sum
                 return np.sum(nll[nll < np.quantile(nll, quant)])
 
-            res = minimize(
-                fn,
-                np.log(old_sf),
-            )
+            res = minimize(fn, np.log(old_sf), method="Powell")
 
             self.obsm["size_factors"] = np.exp(res.x - np.mean(res.x))
 
             if not res.success:
-                print("An size factor fitting iteration failed.")
+                print("A size factor fitting iteration failed.")
                 break
 
             if (i > 1) and np.sum(
