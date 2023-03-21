@@ -236,8 +236,8 @@ class DeseqDataSet(ad.AnnData):
         """Fit sample-wise deseq2 normalization (size) factors.
 
         Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`,
-        unless each gene has at least one zero, in which case it switches to
-        the ``iterative`` method.
+        unless each gene has at least one sample with zero read counts, in which case it
+        switches to the ``iterative`` method.
 
         Parameters
         ----------
