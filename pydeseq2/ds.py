@@ -280,10 +280,12 @@ class DeseqStats:
             :class:`pydeseq2.dds.DeseqDataSet` argument ``tested_level``.
         """
 
-        assert coeff in self.LFC.columns, (
-            "The coeff argument should be one the LFC columns. If not available,"
-            " it can be set from DeseqDataSet's `tested_level` argument."
-        )
+        if coeff not in self.LFC.columns:
+            raise KeyError(
+                f"The coeff argument ('{coeff}') should be one the LFC columns. "
+                f"If not available,  it can be set from DeseqDataSet's `tested_level` "
+                f"argument."
+            )
 
         coeff_idx = self.LFC.columns.get_loc(coeff)
 

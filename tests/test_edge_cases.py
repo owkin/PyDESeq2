@@ -143,6 +143,34 @@ def test_reference_level():
         )
 
 
+def test_lfc_shrinkage_coeff():
+    """Test that a KeyError is thrown when attempting to shrink an unexisting LFC
+    coefficient.
+    """
+
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors="condition"
+    )
+    dds.deseq2()
+
+    res = DeseqStats(dds)
+    res.summary()
+    with pytest.raises(KeyError):
+        res.lfc_shrink(coeff="this_coeff_does_not_exist")
+
+
 def test_indexes():
     """Test that a ValueError is thrown when the count matrix and the clinical data
     don't have the same index."""
