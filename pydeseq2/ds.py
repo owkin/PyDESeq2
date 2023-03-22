@@ -282,7 +282,7 @@ class DeseqStats:
 
         assert coeff in self.LFC.columns, (
             "The coeff argument should be one the LFC columns. If not available,"
-            " it can be set from DeseqDataSet's `tested_level`argument."
+            " it can be set from DeseqDataSet's `tested_level` argument."
         )
 
         coeff_idx = self.LFC.columns.get_loc(coeff)
