@@ -139,7 +139,7 @@ def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
 def build_design_matrix(
     clinical_df: pd.DataFrame,
     design_factors: Union[str, List[str]] = "condition",
-    ref: Optional[str] = None,
+    tested_level: Optional[List[str]] = None,
     expanded: bool = False,
     intercept: bool = True,
 ) -> pd.DataFrame:
@@ -159,9 +159,10 @@ def build_design_matrix(
         Name of the columns of clinical_df to be used as design_matrix variables.
         (default: ``"condition"``).
 
-    ref : str
-        The factor to use as a reference. Must be one of the values taken by the design.
-        If None, the reference will be chosen alphabetically (last in order).
+    tested_level : list or None
+        An optional list of two strings of the form ``["factor", "ref_level"]``
+        specifying the factor of interest and the desired reference level, e.g.
+        ``["condition", "A"]``.
         (default: ``None``).
 
     expanded : bool
@@ -183,33 +184,53 @@ def build_design_matrix(
     ):  # if there is a single factor, convert to singleton list
         design_factors = [design_factors]
 
-    design_matrix = pd.get_dummies(clinical_df[design_factors])
-
     for factor in design_factors:
-        # Check that each factor has exactly 2 levels
-        if len(np.unique(clinical_df[factor])) != 2:
+        # Check that each factor has at least 2 levels
+        if len(np.unique(clinical_df[factor])) < 2:
             raise ValueError(
-                f"Factors should take exactly two values, but {factor} "
-                f"takes values {np.unique(clinical_df[factor])}."
+                f"Factors should take at least two values, but {factor} "
+                f"takes the single value '{np.unique(clinical_df[factor])}'."
             )
-    factor = design_factors[-1]
-    if ref is None:
-        ref = "_".join([factor, np.sort(np.unique(clinical_df[factor]).astype(str))[0]])
-        ref_level = design_matrix.pop(ref)
-    else:  # Put reference level last
-        try:
-            ref_level = design_matrix.pop(f"{factor}_{ref}")
-        except KeyError as e:
-            print(
-                "The reference level must correspond to"
-                " one of the design factor values."
+
+    design_matrix = pd.get_dummies(clinical_df[design_factors], drop_first=not expanded)
+
+    if tested_level is not None:
+        if len(tested_level) != 2:
+            raise KeyError("The tested level should contain 2 strings.")
+        if tested_level[1] not in clinical_df[tested_level[0]].values:
+            raise KeyError(
+                f"The clinical data should contain a '{tested_level[0]}' column"
+                f" with a '{tested_level[1]}' level."
             )
-            raise e
-    design_matrix.insert(design_matrix.shape[-1], ref, ref_level)
-    if not expanded:  # drop duplicate factors
-        design_matrix.drop(
-            columns=[col for col in design_matrix.columns[::-2]], axis=1, inplace=True
-        )  # Drops every other column, starting from the last
+
+        # Check that the reference level is still in the matrix
+        test_level = "_".join(tested_level)
+        if test_level not in design_matrix.columns:
+            # Add the desired level and remove one
+            factor_cols = [
+                col for col in design_matrix.columns if col.startswith(tested_level[0])
+            ]
+            design_matrix[test_level] = 1 - design_matrix[factor_cols].sum(1)
+            design_matrix.drop(factor_cols[0], axis="columns", inplace=True)
+
+    if not expanded:
+        # Add reference level as column name suffix
+        for factor in design_factors:
+            if tested_level is not None and factor == tested_level[0]:
+                # The reference is the unique level that is no longer there
+                ref = next(
+                    level
+                    for level in clinical_df[factor]
+                    if f"{factor}_{level}" not in design_matrix.columns
+                )
+            else:
+                # The first level is the one that should have been dropped
+                ref = np.unique(clinical_df[factor])[0]
+            design_matrix.columns = [
+                f"{col}_vs_{ref}" if col.startswith(factor) else col
+                for col in design_matrix.columns
+            ]
+
     if intercept:
         design_matrix.insert(0, "intercept", 1)
     return design_matrix
@@ -782,7 +803,7 @@ def wald_test(
     lfc: np.ndarray,
     mu: float,
     ridge_factor: np.ndarray,
-    idx: int = -1,
+    contrast: np.ndarray,
 ) -> Tuple[float, float, float]:
     """Run Wald test for differential expression.
 
@@ -806,8 +827,8 @@ def wald_test(
     ridge_factor : ndarray
         Regularization factors.
 
-    idx : int
-        Index of design factor (in design matrix). (default: ``-1``).
+    contrast : ndarray
+        Vector encoding the contrast that is being tested.
 
     Returns
     -------
@@ -825,10 +846,10 @@ def wald_test(
     W = np.diag(mu / (1 + mu * disp))
     M = design_matrix.T @ W @ design_matrix
     H = np.linalg.inv(M + ridge_factor)
-    S = H @ M @ H
+    Hc = H @ contrast
     # Evaluate standard error and Wald statistic
-    wald_se: float = np.sqrt(S[idx, idx])
-    wald_statistic: float = lfc[idx] / wald_se
+    wald_se: float = np.sqrt(Hc.T @ M @ Hc)
+    wald_statistic: float = contrast @ lfc / wald_se
     wald_p_value = 2 * norm.sf(np.abs(wald_statistic))
     return wald_p_value, wald_statistic, wald_se
 

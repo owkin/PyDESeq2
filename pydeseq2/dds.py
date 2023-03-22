@@ -64,14 +64,13 @@ class DeseqDataSet(ad.AnnData):
         Must be indexed by sample barcodes.
 
     design_factors : str or list
-        Name of the columns of clinical to be used as design variables. If a list,
-        the last factor will be considered the variable of interest by default.
+        Name of the columns of clinical to be used as design variables.
         Only bi-level factors are supported. (default: ``'condition'``).
 
-    reference_level : str
-        The factor to use as a reference. Must be one of the values taken by the design.
-        If None, the reference will be chosen alphabetically (last in order).
-        (default: ``None``).
+    tested_level : list or None
+        An optional list of two strings of the form ``["factor", "test_level"]``
+        specifying the factor of interest and the (non-control) level we're testing, e.g.
+        ``["condition", "B"]``. (default: ``None``).
 
     min_mu : float
         Threshold for mean estimates. (default: ``0.5``).
@@ -162,7 +161,7 @@ class DeseqDataSet(ad.AnnData):
         counts: Optional[pd.DataFrame] = None,
         clinical: Optional[pd.DataFrame] = None,
         design_factors: Union[str, List[str]] = "condition",
-        reference_level: Optional[str] = None,
+        tested_level: Optional[List[str]] = None,
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
         max_disp: float = 10.0,
@@ -203,7 +202,7 @@ class DeseqDataSet(ad.AnnData):
         self.obsm["design_matrix"] = build_design_matrix(
             clinical_df=self.obs,
             design_factors=self.design_factors,
-            ref=reference_level,
+            tested_level=tested_level,
             expanded=False,
             intercept=True,
         )

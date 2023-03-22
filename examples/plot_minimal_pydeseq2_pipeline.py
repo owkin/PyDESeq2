@@ -260,7 +260,7 @@ if SAVE:
 # LFC shrinkage. This is implemented by the :meth:`lfc_shrink() <DeseqStats.lfc_shrink>`
 # method.
 
-stat_res.lfc_shrink()
+stat_res.lfc_shrink(coeff="condition_B_vs_A")
 
 if SAVE:
     with open(os.path.join(OUTPUT_PATH, "shrunk_stat_results.pkl"), "wb") as f:
@@ -378,4 +378,4 @@ stat_res_Y_vs_X.summary()
 # only shrink the LFCs of a :class:`DeseqStats` object based on its
 # ``contrast`` argument.
 
-stat_res_B_vs_A.lfc_shrink()
+stat_res_B_vs_A.lfc_shrink(coeff="condition_B_vs_A")

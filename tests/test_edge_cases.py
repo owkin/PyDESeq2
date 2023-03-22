@@ -115,27 +115,12 @@ def test_nan_factors():
         DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
 
 
-def test_one_factors():
+def test_one_factor():
     """Test that a ValueError is thrown when the design factor takes only one value ."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
     clinical_df = pd.DataFrame({"condition": [0, 0]}, index=["sample1", "sample2"])
-
-    with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
-
-
-def test_too_many_factors():
-    """Test that a ValueError is thrown when the design factor takes
-    more than two values."""
-    counts_df = pd.DataFrame(
-        {"gene1": [0, 1, 5], "gene2": [4, 12, 8]},
-        index=["sample1", "sample2", "sample3"],
-    )
-    clinical_df = pd.DataFrame(
-        {"condition": [0, 1, 2]}, index=["sample1", "sample2", "sample3"]
-    )
 
     with pytest.raises(ValueError):
         DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
@@ -154,8 +139,36 @@ def test_reference_level():
             counts=counts_df,
             clinical=clinical_df,
             design_factors="condition",
-            reference_level="control",
+            tested_level="control",
         )
+
+
+def test_lfc_shrinkage_coeff():
+    """Test that a KeyError is thrown when attempting to shrink an unexisting LFC
+    coefficient.
+    """
+
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors="condition"
+    )
+    dds.deseq2()
+
+    res = DeseqStats(dds)
+    res.summary()
+    with pytest.raises(KeyError):
+        res.lfc_shrink(coeff="this_coeff_does_not_exist")
 
 
 def test_indexes():
@@ -172,6 +185,48 @@ def test_indexes():
             clinical=clinical_df,
             design_factors="condition",
         )
+
+
+def test_contrast():
+    """Test that KeyErrors/ValueErrors are thrown when invalid contrasts are passed to a
+    DeseqStats."""
+
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Run analysis
+    dds = DeseqDataSet(
+        counts=counts_df,
+        clinical=clinical_df,
+        refit_cooks=False,
+        design_factors=["condition", "group"],
+    )
+    dds.deseq2()
+
+    # Too short
+    with pytest.raises(ValueError):
+        DeseqStats(dds, contrast=["condition", "B"])
+
+    # Unexisting factor
+    with pytest.raises(KeyError):
+        DeseqStats(dds, contrast=["batch", "Y", "X"])
+
+    # Unexisting factor reference level
+    with pytest.raises(KeyError):
+        DeseqStats(dds, contrast=["condition", "B", "C"])
+
+    # Unexisting tested level
+    with pytest.raises(KeyError):
+        DeseqStats(dds, contrast=["condition", "C", "B"])
 
 
 def test_cooks_not_refitted():

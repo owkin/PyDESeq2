@@ -238,7 +238,7 @@ if SAVE:
 # For visualization or post-processing purposes, it might be suitable to perform
 # LFC shrinkage. This is implemented by the `lfc_shrink` method.
 
-stat_res.lfc_shrink()
+stat_res.lfc_shrink(coeff="condition_B_vs_A")
 
 
 # %%
