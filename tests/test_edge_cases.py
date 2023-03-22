@@ -159,6 +159,48 @@ def test_indexes():
         )
 
 
+def test_contrast():
+    """Test that KeyErrors/ValueErrors are thrown when invalid contrasts are passed to a
+    DeseqStats."""
+
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Run analysis
+    dds = DeseqDataSet(
+        counts=counts_df,
+        clinical=clinical_df,
+        refit_cooks=False,
+        design_factors=["condition", "group"],
+    )
+    dds.deseq2()
+
+    # Too short
+    with pytest.raises(ValueError):
+        DeseqStats(dds, contrast=["condition", "B"])
+
+    # Unexisting factor
+    with pytest.raises(KeyError):
+        DeseqStats(dds, contrast=["batch", "Y", "X"])
+
+    # Unexisting factor reference level
+    with pytest.raises(KeyError):
+        DeseqStats(dds, contrast=["condition", "B", "C"])
+
+    # Unexisting tested level
+    with pytest.raises(KeyError):
+        DeseqStats(dds, contrast=["condition", "C", "B"])
+
+
 def test_cooks_not_refitted():
     """Test that an AttributeError is thrown when a `DeseqStats` object is initialized
     from a `DeseqDataSet` whose `refit_cooks` attribute is set to True, but whose

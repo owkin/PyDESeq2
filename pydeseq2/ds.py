@@ -515,32 +515,43 @@ class DeseqStats:
 
     def _build_contrast(self, contrast: Optional[List[str]] = None) -> None:
         """
-        Check the validity of the contrast (if provided).
+        Check the validity of the contrast (if provided). If not, build a default
+        contrast, corresponding to the last column of the design matrix.
 
-        If not, build a default contrast, corresponding to the last column of the design
-        matrix.
+        A contrast should be a list of three strings, in the following format:
+        ``['variable_of_interest', 'tested_level', 'reference_level']``.
+        Names must correspond to the clinical data passed to the DeseqDataSet.
+        E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B'
+        compared to 'condition A'. If None, the last variable from the design matrix
+        is chosen as the variable of interest, and the reference level is picked
+        alphabetically.
 
         Parameters
         ----------
         contrast : list or None
             A list of three strings, in the following format:
-            ``['variable_of_interest', 'tested_level', 'tested_level']``.
-            Names must correspond to the clinical data passed to the DeseqDataSet.
-            E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B'
-            compared to 'condition A'. If None, the last variable from the design matrix
-            is chosen as the variable of interest, and the reference level is picked
-            alphabetically. (default: ``None``).
+            ``['variable_of_interest', 'tested_level', 'reference_level']``.
+            (default: ``None``).
         """
 
         if contrast is not None:  # Test contrast if provided
-            assert len(contrast) == 3, "The contrast should contain three strings."
-            assert (
-                contrast[0] in self.dds.design_factors
-            ), "The contrast variable should be one of the design factors."
-            assert (
-                contrast[1] in self.dds.obs[contrast[0]].values
-                and contrast[2] in self.dds.obs[contrast[0]].values
-            ), "The contrast levels should correspond to design factors levels."
+            if len(contrast) != 3:
+                raise ValueError("The contrast should contain three strings.")
+            if contrast[0] not in self.dds.design_factors:
+                raise KeyError(
+                    f"The contrast variable ('{contrast[0]}') should be one "
+                    f"of the design factors."
+                )
+            if contrast[1] not in self.dds.obs[contrast[0]].values:
+                raise KeyError(
+                    f"The tested level ('{contrast[1]}') should correspond to one of the"
+                    f" levels of '{contrast[0]}'"
+                )
+            if contrast[2] not in self.dds.obs[contrast[0]].values:
+                raise KeyError(
+                    f"The reference level ('{contrast[2]}') should correspond to one of"
+                    f" the levels of '{contrast[0]}'"
+                )
             self.contrast = contrast
         else:  # Build contrast if None
             factor = self.dds.design_factors[-1]
