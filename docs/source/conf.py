@@ -157,7 +157,11 @@ html_theme = "sphinx_rtd_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {"analytics_id": "UA-83738774-2"}
+html_theme_options = {
+    "analytics_id": "UA-83738774-2",
+    "logo_only": True,
+    "display_version": True,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -246,7 +250,7 @@ html_css_files = [
     "sidebar.css",
 ]
 
-# html_logo = "static/logo.svg"
+html_logo = "_static/pydeseq2_logo.svg"
 html_show_sourcelink = False
 html_show_sphinx = True
 

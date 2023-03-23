@@ -53,8 +53,8 @@ class DeseqDataSet(ad.AnnData):
     ----------
     adata : anndata.AnnData
         AnnData from which to initialize the DeseqDataSet. Must have counts ('X') and
-         clinical metadata ('obs') fields. If ``None``, both ``counts`` and ``clinical``
-         arguments must be provided.
+        clinical metadata ('obs') fields. If ``None``, both ``counts`` and ``clinical``
+        arguments must be provided.
 
     counts : pandas.DataFrame
         Raw counts. One column per gene, rows are indexed by sample barcodes.
