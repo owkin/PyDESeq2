@@ -1,4 +1,3 @@
-# PyDESeq2
 <img src="docs/source/_static/pydeseq2_logo_green.png" width="600">
 
 
