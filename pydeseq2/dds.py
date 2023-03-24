@@ -1,6 +1,7 @@
 import time
 import warnings
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Union
 from typing import cast
@@ -12,9 +13,9 @@ import statsmodels.api as sm  # type: ignore
 from joblib import Parallel  # type: ignore
 from joblib import delayed
 from joblib import parallel_backend
+from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
-from scipy.stats import norm
 from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
 from pydeseq2.preprocessing import deseq2_norm
@@ -26,6 +27,8 @@ from pydeseq2.utils import fit_moments_dispersions
 from pydeseq2.utils import fit_rough_dispersions
 from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import irls_solver
+from pydeseq2.utils import mean_absolute_deviation
+from pydeseq2.utils import nb_nll
 from pydeseq2.utils import robust_method_of_moments_disp
 from pydeseq2.utils import test_valid_counts
 from pydeseq2.utils import trimmed_mean
@@ -288,14 +291,36 @@ class DeseqDataSet(ad.AnnData):
             # for genes that had outliers replaced
             self.refit()
 
-    def fit_size_factors(self) -> None:
+    def fit_size_factors(
+        self, fit_type: Literal["ratio", "iterative"] = "ratio"
+    ) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
-        Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`.
+        Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`,
+        unless each gene has at least one sample with zero read counts, in which case it
+        switches to the ``iterative`` method.
+
+        Parameters
+        ----------
+        fit_type : str
+            The normalization method to use (default: ``"ratio"``).
         """
         print("Fitting size factors...")
         start = time.time()
-        self.layers["normed_counts"], self.obsm["size_factors"] = deseq2_norm(self.X)
+        if fit_type == "iterative":
+            self._fit_iterate_size_factors()
+        # Test whether it is possible to use median-of-ratios.
+        elif (self.X == 0).any(0).all():
+            # There is at least a zero for each gene
+            warnings.warn(
+                "Every gene contains at least one zero, "
+                "cannot compute log geometric means. Switching to iterative mode.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            self._fit_iterate_size_factors()
+        else:
+            self.layers["normed_counts"], self.obsm["size_factors"] = deseq2_norm(self.X)
         end = time.time()
         print(f"... done in {end - start:.2f} seconds.\n")
 
@@ -484,7 +509,7 @@ class DeseqDataSet(ad.AnnData):
         """
 
         # Check that the dispersion trend curve was fitted. If not, fit it.
-        if "trend_coeffs" not in self.uns:
+        if "fitted_dispersions" not in self.varm:
             self.fit_dispersion_trend()
 
         # Exclude genes with all zeroes
@@ -502,9 +527,9 @@ class DeseqDataSet(ad.AnnData):
             100 * self.min_disp
         )
 
-        self.uns["_squared_logres"] = np.median(
-            np.abs(disp_residuals[above_min_disp])
-        ) ** 2 / norm.ppf(0.75)
+        self.uns["_squared_logres"] = (
+            mean_absolute_deviation(disp_residuals[above_min_disp]) ** 2
+        )
         self.uns["prior_disp_var"] = np.maximum(
             self.uns["_squared_logres"] - polygamma(1, (num_genes - num_vars) / 2),
             0.25,
@@ -559,7 +584,7 @@ class DeseqDataSet(ad.AnnData):
 
         # Filter outlier genes for which we won't apply shrinkage
         self.varm["dispersions"] = self.varm["MAP_dispersions"].copy()
-        self.varm["_outlier_genes"] = np.log(self.varm["dispersions"]) > np.log(
+        self.varm["_outlier_genes"] = np.log(self.varm["genewise_dispersions"]) > np.log(
             self.varm["fitted_dispersions"]
         ) + 2 * np.sqrt(self.uns["_squared_logres"])
         self.varm["dispersions"][self.varm["_outlier_genes"]] = self.varm[
@@ -854,3 +879,82 @@ class DeseqDataSet(ad.AnnData):
             new_all_zeroes.sum()
         )
         self[:, self.new_all_zeroes_genes].varm["LFC"] = np.zeros(new_all_zeroes.sum())
+
+    def _fit_iterate_size_factors(self, niter: int = 10, quant: float = 0.95) -> None:
+        """
+        Fit size factors using the ``iterative`` method.
+
+        Used when each gene has at least one zero.
+
+        Parameters
+        ----------
+        niter : int
+            Maximum number of iterations to perform (default: ``10``).
+
+        quant : float
+            Quantile value at which negative likelihood is cut in the optimization
+            (default: ``0.95``).
+
+        """
+
+        self.obsm["size_factors"] = np.ones(self.n_obs)
+
+        # Reduce the design matrix to an intercept and reconstruct at the end
+        self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
+        self.obsm["design_matrix"] = pd.DataFrame(
+            1, index=self.obs_names, columns=[["intercept"]]
+        )
+
+        # Fit size factors using MLE
+        def objective(p):
+            sf = np.exp(p - np.mean(p))
+            nll = nb_nll(
+                counts=self[:, self.non_zero_genes].X,
+                mu=self[:, self.non_zero_genes].layers["_mu_hat"]
+                / self.obsm["size_factors"][:, None]
+                * sf[:, None],
+                alpha=self[:, self.non_zero_genes].varm["dispersions"],
+            )
+            # Take out the lowest likelihoods (highest neg) from the sum
+            return np.sum(nll[nll < np.quantile(nll, quant)])
+
+        for i in range(niter):
+            # Estimate dispersions based on current size factors
+            self.fit_genewise_dispersions()
+
+            # Use a mean trend curve
+            use_for_mean_genes = self.var_names[
+                (self.varm["genewise_dispersions"] > 10 * self.min_disp)
+                & self.varm["non_zero"]
+            ]
+
+            mean_disp = trimmed_mean(
+                self[:, use_for_mean_genes].varm["genewise_dispersions"], trim=0.001
+            )
+            self.varm["fitted_dispersions"] = np.ones(self.n_vars) * mean_disp
+            self.fit_dispersion_prior()
+            self.fit_MAP_dispersions()
+            old_sf = self.obsm["size_factors"].copy()
+
+            # Fit size factors using MLE
+            res = minimize(objective, np.log(old_sf), method="Powell")
+
+            self.obsm["size_factors"] = np.exp(res.x - np.mean(res.x))
+
+            if not res.success:
+                print("A size factor fitting iteration failed.")
+                break
+
+            if (i > 1) and np.sum(
+                (np.log(old_sf) - np.log(self.obsm["size_factors"])) ** 2
+            ) < 1e-4:
+                break
+            elif i == niter - 1:
+                print("Iterative size factor fitting did not converge.")
+
+        # Restore the design matrix and free buffer
+        self.obsm["design_matrix"] = self.obsm["design_matrix_buffer"].copy()
+        del self.obsm["design_matrix_buffer"]
+
+        # Store normalized counts
+        self.layers["normed_counts"] = self.X / self.obsm["size_factors"][:, None]
