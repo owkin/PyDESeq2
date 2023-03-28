@@ -513,7 +513,8 @@ class DeseqDataSet(ad.AnnData):
             self.fit_dispersion_trend()
 
         # Exclude genes with all zeroes
-        num_genes = len(self.non_zero_genes)
+        # num_genes = len(self.non_zero_genes)
+        num_samples = self.n_obs
         num_vars = self.obsm["design_matrix"].shape[-1]
 
         # Fit dispersions to the curve, and compute log residuals
@@ -531,7 +532,7 @@ class DeseqDataSet(ad.AnnData):
             mean_absolute_deviation(disp_residuals[above_min_disp]) ** 2
         )
         self.uns["prior_disp_var"] = np.maximum(
-            self.uns["_squared_logres"] - polygamma(1, (num_genes - num_vars) / 2),
+            self.uns["_squared_logres"] - polygamma(1, (num_samples - num_vars) / 2),
             0.25,
         )
 
