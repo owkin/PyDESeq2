@@ -513,7 +513,6 @@ class DeseqDataSet(ad.AnnData):
             self.fit_dispersion_trend()
 
         # Exclude genes with all zeroes
-        # num_genes = len(self.non_zero_genes)
         num_samples = self.n_obs
         num_vars = self.obsm["design_matrix"].shape[-1]
 
