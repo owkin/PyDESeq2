@@ -625,7 +625,7 @@ def fit_alpha_mle(
                     np.linalg.inv((design_matrix.T * W) @ design_matrix)
                     * ((design_matrix.T * dW) @ design_matrix)
                 ).sum()
-            )
+            ) * alpha
         if prior_reg:
             if prior_disp_var is None:
                 raise ValueError("Sigma_prior is required for prior regularization")
