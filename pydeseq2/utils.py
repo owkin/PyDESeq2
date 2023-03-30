@@ -598,39 +598,42 @@ def fit_alpha_mle(
             prior_disp_var is not None
         ), "Sigma_prior is required for prior regularization"
 
+    log_alpha_hat = np.log(alpha_hat)
+
     def loss(log_alpha: float) -> float:
         # closure to be minimized
         alpha = np.exp(log_alpha)
-        W = mu / (1 + mu * alpha)
         reg = 0
         if cr_reg:
+            W = mu / (1 + mu * alpha)
             reg += 0.5 * np.linalg.slogdet((design_matrix.T * W) @ design_matrix)[1]
         if prior_reg:
             if prior_disp_var is None:
                 raise ValueError("Sigma_prior is required for prior regularization")
-
-            reg += (np.log(alpha) - np.log(alpha_hat)) ** 2 / (2 * prior_disp_var)
+            reg += (log_alpha - log_alpha_hat) ** 2 / (2 * prior_disp_var)
         return nb_nll(counts, mu, alpha) + reg
 
     def dloss(log_alpha: float) -> float:
         # gradient closure
         alpha = np.exp(log_alpha)
-        W = mu / (1 + mu * alpha)
-        dW = -(W**2)
         reg_grad = 0
         if cr_reg:
+            W = mu / (1 + mu * alpha)
+            dW = -(W**2)
             reg_grad += (
                 0.5
                 * (
                     np.linalg.inv((design_matrix.T * W) @ design_matrix)
                     * ((design_matrix.T * dW) @ design_matrix)
                 ).sum()
-            ) * alpha
+            ) * alpha  # since we want the gradient wrt log_alpha,
+            # we need to multiply by alpha
         if prior_reg:
             if prior_disp_var is None:
                 raise ValueError("Sigma_prior is required for prior regularization")
 
-            reg_grad += (np.log(alpha) - np.log(alpha_hat)) / prior_disp_var
+            reg_grad += (log_alpha - log_alpha_hat) / prior_disp_var
+        # dnb_nll is the gradient wrt alpha, we need to multiply by alpha
         return alpha * dnb_nll(counts, mu, alpha) + reg_grad
 
     res = minimize(
