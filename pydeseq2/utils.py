@@ -616,7 +616,7 @@ def fit_alpha_mle(
         # gradient closure
         alpha = np.exp(log_alpha)
         W = mu / (1 + mu * alpha)
-        dW = -(W**2)
+        dW = -(W**2) * alpha
         reg_grad = 0
         if cr_reg:
             reg_grad += (
@@ -630,8 +630,8 @@ def fit_alpha_mle(
             if prior_disp_var is None:
                 raise ValueError("Sigma_prior is required for prior regularization")
 
-            reg_grad += (np.log(alpha) - np.log(alpha_hat)) / (alpha * prior_disp_var)
-        return dnb_nll(counts, mu, alpha) + reg_grad
+            reg_grad += (np.log(alpha) - np.log(alpha_hat)) / prior_disp_var
+        return alpha * dnb_nll(counts, mu, alpha) + reg_grad
 
     res = minimize(
         lambda x: loss(x[0]),
