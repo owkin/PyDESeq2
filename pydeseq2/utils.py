@@ -633,7 +633,8 @@ def fit_alpha_mle(
                 raise ValueError("Sigma_prior is required for prior regularization")
 
             reg_grad += (log_alpha - log_alpha_hat) / prior_disp_var
-        # dnb_nll is the gradient wrt alpha, we need to multiply by alpha
+        # dnb_nll is the gradient wrt alpha, we need to multiply by alpha to get the
+        # gradient wrt log_alpha
         return alpha * dnb_nll(counts, mu, alpha) + reg_grad
 
     res = minimize(
