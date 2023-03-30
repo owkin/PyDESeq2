@@ -616,7 +616,7 @@ def fit_alpha_mle(
         # gradient closure
         alpha = np.exp(log_alpha)
         W = mu / (1 + mu * alpha)
-        dW = -(W**2) * alpha
+        dW = -(W**2)
         reg_grad = 0
         if cr_reg:
             reg_grad += (
