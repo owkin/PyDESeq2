@@ -121,6 +121,13 @@ adata = ad.AnnData(X=counts_df, obs=clinical_df)
 print(adata)
 
 # %%
+# In addition to an `AnnData` object, we should specify the ``design_factor``,
+# i.e. the column of the ``clinical``
+# dataframe that will be used to compare samples. This can be a single string as above,
+# or a list of strings, as in the
+# :ref:`section on multifactor analysis<multifactor_ref>`.
+#
+
 dds = DeseqDataSet(
     adata=adata,
     design_factors="condition",  # compare samples based on the "condition"
@@ -130,21 +137,32 @@ dds = DeseqDataSet(
 )
 
 # %%
-# The :class:`DeseqDataSet` class has two mandatory
-# arguments, `counts_df` and
-# `clinical_df`, as well as a set of optional keyword arguments, among which:
+# .. note::
+#   The ``"condition"`` argument passed to ``design_factors`` corresponds to a column
+#   from the ``clinical_df`` dataframe we loaded earlier.
+#   You might need to change it according to your own dataset.
 #
-# - `design_factor`: the name of the column of clinical to be used as a design
-#   variable
-# - `refit_cooks`: whether to refit cooks outliers – this is advised, in general.
+# Several other arguments may be optionally specified (see the :doc:`API documentation
+# </api/docstrings/pydeseq2.dds.DeseqDataSet>`).
+# Among those, the ``refit_cooks`` argument (set to ``True`` by default), controls
+# whether Cooks outlier should be refitted (which is advised, in general) and ``n_cpus``
+# sets the number of CPUs to use for computation. Here, we use 8 threads. Feel free to
+# adapt this to your setup or to set to ``None`` to use all available CPUs.
 #
 # .. note::
-#   in the case of the provided synthetic data, there won't be any Cooks
-#   outliers.
+#     In the case of the provided synthetic data, there won't be any Cooks outliers.
+#
+# Now that we've initialized a :class:`DeseqDataSet`, let us run the workflow
+# step-by-step to get dispersion and LFC estimates. As the steps below are
+# wrapped in the :meth:`deseq2() <DeseqDataSet.deseq2>` method, as illustrated in the
+# :doc:`standard workflow example <plot_minimal_pydeseq2_pipeline>`, this tutorial
+# targets users who would like to know more about each individual step.
+
 
 # %%
-# Compute normalization factors
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# a. Computing normalization factors
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 dds.fit_size_factors()
 
