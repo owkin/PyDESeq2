@@ -161,32 +161,44 @@ dds = DeseqDataSet(
 
 # %%
 #
-# a. Computing normalization factors
+# a. Normalization factors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# :meth:`fit_size_factors() <DeseqDataSet.fit_size_factors>`
+#
 
 dds.fit_size_factors()
 
 dds.obsm["size_factors"]
 
 # %%
-# Fit genewise dispersions
+# b. Gene-wise dispersions
 # ^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# :meth:`fit_genewise_dispersions() <DeseqDataSet.fit_genewise_dispersions>`
+#
 
 dds.fit_genewise_dispersions()
 
 dds.varm["genewise_dispersions"]
 
 # %%
-# Fit dispersion trend coefficients
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# c. Dispersion trend coefficients
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# :meth:`fit_dispersion_trend() <DeseqDataSet.fit_dispersion_trend>`
+#
 
 dds.fit_dispersion_trend()
 dds.uns["trend_coeffs"]
 dds.varm["fitted_dispersions"]
 
 # %%
-# Dispersion priors
-# ^^^^^^^^^^^^^^^^^
+# d. Dispersion priors
+# ^^^^^^^^^^^^^^^^^^^^^
+#
+# :meth:`fit_dispersion_prior() <DeseqDataSet.fit_dispersion_prior>`
+#
 
 dds.fit_dispersion_prior()
 print(
@@ -194,10 +206,10 @@ print(
 )
 
 # %%
-# MAP Dispersions
-# ^^^^^^^^^^^^^^^
-# The `fit_MAP_dispersions` method filters the genes for which dispersion
-# shrinkage is applied.
+# e. MAP dispersions
+# ^^^^^^^^^^^^^^^^^^^
+# The :meth:`fit_MAP_dispersions() <DeseqDataSet.fit_MAP_dispersions>` method filters
+# the genes for which dispersion shrinkage is applied.
 # Indeed, for genes whose MLE dispersions are too high above the trend curve,
 # the original MLE value is kept.
 # The final values of the dispersions that are used for downstream analysis is
@@ -208,8 +220,11 @@ dds.varm["MAP_dispersions"]
 dds.varm["dispersions"]
 
 # %%
-# Fit log fold changes
+# f. Log-fold changes
 # ^^^^^^^^^^^^^^^^^^^^
+#
+# :meth:`fit_LFC() <DeseqDataSet.fit_LFC>`
+#
 # Note that in the `DeseqDataSet` object, the log-fold changes are stored in
 # natural
 # log scale, but that the results dataframe output by the `summary` method of
@@ -219,8 +234,12 @@ dds.fit_LFC()
 dds.varm["LFC"]
 
 # %%
-# Calculate Cooks distances and refit
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# g. Calculating Cooks distances and refitting
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# :meth:`calculate_cooks() <DeseqDataSet.calculate_cooks>`
+# :meth:`refit() <DeseqDataSet.refit>`
+#
 # Note that this step is optional.
 
 dds.calculate_cooks()
