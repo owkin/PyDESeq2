@@ -70,7 +70,7 @@ print(clinical_df)
 # %%
 # In this example, the clinical data contains two columns, ``condition`` and ``group``,
 # representing two types of bi-level annotations. In the first part, we will only use the
-# ``condition`` factor. Later on, we'll see how to use both the `condition` and the
+# ``condition`` factor. Later on, we'll see how to use both the ``condition`` and the
 # ``group`` factors in our analysis (see :ref:`multifactor_ref`).
 
 # %%
