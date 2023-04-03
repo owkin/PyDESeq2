@@ -21,6 +21,8 @@ results.
 import os
 import pickle as pkl
 
+import anndata as ad
+
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
 from pydeseq2.utils import load_example_data
@@ -36,8 +38,6 @@ if SAVE:
 # %%
 # Data loading
 # ------------
-#
-# Note that we are also explaining this step in the 'getting started' example.
 # To perform differential expression analysis (DEA), PyDESeq2 requires two types of
 # inputs:
 #
@@ -69,13 +69,68 @@ clinical_df = load_example_data(
     debug=False,
 )
 
+print(counts_df)
+
 # %%
-# 1. Read counts modeling
-# -----------------------
-# Read counts modeling with the :class:`DeseqDataSet
-# <dds.DeseqDataSet>` class
+print(clinical_df)
+
+
+# %%
+# As in the :doc:`standard workflow example <plot_minimal_pydeseq2_pipeline>`,
+# the clinical data contains two columns, ``condition`` and ``group``,
+# representing two types of bi-level annotations. In this example, we will only use the
+# ``condition`` factor.
+# To see how to use both the ``condition`` and the ``group`` factors in the analysis,
+# see the :ref:`section on multifactor analysis<multifactor_ref>` from the first example.
+
+# %%
+# Data filtering
+# ^^^^^^^^^^^^^^
 #
-# The :class:`DeseqDataSet <dds.DeseqDataSet>` class has two mandatory
+# As in the :doc:`standard workflow example <plot_minimal_pydeseq2_pipeline>`,
+# we filter out genes with low total read counts and samples with missing
+# information before proceeding with DEA.
+
+samples_to_keep = ~clinical_df.condition.isna()
+counts_df = counts_df.loc[samples_to_keep]
+clinical_df = clinical_df.loc[samples_to_keep]
+genes_to_keep = counts_df.columns[counts_df.sum(axis=0) >= 10]
+counts_df = counts_df[genes_to_keep]
+
+# %%
+# Now that we have loaded and filtered our data, we may proceed with the differential
+# analysis.
+
+# %%
+# .. currentmodule:: pydeseq2.dds
+#
+# 1. Read counts modeling with the :class:`DeseqDataSet` class
+# -------------------------------------------------------------
+# We start by creating a :class:`DeseqDataSet`
+# object from the count and clinical data.
+# A :class:`DeseqDataSet` fits dispersion and
+# log-fold change (LFC) parameters from the data, and stores them.
+#
+# A :class:`DeseqDataSet` may be either be initialized from a ``counts`` and
+# a ``clinical`` dataframe (see :ref:`the first example <standard_ex_dds_ref>`) or,
+# as illustrated here, an  :class:`AnnData <anndata.AnnData>` object, which may contain
+# information from a prior analysis.
+#
+adata = ad.AnnData(X=counts_df, obs=clinical_df)
+
+print(adata)
+
+# %%
+dds = DeseqDataSet(
+    adata=adata,
+    design_factors="condition",  # compare samples based on the "condition"
+    # column ("B" vs "A")
+    refit_cooks=True,
+    n_cpus=8,
+)
+
+# %%
+# The :class:`DeseqDataSet` class has two mandatory
 # arguments, `counts_df` and
 # `clinical_df`, as well as a set of optional keyword arguments, among which:
 #
@@ -86,15 +141,6 @@ clinical_df = load_example_data(
 # .. note::
 #   in the case of the provided synthetic data, there won't be any Cooks
 #   outliers.
-
-dds = DeseqDataSet(
-    counts=counts_df,
-    clinical=clinical_df,
-    design_factors="condition",  # compare samples based on the "condition"
-    # column ("B" vs "A")
-    refit_cooks=True,
-    n_cpus=8,
-)
 
 # %%
 # Compute normalization factors
@@ -172,9 +218,11 @@ if SAVE:
         pkl.dump(dds, f)
 
 # %%
+# .. currentmodule:: pydeseq2.ds
+#
 # 2. Statistical analysis
 # -----------------------
-# Statistical analysis with the :class:`DeseqStats <ds.DeseqStats>` class.
+# Statistical analysis with the :class:`DeseqStats` class.
 # The `DeseqDataSet` class has a unique mandatory arguments, `dds`, which should
 # be a *fitted* `DeseqDataSet` object, as well as a set of optional keyword
 # arguments, among which:

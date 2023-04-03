@@ -118,6 +118,7 @@ counts_df = counts_df[genes_to_keep]
 
 # %%
 # .. currentmodule:: pydeseq2.dds
+# .. _standard_ex_dds_ref:
 #
 # Read counts modeling with the :class:`DeseqDataSet` class
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
