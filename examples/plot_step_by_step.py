@@ -160,12 +160,15 @@ dds = DeseqDataSet(
 
 
 # %%
-#
 # a. Normalization factors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# The first step is to compute normalization factors using the
+# :meth:`fit_size_factors() <DeseqDataSet.fit_size_factors>` method, using the
+# median-of-ratios method (see :func:`pydeseq2.preprocessing.deseq2_norm`),
+# unless each gene has at least one sample with zero read counts or ``fit_type='ratio'``
+# is passed, in which case it switches to the iterative method.
 #
-# :meth:`fit_size_factors() <DeseqDataSet.fit_size_factors>`
-#
+# The results are then stored in ``dds.obsm["size_factors"]``.
 
 dds.fit_size_factors()
 
