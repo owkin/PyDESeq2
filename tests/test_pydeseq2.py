@@ -468,7 +468,7 @@ def test_ref_level():
         counts=counts_df,
         clinical=clinical_df,
         design_factors=["group", "condition"],
-        ref_level=["condition", "Y"],
+        ref_level=["group", "Y"],
     )
 
-    assert "condition_X_vs_Y" in dds.obsm["design_matrix"].columns
+    assert "group_X_vs_Y" in dds.obsm["design_matrix"].columns
