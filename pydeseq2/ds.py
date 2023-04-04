@@ -35,7 +35,7 @@ class DeseqStats:
 
     contrast : list or None
         A list of three strings, in the following format:
-        ``['variable_of_interest', 'tested_level', 'tested_level']``.
+        ``['variable_of_interest', 'tested_level', 'ref_level']``.
         Names must correspond to the clinical data passed to the DeseqDataSet.
         E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared
         to 'condition A'. If None, the last variable from the design matrix is chosen
@@ -277,13 +277,13 @@ class DeseqStats:
         coeff : str
             The LFC coefficient to shrink.
             If the desired coefficient is not available, it may be set from the
-            :class:`pydeseq2.dds.DeseqDataSet` argument ``tested_level``.
+            :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
         """
 
         if coeff not in self.LFC.columns:
             raise KeyError(
                 f"The coeff argument ('{coeff}') should be one the LFC columns. "
-                f"If not available,  it can be set from DeseqDataSet's `tested_level` "
+                f"If not available,  it can be set from DeseqDataSet's `ref_level` "
                 f"argument."
             )
 

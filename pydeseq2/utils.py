@@ -139,7 +139,7 @@ def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
 def build_design_matrix(
     clinical_df: pd.DataFrame,
     design_factors: Union[str, List[str]] = "condition",
-    tested_level: Optional[List[str]] = None,
+    ref_level: Optional[List[str]] = None,
     expanded: bool = False,
     intercept: bool = True,
 ) -> pd.DataFrame:
@@ -159,11 +159,10 @@ def build_design_matrix(
         Name of the columns of clinical_df to be used as design_matrix variables.
         (default: ``"condition"``).
 
-    tested_level : list or None
+    ref_level : list or None
         An optional list of two strings of the form ``["factor", "ref_level"]``
         specifying the factor of interest and the desired reference level, e.g.
-        ``["condition", "A"]``.
-        (default: ``None``).
+        ``["condition", "A"]``. (default: ``None``).
 
     expanded : bool
         If true, use one column per category. Else, use a single column.
@@ -194,38 +193,45 @@ def build_design_matrix(
 
     design_matrix = pd.get_dummies(clinical_df[design_factors], drop_first=not expanded)
 
-    if tested_level is not None:
-        if len(tested_level) != 2:
-            raise KeyError("The tested level should contain 2 strings.")
-        if tested_level[1] not in clinical_df[tested_level[0]].values:
+    if ref_level is not None:
+        if len(ref_level) != 2:
+            raise KeyError("The reference level should contain 2 strings.")
+        if ref_level[1] not in clinical_df[ref_level[0]].values:
             raise KeyError(
-                f"The clinical data should contain a '{tested_level[0]}' column"
-                f" with a '{tested_level[1]}' level."
+                f"The clinical data should contain a '{ref_level[0]}' column"
+                f" with a '{ref_level[1]}' level."
             )
 
-        # Check that the reference level is still in the matrix
-        test_level = "_".join(tested_level)
-        if test_level not in design_matrix.columns:
-            # Add the desired level and remove one
+        # Check that the reference level is not in the matrix (if unexpanded design)
+        ref_level_name = "_".join(ref_level)
+        if (not expanded) and ref_level_name in design_matrix.columns:
+            # Remove the reference level and add one
             factor_cols = [
-                col for col in design_matrix.columns if col.startswith(tested_level[0])
+                col for col in design_matrix.columns if col.startswith(ref_level[0])
             ]
-            design_matrix[test_level] = 1 - design_matrix[factor_cols].sum(1)
-            design_matrix.drop(factor_cols[0], axis="columns", inplace=True)
+            missing_level = next(
+                level
+                for level in np.unique(clinical_df[ref_level[0]])
+                if f"{ref_level[0]}_{level}" not in design_matrix.columns
+            )
+            design_matrix[f"{ref_level[0]}_{missing_level}"] = 1 - design_matrix[
+                factor_cols
+            ].sum(1)
+            design_matrix.drop(ref_level_name, axis="columns", inplace=True)
 
     if not expanded:
         # Add reference level as column name suffix
         for factor in design_factors:
-            if tested_level is not None and factor == tested_level[0]:
+            if ref_level is None or factor != ref_level[0]:
                 # The reference is the unique level that is no longer there
                 ref = next(
                     level
-                    for level in clinical_df[factor]
+                    for level in np.unique(clinical_df[factor])
                     if f"{factor}_{level}" not in design_matrix.columns
                 )
             else:
-                # The first level is the one that should have been dropped
-                ref = np.unique(clinical_df[factor])[0]
+                # The reference level is given as an argument
+                ref = ref_level[1]
             design_matrix.columns = [
                 f"{col}_vs_{ref}" if col.startswith(factor) else col
                 for col in design_matrix.columns
