@@ -446,3 +446,29 @@ def test_vst(tol=0.02):
     assert (
         np.abs(r_vst_with_design - dds.layers["vst_counts"]) / r_vst_with_design
     ).max().max() < tol
+
+
+def test_ref_level():
+    """Test that DeseqDataSet columns are created according to the passed reference
+    level, if any.
+    """
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    dds = DeseqDataSet(
+        counts=counts_df,
+        clinical=clinical_df,
+        design_factors=["group", "condition"],
+        ref_level=["condition", "Y"],
+    )
+
+    assert "condition_X_vs_Y" in dds.obsm["design_matrix"].columns
