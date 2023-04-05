@@ -233,7 +233,7 @@ def build_design_matrix(
 
     if intercept:
         design_matrix.insert(0, "intercept", 1)
-    return design_matrix
+    return design_matrix.astype("int")
 
 
 def dispersion_trend(
