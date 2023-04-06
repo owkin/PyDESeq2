@@ -471,4 +471,12 @@ def test_ref_level():
         ref_level=["group", "Y"],
     )
 
+    # Check that the column exists
     assert "group_X_vs_Y" in dds.obsm["design_matrix"].columns
+    # Check that its content is correct
+    assert (
+        dds.obsm["design_matrix"]["group_X_vs_Y"]
+        == clinical_df["group"].apply(
+            lambda x: 1 if x == "X" else 0 if x == "Y" else np.NaN
+        )
+    ).all()
