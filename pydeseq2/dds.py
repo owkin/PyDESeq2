@@ -867,8 +867,6 @@ class DeseqDataSet(ad.AnnData):
         # Only replace if genes are not all zeroes after outlier replacement
         to_replace[to_replace] = ~new_all_zeroes
 
-        print(to_replace)
-
         self.varm["_normed_means"][to_replace] = sub_dds.varm["_normed_means"]
         self.varm["LFC"][to_replace] = sub_dds.varm["LFC"]
         self.varm["dispersions"][to_replace] = sub_dds.varm["dispersions"]
