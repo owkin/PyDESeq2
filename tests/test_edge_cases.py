@@ -139,7 +139,7 @@ def test_reference_level():
             counts=counts_df,
             clinical=clinical_df,
             design_factors="condition",
-            tested_level="control",
+            ref_level="control",
         )
 
 
