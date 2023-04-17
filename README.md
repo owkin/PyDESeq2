@@ -42,6 +42,7 @@ We recommend installing within a conda environment:
 ```
 conda create -n pydeseq2
 conda activate pydeseq2
+conda install pip
 pip install pydeseq2
 ```
 
