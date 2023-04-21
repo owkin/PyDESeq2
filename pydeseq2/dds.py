@@ -189,7 +189,7 @@ class DeseqDataSet(ad.AnnData):
         else:
             # Test counts before going further
             test_valid_counts(counts)
-            super().__init__(X=counts, obs=clinical, dtype=int)
+            super().__init__(X=counts.astype(int), obs=clinical)
 
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (
