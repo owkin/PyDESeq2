@@ -175,21 +175,20 @@ class DeseqDataSet(ad.AnnData):
         joblib_verbosity: int = 0,
     ) -> None:
 
-        if adata is None and (counts is None or clinical is None):
-            raise ValueError(
-                "Either adata or both counts and clinical arguments must be provided."
-            )
-
         # Initialize the AnnData part
         if adata is not None:
             # Test counts before going further
             test_valid_counts(adata.X)
             # Copy fields from original AnnData
             self.__dict__.update(adata.__dict__)
-        else:
+        elif counts is not None and clinical is not None:
             # Test counts before going further
             test_valid_counts(counts)
             super().__init__(X=counts.astype(int), obs=clinical)
+        else:
+            raise ValueError(
+                "Either adata or both counts and clinical arguments must be provided."
+            )
 
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (
