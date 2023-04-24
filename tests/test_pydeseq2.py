@@ -366,7 +366,7 @@ def test_anndata_init(tol=0.02):
     )
 
     # Make an anndata object
-    adata = ad.AnnData(X=counts_df, obs=clinical_df, dtype=int)
+    adata = ad.AnnData(X=counts_df.astype(int), obs=clinical_df)
 
     # Put some dummy data in unused fields
     adata.obsm["dummy_metadata"] = np.random.choice(2, adata.n_obs)
