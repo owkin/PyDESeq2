@@ -28,6 +28,7 @@ setup(
     packages=find_packages(exclude=["tests*"]),
     install_requires=[
         "anndata==0.8.0",
+        "ipython",
         "numpy>=1.23.0",
         "pandas>=1.4.0",
         "scikit-learn>=1.1.0",
