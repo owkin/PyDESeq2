@@ -178,9 +178,13 @@ class DeseqDataSet(ad.AnnData):
         # Initialize the AnnData part
         if adata is not None:
             if counts is not None:
-                warnings.warn("adata was provided; ignoring counts.", UserWarning, stacklevel=2)
+                warnings.warn(
+                    "adata was provided; ignoring counts.", UserWarning, stacklevel=2
+                )
             if clinical is not None:
-                warnings.warn("adata was provided; ignoring clinical.", UserWarning, stacklevel=2)
+                warnings.warn(
+                    "adata was provided; ignoring clinical.", UserWarning, stacklevel=2
+                )
             # Test counts before going further
             test_valid_counts(adata.X)
             # Copy fields from original AnnData
