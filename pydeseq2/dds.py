@@ -16,6 +16,7 @@ from joblib import parallel_backend
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
+from scipy.stats import trim_mean  # type: ignore
 from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
 from pydeseq2.preprocessing import deseq2_norm
@@ -226,7 +227,11 @@ class DeseqDataSet(ad.AnnData):
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
 
-    def vst(self, use_design: bool = False) -> None:
+    def vst(
+        self,
+        use_design: bool = False,
+        fit_type: Literal["parametric", "mean"] = "parametric"
+    ) -> None:
         """
         Fit a variance stabilizing transformation, and apply it to normalized counts.
 
@@ -256,19 +261,33 @@ class DeseqDataSet(ad.AnnData):
             )
             # Fit the trend curve with an intercept design
             self.fit_genewise_dispersions()
-            self.fit_dispersion_trend()
+            if fit_type == "parametric":
+                self.fit_dispersion_trend()
 
             # Restore the design matrix and free buffer
             self.obsm["design_matrix"] = self.obsm["design_matrix_buffer"].copy()
             del self.obsm["design_matrix_buffer"]
 
         # Apply VST
-        a0, a1 = self.uns["trend_coeffs"]
-        cts = self.layers["normed_counts"]
-        self.layers["vst_counts"] = np.log2(
-            (1 + a1 + 2 * a0 * cts + 2 * np.sqrt(a0 * cts * (1 + a1 + a0 * cts)))
-            / (4 * a0)
-        )
+        if fit_type == "parametric":
+            a0, a1 = self.uns["trend_coeffs"]
+            cts = self.layers["normed_counts"]
+            self.layers["vst_counts"] = np.log2(
+                (1 + a1 + 2 * a0 * cts + 2 * np.sqrt(a0 * cts * (1 + a1 + a0 * cts)))
+                / (4 * a0)
+            )
+        elif fit_type == "mean":
+            gene_dispersions = self.varm["genewise_dispersions"]
+            use_for_mean = gene_dispersions > 10 * self.min_disp
+            mean_disp = trim_mean(gene_dispersions[use_for_mean], proportiontocut=0.001)
+            self.layers["vst_counts"] = (
+                (2 * np.arcsinh(np.sqrt(mean_disp * self.layers["normed_counts"]))
+                - np.log(mean_disp) - np.log(4) ) / np.log(2)
+            )
+        else:
+            raise NotImplementedError(
+                f"Found fit_type '{fit_type}'. Expected 'parametric' or 'mean'."
+            )
 
     def deseq2(self) -> None:
         """Perform dispersion and log fold-change (LFC) estimation.
