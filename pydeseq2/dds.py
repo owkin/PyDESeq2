@@ -230,7 +230,7 @@ class DeseqDataSet(ad.AnnData):
     def vst(
         self,
         use_design: bool = False,
-        fit_type: Literal["parametric", "mean"] = "parametric"
+        fit_type: Literal["parametric", "mean"] = "parametric",
     ) -> None:
         """
         Fit a variance stabilizing transformation, and apply it to normalized counts.
