@@ -281,9 +281,10 @@ class DeseqDataSet(ad.AnnData):
             use_for_mean = gene_dispersions > 10 * self.min_disp
             mean_disp = trim_mean(gene_dispersions[use_for_mean], proportiontocut=0.001)
             self.layers["vst_counts"] = (
-                (2 * np.arcsinh(np.sqrt(mean_disp * self.layers["normed_counts"]))
-                - np.log(mean_disp) - np.log(4) ) / np.log(2)
-            )
+                2 * np.arcsinh(np.sqrt(mean_disp * self.layers["normed_counts"]))
+                - np.log(mean_disp)
+                - np.log(4)
+            ) / np.log(2)
         else:
             raise NotImplementedError(
                 f"Found fit_type '{fit_type}'. Expected 'parametric' or 'mean'."
