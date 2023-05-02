@@ -505,7 +505,7 @@ def test_deseq2_norm():
     s1 = dds.obsm["size_factors"]
 
     # Fit size factors from counts directly
-    s2 = deseq2_norm(counts_df)
+    s2 = deseq2_norm(counts_df)[1]
 
     np.testing.assert_almost_equal(
         s1,
