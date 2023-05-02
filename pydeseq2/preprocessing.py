@@ -12,7 +12,7 @@ def deseq2_norm(counts: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     Parameters
     ----------
-    counts : ndarray
+    counts : pandas.DataFrame
             Raw counts. One column per gene, one row per sample.
 
     Returns
@@ -32,7 +32,10 @@ def deseq2_norm(counts: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # Filter out genes with -∞ log means
     filtered_genes = ~np.isinf(logmeans)
     # Subtract filtered log means from log counts
-    log_ratios = log_counts[:, filtered_genes] - logmeans[filtered_genes]
+    if isinstance(log_counts, pd.DataFrame):
+        log_ratios = log_counts.loc[:, filtered_genes] - logmeans[filtered_genes]
+    else:
+        log_ratios = log_counts[:, filtered_genes] - logmeans[filtered_genes]
     # Compute sample-wise median of log ratios
     log_medians = np.median(log_ratios, axis=1)
     # Return raw counts divided by size factors (exponential of log ratios)
