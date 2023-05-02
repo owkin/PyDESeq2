@@ -509,6 +509,6 @@ def test_deseq2_norm():
 
     np.testing.assert_almost_equal(
         s1,
-        s2.values,
+        s2,
         decimal=8,
     )
