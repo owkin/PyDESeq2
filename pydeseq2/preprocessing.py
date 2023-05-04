@@ -1,10 +1,13 @@
 from typing import Tuple
+from typing import Union
 
 import numpy as np
 import pandas as pd
 
 
-def deseq2_norm(counts: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def deseq2_norm(
+    counts: Union[pd.DataFrame, np.ndarray]
+) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
     """
     Return normalized counts and size_factors.
 
@@ -12,16 +15,16 @@ def deseq2_norm(counts: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     Parameters
     ----------
-    counts : ndarray
+    counts : pandas.DataFrame or ndarray
             Raw counts. One column per gene, one row per sample.
 
     Returns
     -------
-    deseq2_counts : pandas.DataFrame
+    deseq2_counts : pandas.DataFrame or ndarray
         DESeq2 normalized counts.
         One column per gene, rows are indexed by sample barcodes.
 
-    size_factors : pandas.DataFrame
+    size_factors : pandas.DataFrame or ndarray
         DESeq2 normalization factors.
     """
 
@@ -32,7 +35,10 @@ def deseq2_norm(counts: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # Filter out genes with -∞ log means
     filtered_genes = ~np.isinf(logmeans)
     # Subtract filtered log means from log counts
-    log_ratios = log_counts[:, filtered_genes] - logmeans[filtered_genes]
+    if isinstance(log_counts, pd.DataFrame):
+        log_ratios = log_counts.loc[:, filtered_genes] - logmeans[filtered_genes]
+    else:
+        log_ratios = log_counts[:, filtered_genes] - logmeans[filtered_genes]
     # Compute sample-wise median of log ratios
     log_medians = np.median(log_ratios, axis=1)
     # Return raw counts divided by size factors (exponential of log ratios)

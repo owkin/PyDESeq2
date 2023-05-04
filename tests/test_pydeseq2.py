@@ -8,6 +8,7 @@ import pandas as pd
 import tests
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
+from pydeseq2.preprocessing import deseq2_norm
 from pydeseq2.utils import load_example_data
 
 # Single-factor tests
@@ -480,3 +481,34 @@ def test_ref_level():
             lambda x: 1 if x == "X" else 0 if x == "Y" else np.NaN
         )
     ).all()
+
+
+def test_deseq2_norm():
+    """Test that deseq2_norm() called on a pandas dataframe outputs the same results as
+    DeseqDataSet.fit_size_factors()
+    """
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Fit size factors from DeseqDataSet
+    dds = DeseqDataSet(counts=counts_df, clinical=clinical_df)
+    dds.fit_size_factors()
+    s1 = dds.obsm["size_factors"]
+
+    # Fit size factors from counts directly
+    s2 = deseq2_norm(counts_df)[1]
+
+    np.testing.assert_almost_equal(
+        s1,
+        s2,
+        decimal=8,
+    )
