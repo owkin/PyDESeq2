@@ -33,7 +33,9 @@ In case there is a feature you would particularly like to be implemented, feel f
 
 ## Installation
 
-`PyDESeq2` can be installed from PyPI:
+### PyPI
+
+`PyDESeq2` can be installed from PyPI using `pip`:
 
 `pip install pydeseq2`
 
@@ -45,6 +47,12 @@ conda activate pydeseq2
 conda install pip
 pip install pydeseq2
 ```
+
+### Bioconda
+
+`PyDESeq2` can also be installed from Bioconda with `conda`:
+
+`conda install -c bioconda pydeseq2`
 
 If you're interested in contributing or want access to the development version, please see the [contributing](#contributing) section.
 
