@@ -275,7 +275,8 @@ class DeseqStats:
         Parameters
         ----------
         coeff : str or None
-            The LFC coefficient to shrink.
+            The LFC coefficient to shrink. If set to ``None``, the method will try to
+            shrink the coefficient corresponding to the ``contrast`` attribute.
             If the desired coefficient is not available, it may be set from the
             :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
             (default: ``None``).
