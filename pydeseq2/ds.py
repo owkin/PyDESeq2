@@ -287,13 +287,21 @@ class DeseqStats:
         if coeff is not None:
             if coeff not in self.LFC.columns:
                 split_coeff = coeff.split("_")
-                raise KeyError(
-                    f"The coeff argument '{coeff}' should be one the LFC columns. "
-                    f"The available LFC coeffs are {self.LFC.columns[1:]}. "
-                    f"If the desired coefficient is not available, please set "
-                    f"`ref_level = [{split_coeff[0]}, {split_coeff[3]}]` "
-                    f"in DeseqDataSet and rerun."
-                )
+                if len(split_coeff) == 4:
+                    raise KeyError(
+                        f"The coeff argument '{coeff}' should be one the LFC columns. "
+                        f"The available LFC coeffs are {self.LFC.columns[1:]}. "
+                        f"If the desired coefficient is not available, please set "
+                        f"`ref_level = [{split_coeff[0]}, {split_coeff[3]}]` "
+                        f"in DeseqDataSet and rerun."
+                    )
+                else:
+                    raise KeyError(
+                        f"The coeff argument '{coeff}' should be one the LFC columns. "
+                        f"The available LFC coeffs are {self.LFC.columns[1:]}. "
+                        f"If the desired coefficient is not available, please set the "
+                        f"appropriate`ref_level` in DeseqDataSet and rerun."
+                    )
         elif contrast_level not in self.LFC.columns:
             raise KeyError(
                 f"lfc_shrink's coeff argument was set to None, but the coefficient "
