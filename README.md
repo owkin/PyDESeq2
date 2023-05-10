@@ -105,7 +105,7 @@ documentation to see how you can contribute to PyDESeq2.
 
 ### 2 - Create a conda environment
 
-Run `conda env create -n pydeseq2 python=3.8` (or higher python version) to create the `pydeseq2` environment and then activate it:
+Run `conda create -n pydeseq2 python=3.8` (or higher python version) to create the `pydeseq2` environment and then activate it:
 `conda activate pydeseq2`.
 
 `cd` to the root of the repo and run `pip install -e ."[dev]"` to install in developer mode.
