@@ -167,7 +167,7 @@ def test_lfc_shrinkage_coeff():
 
     res = DeseqStats(dds)
     res.summary()
-    res.lfc_shrink(coeff="None")
+    res.lfc_shrink(coeff=None)
 
     with pytest.raises(KeyError):
         res.lfc_shrink(coeff="this_coeff_does_not_exist")
