@@ -448,6 +448,39 @@ def test_vst(tol=0.02):
     ).max().max() < tol
 
 
+def test_mean_vst(tol=0.02):
+    """
+    Test the output of VST with ``fitType="mean"`` compared with DESeq2.
+    """
+
+    # Load data
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Load R data
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    r_vst = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_mean_vst.csv"), index_col=0
+    ).T
+
+    # Test blind design
+    dds = DeseqDataSet(
+        counts=counts_df, clinical=clinical_df, design_factors=["condition"]
+    )
+    dds.vst(use_design=False, fit_type="mean")
+    assert (np.abs(r_vst - dds.layers["vst_counts"]) / r_vst).max().max() < tol
+
+
 def test_ref_level():
     """Test that DeseqDataSet columns are created according to the passed reference
     level, if any.
