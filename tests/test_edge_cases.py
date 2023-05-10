@@ -145,7 +145,7 @@ def test_reference_level():
 
 def test_lfc_shrinkage_coeff():
     """Test that a KeyError is thrown when attempting to shrink an unexisting LFC
-    coefficient.
+    coefficient, but that setting coeff=None runs bug-free.
     """
 
     counts_df = load_example_data(
@@ -167,6 +167,8 @@ def test_lfc_shrinkage_coeff():
 
     res = DeseqStats(dds)
     res.summary()
+    res.lfc_shrink(coeff="None")
+
     with pytest.raises(KeyError):
         res.lfc_shrink(coeff="this_coeff_does_not_exist")
 
