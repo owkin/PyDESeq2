@@ -217,6 +217,9 @@ class DeseqDataSet(ad.AnnData):
             intercept=True,
         )
 
+        # Check that the design matrix has full rank
+        self._check_full_rank_design()
+
         self.min_mu = min_mu
         self.min_disp = min_disp
         self.max_disp = np.maximum(max_disp, self.n_obs)
@@ -994,3 +997,14 @@ class DeseqDataSet(ad.AnnData):
 
         # Store normalized counts
         self.layers["normed_counts"] = self.X / self.obsm["size_factors"][:, None]
+
+    def _check_full_rank_design(self):
+        """Check that the design matrix has full column rank."""
+        rank = np.linalg.matrix_rank(self.obsm["design_matrix"])
+        num_vars = self.obsm["design_matrix"].shape[1]
+
+        if rank < num_vars:
+            raise ValueError(
+                "The design matrix is not full rank, so the model cannot be "
+                "fitted. Please remove one or more variables from the design."
+            )
