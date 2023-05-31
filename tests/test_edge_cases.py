@@ -165,12 +165,22 @@ def test_lfc_shrinkage_coeff():
     )
     dds.deseq2()
 
-    res = DeseqStats(dds)
-    res.summary()
-    res.lfc_shrink(coeff=None)
+    # Check that coeff=None gives the same results as the default
+    # coefficient condition_B_vs_A
+    res_1 = DeseqStats(dds)
+    res_1.summary()
+    res_1.lfc_shrink(coeff=None)
+    shrunk_lfcs_1 = res_1.results_df["log2FoldChange"].copy()
+
+    res_2 = DeseqStats(dds)
+    res_2.summary()
+    res_2.lfc_shrink(coeff="condition_B_vs_A")
+    shrunk_lfcs_2 = res_2.results_df["log2FoldChange"].copy()
+
+    assert (shrunk_lfcs_1 == shrunk_lfcs_2).all()
 
     with pytest.raises(KeyError):
-        res.lfc_shrink(coeff="this_coeff_does_not_exist")
+        res_1.lfc_shrink(coeff="this_coeff_does_not_exist")
 
 
 def test_indexes():
