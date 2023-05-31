@@ -386,6 +386,8 @@ class DeseqStats:
             # Get the corrresponding factor, tested and reference levels of the shrunk
             # coefficient
             split_coeff = coeff.split("_")
+            # coeffs are of the form "factor_A_vs_B", hence "factor" is split_coeff[0],
+            # "A" is split_coeff[1] and "B" split_coeff[3]
             print(
                 f"Shrunk Log2 fold change & Wald test p-value: "
                 f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}"
