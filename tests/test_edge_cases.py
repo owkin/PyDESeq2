@@ -116,7 +116,7 @@ def test_nan_factors():
 
 
 def test_one_factor():
-    """Test that a ValueError is thrown when the design factor takes only one value ."""
+    """Test that a ValueError is thrown when the design factor takes only one value."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
@@ -124,6 +124,22 @@ def test_one_factor():
 
     with pytest.raises(ValueError):
         DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
+
+
+def test_rank_deficient_design():
+    """Test that a ValueError is thrown when the design matrix does not have full column
+    rank."""
+    counts_df = pd.DataFrame(
+        {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
+    )
+    clinical_df = pd.DataFrame(
+        {"condition": [0, 1], "batch": ["A", "B"]}, index=["sample1", "sample2"]
+    )
+
+    with pytest.raises(ValueError):
+        DeseqDataSet(
+            counts=counts_df, clinical=clinical_df, design_factors=["condition", "batch"]
+        )
 
 
 def test_reference_level():
