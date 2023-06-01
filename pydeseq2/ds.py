@@ -267,25 +267,52 @@ class DeseqStats:
             self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
 
-    def lfc_shrink(self, coeff: str) -> None:
+    def lfc_shrink(self, coeff: Optional[str] = None) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
 
         Parameters
         ----------
-        coeff : str
-            The LFC coefficient to shrink.
+        coeff : str or None
+            The LFC coefficient to shrink. If set to ``None``, the method will try to
+            shrink the coefficient corresponding to the ``contrast`` attribute.
             If the desired coefficient is not available, it may be set from the
             :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
+            (default: ``None``).
         """
 
-        if coeff not in self.LFC.columns:
+        contrast_level = f"{self.contrast[0]}_{self.contrast[1]}_vs_{self.contrast[2]}"
+
+        if coeff is not None:
+            if coeff not in self.LFC.columns:
+                split_coeff = coeff.split("_")
+                if len(split_coeff) == 4:
+                    raise KeyError(
+                        f"The coeff argument '{coeff}' should be one the LFC columns. "
+                        f"The available LFC coeffs are {self.LFC.columns[1:]}. "
+                        f"If the desired coefficient is not available, please set "
+                        f"`ref_level = [{split_coeff[0]}, {split_coeff[3]}]` "
+                        f"in DeseqDataSet and rerun."
+                    )
+                else:
+                    raise KeyError(
+                        f"The coeff argument '{coeff}' should be one the LFC columns. "
+                        f"The available LFC coeffs are {self.LFC.columns[1:]}. "
+                        f"If the desired coefficient is not available, please set the "
+                        f"appropriate`ref_level` in DeseqDataSet and rerun."
+                    )
+        elif contrast_level not in self.LFC.columns:
             raise KeyError(
-                f"The coeff argument ('{coeff}') should be one the LFC columns. "
-                f"If not available,  it can be set from DeseqDataSet's `ref_level` "
-                f"argument."
+                f"lfc_shrink's coeff argument was set to None, but the coefficient "
+                f"corresponding to the contrast {self.contrast} is not available."
+                f"The available LFC coeffs are {self.LFC.columns[1:]}. "
+                f"If the desired coefficient is not available, please set "
+                f"`ref_level = [{self.contrast[0]}, {self.contrast[2]}]` "
+                f"in DeseqDataSet and rerun."
             )
+        else:
+            coeff = contrast_level
 
         coeff_idx = self.LFC.columns.get_loc(coeff)
 
@@ -356,9 +383,14 @@ class DeseqStats:
             self.results_df["log2FoldChange"] = self.LFC.iloc[:, coeff_idx] / np.log(2)
             self.results_df["lfcSE"] = self.SE / np.log(2)
 
+            # Get the corrresponding factor, tested and reference levels of the shrunk
+            # coefficient
+            split_coeff = coeff.split("_")
+            # coeffs are of the form "factor_A_vs_B", hence "factor" is split_coeff[0],
+            # "A" is split_coeff[1] and "B" split_coeff[3]
             print(
                 f"Shrunk Log2 fold change & Wald test p-value: "
-                f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
+                f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}"
             )
 
             display(self.results_df)
