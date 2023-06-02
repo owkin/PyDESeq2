@@ -6,6 +6,9 @@ on:
     branches:
       - '**'
   pull_request:
+  schedule:
+    # Run every week day at 3h30 UTC
+    - cron: '30 3 * * 1,2,3,4,5'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
