@@ -28,6 +28,7 @@ from pydeseq2.utils import fit_moments_dispersions
 from pydeseq2.utils import fit_rough_dispersions
 from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import irls_solver
+from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import nb_nll
 from pydeseq2.utils import robust_method_of_moments_disp
@@ -1009,3 +1010,18 @@ class DeseqDataSet(ad.AnnData):
                 "fitted. Please remove the design variables that are linear "
                 "combinations of others."
             )
+
+    def plot_dispersions(self) -> None:
+        """Plot dispersions"""
+        disps = [
+            self.varm["genewise_dispersions"],
+            self.varm["dispersions"],
+            self.varm["fitted_dispersions"],
+        ]
+        legend_labels = ["Estimated", "Final", "Fitted"]
+        make_scatter(
+            disps,
+            legend_labels=legend_labels,
+            x_val=self.varm["_normed_means"],
+            log=True,
+        )
