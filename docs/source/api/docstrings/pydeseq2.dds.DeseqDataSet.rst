@@ -17,6 +17,7 @@
         ~DeseqDataSet.fit_dispersion_trend
         ~DeseqDataSet.fit_genewise_dispersions
         ~DeseqDataSet.fit_size_factors
+        ~DeseqDataSet.plot_dispersions
         ~DeseqDataSet.refit
         ~DeseqDataSet.vst
 

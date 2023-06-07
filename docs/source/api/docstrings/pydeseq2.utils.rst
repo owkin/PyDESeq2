@@ -23,6 +23,7 @@
       get_num_processes
       irls_solver
       load_example_data
+      make_scatter
       nb_nll
       nbinomFn
       nbinomGLM
