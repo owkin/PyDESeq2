@@ -1285,7 +1285,7 @@ def make_scatter(
     log : bool
         Whether or not to log scale x and y axes (``default=True``).
 
-    save_path : Optional[str]
+    save_path : str or None
         The path where to save the plot. If left None, the plot won't be saved
         (``default=None``).
 
