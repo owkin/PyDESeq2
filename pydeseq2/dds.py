@@ -763,6 +763,42 @@ class DeseqDataSet(ad.AnnData):
             alpha_hat, self.min_disp, self.max_disp
         )
 
+    def plot_dispersions(
+        self, log: bool = True, save_path: Optional[str] = None, **kwargs
+    ) -> None:
+        """Plot dispersions.
+
+        Make a scatter plot with genewise dispersions, trend curve and final (MAP)
+        dispersions.
+
+        Parameters
+        ----------
+        log : bool
+            Whether to log scale x and y axes (``default=True``).
+
+        save_path : Optional[str]
+            The path where to save the plot. If left None, the plot won't be saved
+            (``default=None``).
+
+        **kwargs
+            Keyword arguments for the scatter plot.
+        """
+
+        disps = [
+            self.varm["genewise_dispersions"],
+            self.varm["dispersions"],
+            self.varm["fitted_dispersions"],
+        ]
+        legend_labels = ["Estimated", "Final", "Fitted"]
+        make_scatter(
+            disps,
+            legend_labels=legend_labels,
+            x_val=self.varm["_normed_means"],
+            log=log,
+            save_path=save_path,
+            **kwargs,
+        )
+
     def _replace_outliers(self) -> None:
         """Replace values that are filtered out based
         on the Cooks distance with imputed values.
@@ -1010,34 +1046,3 @@ class DeseqDataSet(ad.AnnData):
                 "fitted. Please remove the design variables that are linear "
                 "combinations of others."
             )
-
-    def plot_dispersions(self, save_path=None, **kwargs) -> None:
-        """Plot dispersions.
-
-        Make a scatter plot with genewise dispersions, trend curve and final (MAP)
-        dispersions.
-
-        Parameters
-        ----------
-        save_path : Optional[str]
-            The path where to save the plot. If left None, the plot won't be saved
-            (``default=None``).
-
-        **kwargs
-            Keyword arguments for the scatter plot.
-        """
-
-        disps = [
-            self.varm["genewise_dispersions"],
-            self.varm["dispersions"],
-            self.varm["fitted_dispersions"],
-        ]
-        legend_labels = ["Estimated", "Final", "Fitted"]
-        make_scatter(
-            disps,
-            legend_labels=legend_labels,
-            x_val=self.varm["_normed_means"],
-            log=True,
-            save_path=save_path,
-            **kwargs,
-        )
