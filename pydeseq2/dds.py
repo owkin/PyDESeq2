@@ -1012,7 +1012,12 @@ class DeseqDataSet(ad.AnnData):
             )
 
     def plot_dispersions(self) -> None:
-        """Plot dispersions"""
+        """Plot dispersions.
+
+        Make a scatter plot with genewise dispersions, trend curve and final (MAP)
+        dispersions.
+        """
+
         disps = [
             self.varm["genewise_dispersions"],
             self.varm["dispersions"],

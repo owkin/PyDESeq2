@@ -1260,27 +1260,23 @@ def mean_absolute_deviation(x: np.ndarray) -> float:
 
 def make_scatter(disps: list, legend_labels: list, x_val: np.array, log=True) -> None:
     """
-    Create a scatter plot using matplotlib
+    Create a scatter plot using matplotlib.
 
     Used in :meth:`pydeseq2.dds.DeseqDataSet.plot_dispersions()`.
 
     Parameters
     ----------
     disps : list
-        list of ndarrays to plot
+        List of ndarrays to plot.
 
     legend_labels : list
-        list of strings that correspond to plotted y values for legend
+        List of strings that correspond to plotted y values for legend.
 
     x_val : ndarray
-        1D array to plot (example: dds.varm['_normed_means'])
+        1D array to plot (example: ``dds.varm['_normed_means']``).
 
     log : bool
-        whether or not to log scale x and y axes (default=True)
-
-    Returns
-    -------
-    None
+        Whether or not to log scale x and y axes (``default=True``).
     """
 
     # Adding more colors if plotting more than 3 traces
