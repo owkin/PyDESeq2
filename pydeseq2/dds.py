@@ -1011,7 +1011,7 @@ class DeseqDataSet(ad.AnnData):
                 "combinations of others."
             )
 
-    def plot_dispersions(self, **kwargs) -> None:
+    def plot_dispersions(self, save_path=None, **kwargs) -> None:
         """Plot dispersions.
 
         Make a scatter plot with genewise dispersions, trend curve and final (MAP)
@@ -1019,6 +1019,10 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
+        save_path : Optional[str]
+            The path where to save the plot. If left None, the plot won't be saved
+            (``default=None``).
+
         **kwargs
             Keyword arguments for the scatter plot.
         """
@@ -1034,5 +1038,6 @@ class DeseqDataSet(ad.AnnData):
             legend_labels=legend_labels,
             x_val=self.varm["_normed_means"],
             log=True,
-            **kwargs
+            save_path=save_path,
+            **kwargs,
         )

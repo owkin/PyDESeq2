@@ -1259,7 +1259,12 @@ def mean_absolute_deviation(x: np.ndarray) -> float:
 
 
 def make_scatter(
-    disps: list, legend_labels: list, x_val: np.array, log=True, **kwargs
+    disps: list,
+    legend_labels: list,
+    x_val: np.array,
+    log: bool = True,
+    save_path: Optional[str] = None,
+    **kwargs,
 ) -> None:
     """
     Create a scatter plot using matplotlib.
@@ -1279,6 +1284,10 @@ def make_scatter(
 
     log : bool
         Whether or not to log scale x and y axes (``default=True``).
+
+    save_path : Optional[str]
+        The path where to save the plot. If left None, the plot won't be saved
+        (``default=None``).
 
     **kwargs
         Keyword arguments for the scatter plot.
@@ -1315,4 +1324,5 @@ def make_scatter(
     plt.xlabel("mean of normalized counts")
     plt.ylabel("dispersion")
     plt.tight_layout()
+    plt.savefig(save_path, bbox_inches="tight")
     plt.show()
