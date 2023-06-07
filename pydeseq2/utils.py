@@ -10,6 +10,7 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
 from scipy.special import gammaln  # type: ignore
@@ -1255,3 +1256,73 @@ def mean_absolute_deviation(x: np.ndarray) -> float:
     """
     center = np.median(x)
     return np.median(np.abs(x - center)) / norm.ppf(0.75)
+
+
+def make_scatter(
+    disps: list,
+    legend_labels: list,
+    x_val: np.array,
+    log: bool = True,
+    save_path: Optional[str] = None,
+    **kwargs,
+) -> None:
+    """
+    Create a scatter plot using matplotlib.
+
+    Used in :meth:`pydeseq2.dds.DeseqDataSet.plot_dispersions()`.
+
+    Parameters
+    ----------
+    disps : list
+        List of ndarrays to plot.
+
+    legend_labels : list
+        List of strings that correspond to plotted y values for legend.
+
+    x_val : ndarray
+        1D array to plot (example: ``dds.varm['_normed_means']``).
+
+    log : bool
+        Whether or not to log scale x and y axes (``default=True``).
+
+    save_path : str or None
+        The path where to save the plot. If left None, the plot won't be saved
+        (``default=None``).
+
+    **kwargs
+        Keyword arguments for the scatter plot.
+    """
+
+    # Adding more colors if plotting more than 3 traces
+    if len(disps) == 3:
+        colors = "kbr"
+    else:
+        colors = "kbrcmyg"
+
+    # Standardizing font; init plot
+    plt.rcParams.update({"font.size": 10})
+    fig, ax = plt.subplots(dpi=600)
+
+    # log scale axes
+    if log is True:
+        plt.yscale("log")
+        plt.xscale("log")
+
+    # scale axes according to data spread
+    ax.set_adjustable("datalim")
+
+    # Set default alpha and s parameters, if not already specified
+    kwargs.setdefault("alpha", 0.5)
+    kwargs.setdefault("s", 0.6)
+
+    # create scatter plot per trace
+    for disp, color in list(zip(disps, colors)):
+        plt.scatter(x=x_val, y=disp, c=color, **kwargs)
+
+    # label legend + axes
+    plt.legend(legend_labels, loc="best")
+    plt.xlabel("mean of normalized counts")
+    plt.ylabel("dispersion")
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.show()

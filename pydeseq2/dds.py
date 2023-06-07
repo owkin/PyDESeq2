@@ -28,6 +28,7 @@ from pydeseq2.utils import fit_moments_dispersions
 from pydeseq2.utils import fit_rough_dispersions
 from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import irls_solver
+from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import nb_nll
 from pydeseq2.utils import robust_method_of_moments_disp
@@ -760,6 +761,42 @@ class DeseqDataSet(ad.AnnData):
         self.varm["_rough_dispersions"] = np.full(self.n_vars, np.NaN)
         self.varm["_rough_dispersions"][self.varm["non_zero"]] = np.clip(
             alpha_hat, self.min_disp, self.max_disp
+        )
+
+    def plot_dispersions(
+        self, log: bool = True, save_path: Optional[str] = None, **kwargs
+    ) -> None:
+        """Plot dispersions.
+
+        Make a scatter plot with genewise dispersions, trend curve and final (MAP)
+        dispersions.
+
+        Parameters
+        ----------
+        log : bool
+            Whether to log scale x and y axes (``default=True``).
+
+        save_path : str or None
+            The path where to save the plot. If left None, the plot won't be saved
+            (``default=None``).
+
+        **kwargs
+            Keyword arguments for the scatter plot.
+        """
+
+        disps = [
+            self.varm["genewise_dispersions"],
+            self.varm["dispersions"],
+            self.varm["fitted_dispersions"],
+        ]
+        legend_labels = ["Estimated", "Final", "Fitted"]
+        make_scatter(
+            disps,
+            legend_labels=legend_labels,
+            x_val=self.varm["_normed_means"],
+            log=log,
+            save_path=save_path,
+            **kwargs,
         )
 
     def _replace_outliers(self) -> None:
