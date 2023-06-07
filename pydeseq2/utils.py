@@ -1258,7 +1258,9 @@ def mean_absolute_deviation(x: np.ndarray) -> float:
     return np.median(np.abs(x - center)) / norm.ppf(0.75)
 
 
-def make_scatter(disps: list, legend_labels: list, x_val: np.array, log=True) -> None:
+def make_scatter(
+    disps: list, legend_labels: list, x_val: np.array, log=True, **kwargs
+) -> None:
     """
     Create a scatter plot using matplotlib.
 
@@ -1277,6 +1279,9 @@ def make_scatter(disps: list, legend_labels: list, x_val: np.array, log=True) ->
 
     log : bool
         Whether or not to log scale x and y axes (``default=True``).
+
+    **kwargs
+        Keyword arguments for the scatter plot.
     """
 
     # Adding more colors if plotting more than 3 traces
@@ -1297,9 +1302,13 @@ def make_scatter(disps: list, legend_labels: list, x_val: np.array, log=True) ->
     # scale axes according to data spread
     ax.set_adjustable("datalim")
 
+    # Set default alpha and s parameters, if not already specified
+    kwargs.setdefault("alpha", 0.5)
+    kwargs.setdefault("s", 0.6)
+
     # create scatter plot per trace
     for disp, color in list(zip(disps, colors)):
-        plt.scatter(x=x_val, y=disp, c=color, alpha=0.5, s=0.6)
+        plt.scatter(x=x_val, y=disp, c=color, **kwargs)
 
     # label legend + axes
     plt.legend(legend_labels, loc="best")

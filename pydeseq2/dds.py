@@ -1011,11 +1011,16 @@ class DeseqDataSet(ad.AnnData):
                 "combinations of others."
             )
 
-    def plot_dispersions(self) -> None:
+    def plot_dispersions(self, **kwargs) -> None:
         """Plot dispersions.
 
         Make a scatter plot with genewise dispersions, trend curve and final (MAP)
         dispersions.
+
+        Parameters
+        ----------
+        **kwargs
+            Keyword arguments for the scatter plot.
         """
 
         disps = [
@@ -1029,4 +1034,5 @@ class DeseqDataSet(ad.AnnData):
             legend_labels=legend_labels,
             x_val=self.varm["_normed_means"],
             log=True,
+            **kwargs
         )
