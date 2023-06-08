@@ -136,7 +136,7 @@ def test_rank_deficient_design():
         {"condition": [0, 1], "batch": ["A", "B"]}, index=["sample1", "sample2"]
     )
 
-    with pytest.raises(ValueError):
+    with pytest.warns(UserWarning):
         DeseqDataSet(
             counts=counts_df, clinical=clinical_df, design_factors=["condition", "batch"]
         )
