@@ -1324,5 +1324,6 @@ def make_scatter(
     plt.xlabel("mean of normalized counts")
     plt.ylabel("dispersion")
     plt.tight_layout()
-    plt.savefig(save_path, bbox_inches="tight")
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches="tight")
     plt.show()
