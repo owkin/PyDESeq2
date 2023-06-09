@@ -680,7 +680,7 @@ class DeseqStats:
             # Get any column corresponding to the desired factor and extract old ref
             old_ref = next(
                 col for col in self.LFC.columns if col.startswith(factor)
-            ).split("_")[-1]
+            ).split("_vs_")[-1]
             new_alternative_idx = self.LFC.columns.get_loc(
                 f"{factor}_{alternative}_vs_{old_ref}"
             )
