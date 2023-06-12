@@ -1041,8 +1041,11 @@ class DeseqDataSet(ad.AnnData):
         num_vars = self.obsm["design_matrix"].shape[1]
 
         if rank < num_vars:
-            raise ValueError(
+            warnings.warn(
                 "The design matrix is not full rank, so the model cannot be "
-                "fitted. Please remove the design variables that are linear "
-                "combinations of others."
+                "fitted, but some operations like design-free VST remain possible. "
+                "To perform differential expression analysis, please remove the design "
+                "variables that are linear combinations of others.",
+                UserWarning,
+                stacklevel=2,
             )
