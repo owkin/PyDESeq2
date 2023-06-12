@@ -113,6 +113,42 @@ def test_nan_factors():
         DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
 
 
+def test_underscores_in_factors():
+    """Test that underscores in factor and variable names don't cause bugs."""
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Rename clinical_df's columns and variables to add underscores
+    clinical_df.rename(
+        columns={"condition": "some_variable_with_underscores"}, inplace=True
+    )
+    clinical_df.replace(
+        {"A": "level_with_underscores", "B": "level_with_even_more_underscores"},
+        inplace=True,
+    )
+
+    # Run the pipeline. This should not cause bugs.
+    dds = DeseqDataSet(
+        counts=counts_df,
+        clinical=clinical_df,
+        design_factors="some_variable_with_underscores",
+    )
+    dds.deseq2()
+
+    stat_res = DeseqStats(dds)
+    stat_res.summary()
+    stat_res.lfc_shrink()
+
+
 def test_one_factor():
     """Test that a ValueError is thrown when the design factor takes only one value."""
     counts_df = pd.DataFrame(
