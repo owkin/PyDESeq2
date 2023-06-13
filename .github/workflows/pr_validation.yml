@@ -33,7 +33,7 @@ jobs:
         run: pre-commit run --all-files --show-diff-on-failure
       - name: Test with pytest
         run: |
-          coverage run -m pytest
+          python ci/run_local_test.py --summary-output-file-path './.test_summary'
       - name: Generate code coverage report
         run: |
           coverage html
@@ -47,3 +47,10 @@ jobs:
         run: |
           cd docs
           make clean html
+      # if: always() && github.event_name == 'schedule'
+      - name: Send slack message
+        run: |
+          python ci/send-slack-report.py '${{ secrets.SLACK_WEBHOOK }}' .test_summary \
+          --title 'SDK local tests' \
+          --status '${{ job.status }}' \
+          --link 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
