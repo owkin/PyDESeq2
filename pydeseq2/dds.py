@@ -897,6 +897,7 @@ class DeseqDataSet(ad.AnnData):
             ),
             clinical=self.obs,
             design_factors=self.design_factors,
+            ref_level=self.ref_level,
             min_mu=self.min_mu,
             min_disp=self.min_disp,
             max_disp=self.max_disp,
