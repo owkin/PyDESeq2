@@ -225,6 +225,7 @@ class DeseqDataSet(ad.AnnData):
         self.min_disp = min_disp
         self.max_disp = np.maximum(max_disp, self.n_obs)
         self.refit_cooks = refit_cooks
+        self.ref_level = ref_level
         self.min_replicates = min_replicates
         self.beta_tol = beta_tol
         self.n_processes = get_num_processes(n_cpus)
@@ -897,6 +898,7 @@ class DeseqDataSet(ad.AnnData):
             ),
             clinical=self.obs,
             design_factors=self.design_factors,
+            ref_level=self.ref_level,
             min_mu=self.min_mu,
             min_disp=self.min_disp,
             max_disp=self.max_disp,
