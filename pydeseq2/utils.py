@@ -1327,3 +1327,69 @@ def make_scatter(
     if save_path is not None:
         plt.savefig(save_path, bbox_inches="tight")
     plt.show()
+
+
+def plotMA(
+    results_df: pd.DataFrame,
+    padj_thresh: float = 0.05,
+    log: bool = True,
+    save_path: Optional[str] = None,
+    **kwargs,
+) -> None:
+    """
+    Creates an MA plot using matplotlib.
+    MA plots display a log ratio (M) vs an average (A)
+    to visualize the differences between two groups in bulk RNAseq
+
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        the resultant dataframe after running DeseqStats() and .summary().
+
+    log : bool
+        Whether or not to log scale x and y axes (``default=True``).
+
+    save_path : str or None
+        The path where to save the plot. If left None, the plot won't be saved
+        (``default=None``).
+
+    **kwargs
+        Keyword arguments for the scatter plot.
+    """
+
+    # add a column for color -- red dots are significant/under user-specified threshold
+    # rows that return NaN for padj are set to gray
+    # these rows include those that have a low mean normalized count,
+    # with extreme count outliers, or those in which all samples have zero counts
+
+    results_df.loc[results_df["padj"] <= padj_thresh, "color"] = "darkred"
+    results_df.loc[results_df["padj"] > padj_thresh, "color"] = "gray"
+    results_df.loc[results_df["padj"].isna(), "color"] = "gray"
+
+    fig, ax = plt.subplots(dpi=600)
+
+    # Set default alpha and s parameters, if not already specified
+    kwargs.setdefault("alpha", 0.5)
+    kwargs.setdefault("s", 0.2)
+
+    plt.scatter(
+        x=results_df["baseMean"],
+        y=results_df["log2FoldChange"],
+        c=list(results_df["color"].values),
+        **kwargs,
+    )
+
+    ax.set_adjustable("datalim")
+
+    if log is True:
+        plt.xscale("log")
+
+    plt.xlabel("mean of normalized counts")
+    plt.ylabel("log fold change")
+
+    plt.axhline(0, color="red", alpha=0.5, linestyle="--", zorder=3)
+    plt.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches="tight")
