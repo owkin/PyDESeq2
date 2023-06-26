@@ -1337,9 +1337,7 @@ def plotMA(
     **kwargs,
 ) -> None:
     """
-    Create an MA plot using matplotlib.
-    MA plots display a log ratio (M) vs an average (A)
-    to visualize the differences between two groups in bulk RNAseq.
+    Create an log ratio (M)-average (A) plot using matplotlib.
 
     Parameters
     ----------
@@ -1347,7 +1345,7 @@ def plotMA(
         Resultant dataframe after running DeseqStats() and .summary().
 
     padj_thresh : float
-        P-value threshold to subset scatterplot colors on
+        P-value threshold to subset scatterplot colors on.
 
     log : bool
         Whether or not to log scale x and y axes (``default=True``).
