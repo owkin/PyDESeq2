@@ -1339,6 +1339,10 @@ def plotMA(
     """
     Create an log ratio (M)-average (A) plot using matplotlib.
 
+    Useful for looking at log fold-change versus mean expression
+    between two groups/samples/etc.
+    Uses matplotlib to emulate plotMA() function in DESeq2 in R.
+
     Parameters
     ----------
     results_df : pd.DataFrame
