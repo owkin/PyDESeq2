@@ -152,6 +152,9 @@ class DeseqDataSet(ad.AnnData):
     new_all_zeroes_genes : pandas.Index
         Genes which have only zero counts after outlier replacement.
 
+    quiet : bool
+        Suppress deseq2 status updates during fit.
+
     References
     ----------
     .. bibliography::
@@ -175,6 +178,7 @@ class DeseqDataSet(ad.AnnData):
         n_cpus: Optional[int] = None,
         batch_size: int = 128,
         joblib_verbosity: int = 0,
+        quiet: bool = False,
     ) -> None:
 
         # Initialize the AnnData part
@@ -231,6 +235,7 @@ class DeseqDataSet(ad.AnnData):
         self.n_processes = get_num_processes(n_cpus)
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
+        self.quiet = quiet
 
     def vst(
         self,
@@ -341,7 +346,8 @@ class DeseqDataSet(ad.AnnData):
         fit_type : str
             The normalization method to use (default: ``"ratio"``).
         """
-        print("Fitting size factors...")
+        if not self.quiet:
+            print("Fitting size factors...")
         start = time.time()
         if fit_type == "iterative":
             self._fit_iterate_size_factors()
@@ -358,7 +364,9 @@ class DeseqDataSet(ad.AnnData):
         else:
             self.layers["normed_counts"], self.obsm["size_factors"] = deseq2_norm(self.X)
         end = time.time()
-        print(f"... done in {end - start:.2f} seconds.\n")
+
+        if not self.quiet:
+            print(f"... done in {end - start:.2f} seconds.\n")
 
     def fit_genewise_dispersions(self) -> None:
         """Fit gene-wise dispersion estimates.
@@ -431,7 +439,8 @@ class DeseqDataSet(ad.AnnData):
         self.layers["_mu_hat"] = np.full((self.n_obs, self.n_vars), np.NaN)
         self.layers["_mu_hat"][:, self.varm["non_zero"]] = mu_hat_.T
 
-        print("Fitting dispersions...")
+        if not self.quiet:
+            print("Fitting dispersions...")
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
@@ -451,7 +460,9 @@ class DeseqDataSet(ad.AnnData):
                 for i in self.non_zero_idx
             )
         end = time.time()
-        print(f"... done in {end - start:.2f} seconds.\n")
+
+        if not self.quiet:
+            print(f"... done in {end - start:.2f} seconds.\n")
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
 
@@ -473,7 +484,8 @@ class DeseqDataSet(ad.AnnData):
         if "genewise_dispersions" not in self.varm:
             self.fit_genewise_dispersions()
 
-        print("Fitting dispersion trend curve...")
+        if not self.quiet:
+            print("Fitting dispersion trend curve...")
         start = time.time()
         self.varm["_normed_means"] = self.layers["normed_counts"].mean(0)
 
@@ -528,7 +540,9 @@ class DeseqDataSet(ad.AnnData):
             )
 
         end = time.time()
-        print(f"... done in {end - start:.2f} seconds.\n")
+
+        if not self.quiet:
+            print(f"... done in {end - start:.2f} seconds.\n")
 
         self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
 
@@ -584,7 +598,8 @@ class DeseqDataSet(ad.AnnData):
         # Convert design matrix to numpy for speed
         design_matrix = self.obsm["design_matrix"].values
 
-        print("Fitting MAP dispersions...")
+        if not self.quiet:
+            print("Fitting MAP dispersions...")
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
@@ -606,7 +621,9 @@ class DeseqDataSet(ad.AnnData):
                 for i in self.non_zero_idx
             )
         end = time.time()
-        print(f"... done in {end-start:.2f} seconds.\n")
+
+        if not self.quiet:
+            print(f"... done in {end-start:.2f} seconds.\n")
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
 
@@ -641,7 +658,8 @@ class DeseqDataSet(ad.AnnData):
         # Convert design matrix to numpy for speed
         design_matrix = self.obsm["design_matrix"].values
 
-        print("Fitting LFCs...")
+        if not self.quiet:
+            print("Fitting LFCs...")
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
@@ -660,7 +678,9 @@ class DeseqDataSet(ad.AnnData):
                 for i in self.non_zero_idx
             )
         end = time.time()
-        print(f"... done in {end-start:.2f} seconds.\n")
+
+        if not self.quiet:
+            print(f"... done in {end-start:.2f} seconds.\n")
 
         MLE_lfcs_, mu_, hat_diagonals_, converged_ = zip(*res)
         mu_ = np.array(mu_).T
@@ -736,7 +756,8 @@ class DeseqDataSet(ad.AnnData):
         """
         # Replace outlier counts
         self._replace_outliers()
-        print(f"Refitting {sum(self.varm['replaced']) } outliers.\n")
+        if not self.quiet:
+            print(f"Refitting {sum(self.varm['replaced']) } outliers.\n")
 
         if sum(self.varm["replaced"]) > 0:
             # Refit dispersions and LFCs for genes that had outliers replaced
