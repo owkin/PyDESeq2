@@ -111,6 +111,9 @@ class DeseqDataSet(ad.AnnData):
         The verbosity level for joblib tasks. The higher the value, the more updates
         are reported. (default: ``0``).
 
+    quiet : bool
+        Suppress deseq2 status updates during fit.
+
     Attributes
     ----------
     X
