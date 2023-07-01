@@ -180,7 +180,6 @@ class DeseqDataSet(ad.AnnData):
         joblib_verbosity: int = 0,
         quiet: bool = False,
     ) -> None:
-
         # Initialize the AnnData part
         if adata is not None:
             if counts is not None:
