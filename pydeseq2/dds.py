@@ -1,3 +1,4 @@
+import sys
 import time
 import warnings
 from typing import List
@@ -346,7 +347,7 @@ class DeseqDataSet(ad.AnnData):
             The normalization method to use (default: ``"ratio"``).
         """
         if not self.quiet:
-            print("Fitting size factors...")
+            print("Fitting size factors...", file=sys.stderr)
         start = time.time()
         if fit_type == "iterative":
             self._fit_iterate_size_factors()
@@ -365,7 +366,7 @@ class DeseqDataSet(ad.AnnData):
         end = time.time()
 
         if not self.quiet:
-            print(f"... done in {end - start:.2f} seconds.\n")
+            print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
     def fit_genewise_dispersions(self) -> None:
         """Fit gene-wise dispersion estimates.
@@ -439,7 +440,7 @@ class DeseqDataSet(ad.AnnData):
         self.layers["_mu_hat"][:, self.varm["non_zero"]] = mu_hat_.T
 
         if not self.quiet:
-            print("Fitting dispersions...")
+            print("Fitting dispersions...", file=sys.stderr)
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
@@ -461,7 +462,7 @@ class DeseqDataSet(ad.AnnData):
         end = time.time()
 
         if not self.quiet:
-            print(f"... done in {end - start:.2f} seconds.\n")
+            print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
 
@@ -484,7 +485,7 @@ class DeseqDataSet(ad.AnnData):
             self.fit_genewise_dispersions()
 
         if not self.quiet:
-            print("Fitting dispersion trend curve...")
+            print("Fitting dispersion trend curve...", file=sys.stderr)
         start = time.time()
         self.varm["_normed_means"] = self.layers["normed_counts"].mean(0)
 
@@ -541,7 +542,7 @@ class DeseqDataSet(ad.AnnData):
         end = time.time()
 
         if not self.quiet:
-            print(f"... done in {end - start:.2f} seconds.\n")
+            print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
         self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
 
@@ -598,7 +599,7 @@ class DeseqDataSet(ad.AnnData):
         design_matrix = self.obsm["design_matrix"].values
 
         if not self.quiet:
-            print("Fitting MAP dispersions...")
+            print("Fitting MAP dispersions...", file=sys.stderr)
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
@@ -622,7 +623,7 @@ class DeseqDataSet(ad.AnnData):
         end = time.time()
 
         if not self.quiet:
-            print(f"... done in {end-start:.2f} seconds.\n")
+            print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
 
         dispersions_, l_bfgs_b_converged_ = zip(*res)
 
@@ -658,7 +659,7 @@ class DeseqDataSet(ad.AnnData):
         design_matrix = self.obsm["design_matrix"].values
 
         if not self.quiet:
-            print("Fitting LFCs...")
+            print("Fitting LFCs...", file=sys.stderr)
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
@@ -679,7 +680,7 @@ class DeseqDataSet(ad.AnnData):
         end = time.time()
 
         if not self.quiet:
-            print(f"... done in {end-start:.2f} seconds.\n")
+            print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
 
         MLE_lfcs_, mu_, hat_diagonals_, converged_ = zip(*res)
         mu_ = np.array(mu_).T
@@ -756,7 +757,9 @@ class DeseqDataSet(ad.AnnData):
         # Replace outlier counts
         self._replace_outliers()
         if not self.quiet:
-            print(f"Refitting {sum(self.varm['replaced']) } outliers.\n")
+            print(
+                f"Refitting {sum(self.varm['replaced']) } outliers.\n", file=sys.stderr
+            )
 
         if sum(self.varm["replaced"]) > 0:
             # Refit dispersions and LFCs for genes that had outliers replaced
@@ -1040,7 +1043,7 @@ class DeseqDataSet(ad.AnnData):
             self.obsm["size_factors"] = np.exp(res.x - np.mean(res.x))
 
             if not res.success:
-                print("A size factor fitting iteration failed.")
+                print("A size factor fitting iteration failed.", file=sys.stderr)
                 break
 
             if (i > 1) and np.sum(
@@ -1048,7 +1051,7 @@ class DeseqDataSet(ad.AnnData):
             ) < 1e-4:
                 break
             elif i == niter - 1:
-                print("Iterative size factor fitting did not converge.")
+                print("Iterative size factor fitting did not converge.", file=sys.stderr)
 
         # Restore the design matrix and free buffer
         self.obsm["design_matrix"] = self.obsm["design_matrix_buffer"].copy()
