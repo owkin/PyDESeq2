@@ -16,6 +16,7 @@ from statsmodels.stats.multitest import multipletests  # type: ignore
 
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.utils import get_num_processes
+from pydeseq2.utils import make_MA_plot
 from pydeseq2.utils import nbinomGLM
 from pydeseq2.utils import wald_test
 
@@ -394,6 +395,43 @@ class DeseqStats:
             )
 
             display(self.results_df)
+
+    def plot_MA(self, log: bool = True, save_path: Optional[str] = None, **kwargs):
+        """
+        Create an log ratio (M)-average (A) plot using matplotlib.
+
+        Useful for looking at log fold-change versus mean expression
+        between two groups/samples/etc.
+        Uses matplotlib to emulate make_MA() function in DESeq2 in R.
+
+        Parameters
+        ----------
+
+        log : bool
+            Whether or not to log scale x and y axes (``default=True``).
+
+        save_path : str or None
+            The path where to save the plot. If left None, the plot won't be saved
+            (``default=None``).
+
+        **kwargs
+            Matplotlib keyword arguments for the scatter plot.
+        """
+
+        # Raise an error if results_df are missing
+        if not self.hasattr("results_df"):
+            raise KeyError(
+                "Trying to make an MA plot but p-values were not computed yet. "
+                "Please run the summary() method first."
+            )
+
+        make_MA_plot(
+            self.results_df,
+            padj_thresh=self.alpha,
+            log=log,
+            save_path=save_path,
+            **kwargs,
+        )
 
     def _independent_filtering(self) -> None:
         """Compute adjusted p-values using independent filtering.
