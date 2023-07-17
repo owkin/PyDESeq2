@@ -1,3 +1,4 @@
+import sys
 import time
 from typing import List
 from typing import Optional
@@ -67,6 +68,9 @@ class DeseqStats:
         The verbosity level for joblib tasks. The higher the value, the more updates
         are reported. (default: ``0``).
 
+    quiet : bool
+        Suppress deseq2 status updates during fit.
+
     Attributes
     ----------
     base_mean : pandas.Series
@@ -108,6 +112,9 @@ class DeseqStats:
     n_processes : int
         Number of threads to use for multiprocessing.
 
+    quiet : bool
+        Suppress deseq2 status updates during fit.
+
     References
     ----------
     .. bibliography::
@@ -125,6 +132,7 @@ class DeseqStats:
         prior_LFC_var: Optional[np.ndarray] = None,
         batch_size: int = 128,
         joblib_verbosity: int = 0,
+        quiet: bool = False,
     ) -> None:
         assert (
             "LFC" in dds.varm
@@ -154,6 +162,7 @@ class DeseqStats:
         self.n_processes = get_num_processes(n_cpus)
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
+        self.quiet = quiet
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
@@ -196,10 +205,12 @@ class DeseqStats:
         self.results_df["pvalue"] = self.p_values
         self.results_df["padj"] = self.padj
 
-        print(
-            f"Log2 fold change & Wald test p-value: "
-            f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
-        )
+        if not self.quiet:
+            print(
+                f"Log2 fold change & Wald test p-value: "
+                f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}",
+                file=sys.stderr,
+            )
         display(self.results_df)
 
     def run_wald_test(self) -> None:
@@ -213,11 +224,13 @@ class DeseqStats:
 
         # Raise a warning if LFCs are shrunk.
         if self.shrunk_LFCs:
-            print(
-                "Note: running Wald test on shrunk LFCs. "
-                "Some sequencing datasets show better performance with the testing "
-                "separated from the use of the LFC prior."
-            )
+            if not self.quiet:
+                print(
+                    "Note: running Wald test on shrunk LFCs. "
+                    "Some sequencing datasets show better performance with the testing "
+                    "separated from the use of the LFC prior.",
+                    file=sys.stderr,
+                )
 
         mu = (
             np.exp(self.design_matrix @ self.LFC.T)
@@ -234,7 +247,8 @@ class DeseqStats:
         design_matrix = self.design_matrix.values
         LFCs = self.LFC.values
 
-        print("Running Wald tests...")
+        if not self.quiet:
+            print("Running Wald tests...", file=sys.stderr)
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
@@ -253,7 +267,8 @@ class DeseqStats:
                 for i in range(num_genes)
             )
         end = time.time()
-        print(f"... done in {end-start:.2f} seconds.\n")
+        if not self.quiet:
+            print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
 
         pvals, stats, se = zip(*res)
 
@@ -326,7 +341,8 @@ class DeseqStats:
 
         design_matrix = self.design_matrix.values
 
-        print("Fitting MAP LFCs...")
+        if not self.quiet:
+            print("Fitting MAP LFCs...", file=sys.stderr)
         start = time.time()
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
@@ -347,7 +363,8 @@ class DeseqStats:
                 for i in self.dds.non_zero_idx
             )
         end = time.time()
-        print(f"... done in {end-start:.2f} seconds.\n")
+        if not self.quiet:
+            print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
 
         lfcs, inv_hessians, l_bfgs_b_converged_ = zip(*res)
 
@@ -388,10 +405,12 @@ class DeseqStats:
             split_coeff = coeff.split("_")
             # coeffs are of the form "factor_A_vs_B", hence "factor" is split_coeff[0],
             # "A" is split_coeff[1] and "B" split_coeff[3]
-            print(
-                f"Shrunk Log2 fold change & Wald test p-value: "
-                f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}"
-            )
+            if not self.quiet:
+                print(
+                    f"Shrunk Log2 fold change & Wald test p-value: "
+                    f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}",
+                    file=sys.stderr,
+                )
 
             display(self.results_df)
 
