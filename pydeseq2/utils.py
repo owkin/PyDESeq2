@@ -1329,7 +1329,7 @@ def make_scatter(
     plt.show()
 
 
-def plotMA(
+def make_MA_plot(
     results_df: pd.DataFrame,
     padj_thresh: float = 0.05,
     log: bool = True,
@@ -1341,7 +1341,7 @@ def plotMA(
 
     Useful for looking at log fold-change versus mean expression
     between two groups/samples/etc.
-    Uses matplotlib to emulate plotMA() function in DESeq2 in R.
+    Uses matplotlib to emulate make_MA() function in DESeq2 in R.
 
     Parameters
     ----------
@@ -1366,9 +1366,7 @@ def plotMA(
     # these rows include those that have a low mean normalized count,
     # with extreme count outliers, or those in which all samples have zero counts
 
-    results_df.loc[results_df["padj"] <= padj_thresh, "color"] = "darkred"
-    results_df.loc[results_df["padj"] > padj_thresh, "color"] = "gray"
-    results_df.loc[results_df["padj"].isna(), "color"] = "gray"
+    colors = results_df["padj"].apply(lambda x: "darkred" if x < padj_thresh else "gray")
 
     fig, ax = plt.subplots(dpi=600)
 
@@ -1379,7 +1377,7 @@ def plotMA(
     plt.scatter(
         x=results_df["baseMean"],
         y=results_df["log2FoldChange"],
-        c=list(results_df["color"].values),
+        c=colors,
         **kwargs,
     )
 
