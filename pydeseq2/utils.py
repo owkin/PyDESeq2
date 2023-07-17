@@ -1290,7 +1290,7 @@ def make_scatter(
         (``default=None``).
 
     **kwargs
-        Keyword arguments for the scatter plot.
+        Matplotlib keyword arguments for the scatter plot.
     """
 
     # Adding more colors if plotting more than 3 traces
@@ -1359,12 +1359,8 @@ def make_MA_plot(
         (``default=None``).
 
     **kwargs
-        Keyword arguments for the scatter plot.
+        Matplotlib keyword arguments for the scatter plot.
     """
-    # add a column for color -- red dots are significant/under user-specified threshold
-    # rows that return NaN for padj are set to gray
-    # these rows include those that have a low mean normalized count,
-    # with extreme count outliers, or those in which all samples have zero counts
 
     colors = results_df["padj"].apply(lambda x: "darkred" if x < padj_thresh else "gray")
 
@@ -1387,7 +1383,7 @@ def make_MA_plot(
         plt.xscale("log")
 
     plt.xlabel("mean of normalized counts")
-    plt.ylabel("log fold change")
+    plt.ylabel("log2 fold change")
 
     plt.axhline(0, color="red", alpha=0.5, linestyle="--", zorder=3)
     plt.tight_layout()
