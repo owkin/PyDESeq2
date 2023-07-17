@@ -420,7 +420,7 @@ class DeseqStats:
 
         # Raise an error if results_df are missing
         if not self.hasattr("results_df"):
-            raise KeyError(
+            raise AttributeError(
                 "Trying to make an MA plot but p-values were not computed yet. "
                 "Please run the summary() method first."
             )
