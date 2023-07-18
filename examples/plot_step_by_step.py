@@ -132,7 +132,7 @@ print(
 # %%
 # MAP Dispersions
 # ^^^^^^^^^^^^^^^
-# The `fit_MAP_dispersions` method filters the genes for which dispersion
+# The `fit_MAP_dispersions` method filters the genes for which dispersion
 # shrinkage is applied.
 # Indeed, for genes whose MLE dispersions are too high above the trend curve,
 # the original MLE value is kept.
