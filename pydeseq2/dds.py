@@ -569,6 +569,16 @@ class DeseqDataSet(ad.AnnData):
         num_samples = self.n_obs
         num_vars = self.obsm["design_matrix"].shape[-1]
 
+        # Check the degrees of freedom
+        if (num_samples - num_vars) <= 3:
+            warnings.warn(
+                "As the residual degrees of freedom is less than 3, the distribution "
+                "of log dispersions is especially asymmetric and likely to be poorly "
+                "estimated by the MAD.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         # Fit dispersions to the curve, and compute log residuals
         disp_residuals = np.log(
             self[:, self.non_zero_genes].varm["genewise_dispersions"]
@@ -583,6 +593,7 @@ class DeseqDataSet(ad.AnnData):
         self.uns["_squared_logres"] = (
             mean_absolute_deviation(disp_residuals[above_min_disp]) ** 2
         )
+
         self.uns["prior_disp_var"] = np.maximum(
             self.uns["_squared_logres"] - polygamma(1, (num_samples - num_vars) / 2),
             0.25,
