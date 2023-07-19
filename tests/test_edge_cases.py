@@ -317,14 +317,16 @@ def test_few_samples():
     # Introduce an outlier
     counts_df.iloc[0, 0] = 1000
 
-    # Run analysis. Should not throw an error.
+    # Run analysis. Should not throw degrees of freedom warning.
     dds = DeseqDataSet(
         counts=counts_df,
         clinical=clinical_df,
         refit_cooks=True,
         design_factors="condition",
     )
-    dds.deseq2()
+
+    with pytest.warns(UserWarning):
+        dds.deseq2()
 
     res = DeseqStats(dds)
     res.summary()
