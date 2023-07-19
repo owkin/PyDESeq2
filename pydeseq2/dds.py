@@ -557,6 +557,9 @@ class DeseqDataSet(ad.AnnData):
         """Fit dispersion variance priors and standard deviation of log-residuals.
 
         The computation is based on genes whose dispersions are above 100 * min_disp.
+
+        NB: when the design matrix has fewer than 3 degrees of freedom, the
+        estimate of log dispersions is likely to be imprecise.
         """
 
         # Check that the dispersion trend curve was fitted. If not, fit it.
