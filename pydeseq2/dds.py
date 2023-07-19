@@ -41,8 +41,6 @@ warnings.simplefilter("ignore", DomainWarning)
 # Ignore AnnData's FutureWarning about implicit data conversion.
 warnings.simplefilter("ignore", FutureWarning)
 
-# TODO: implement a quiet (non-verbose) mode ?
-
 
 class DeseqDataSet(ad.AnnData):
     r"""A class to implement dispersion and log fold-change (LFC) estimation.
