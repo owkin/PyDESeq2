@@ -83,7 +83,7 @@ class DeseqDataSet(ad.AnnData):
 
     max_disp : float
         Upper threshold for dispersion parameters.
-        NB: The threshold that is actually enforced is max(max_disp, len(counts)).
+        Note: The threshold that is actually enforced is max(max_disp, len(counts)).
         (default: ``10``).
 
     refit_cooks : bool
@@ -558,7 +558,7 @@ class DeseqDataSet(ad.AnnData):
 
         The computation is based on genes whose dispersions are above 100 * min_disp.
 
-        NB: when the design matrix has fewer than 3 degrees of freedom, the
+        Note: when the design matrix has fewer than 3 degrees of freedom, the
         estimate of log dispersions is likely to be imprecise.
         """
 
