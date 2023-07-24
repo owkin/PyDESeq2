@@ -41,8 +41,6 @@ warnings.simplefilter("ignore", DomainWarning)
 # Ignore AnnData's FutureWarning about implicit data conversion.
 warnings.simplefilter("ignore", FutureWarning)
 
-# TODO: implement a quiet (non-verbose) mode ?
-
 
 class DeseqDataSet(ad.AnnData):
     r"""A class to implement dispersion and log fold-change (LFC) estimation.
@@ -85,7 +83,7 @@ class DeseqDataSet(ad.AnnData):
 
     max_disp : float
         Upper threshold for dispersion parameters.
-        NB: The threshold that is actually enforced is max(max_disp, len(counts)).
+        Note: The threshold that is actually enforced is max(max_disp, len(counts)).
         (default: ``10``).
 
     refit_cooks : bool
@@ -559,6 +557,9 @@ class DeseqDataSet(ad.AnnData):
         """Fit dispersion variance priors and standard deviation of log-residuals.
 
         The computation is based on genes whose dispersions are above 100 * min_disp.
+
+        Note: when the design matrix has fewer than 3 degrees of freedom, the
+        estimate of log dispersions is likely to be imprecise.
         """
 
         # Check that the dispersion trend curve was fitted. If not, fit it.
@@ -568,6 +569,16 @@ class DeseqDataSet(ad.AnnData):
         # Exclude genes with all zeroes
         num_samples = self.n_obs
         num_vars = self.obsm["design_matrix"].shape[-1]
+
+        # Check the degrees of freedom
+        if (num_samples - num_vars) <= 3:
+            warnings.warn(
+                "As the residual degrees of freedom is less than 3, the distribution "
+                "of log dispersions is especially asymmetric and likely to be poorly "
+                "estimated by the MAD.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         # Fit dispersions to the curve, and compute log residuals
         disp_residuals = np.log(
@@ -583,6 +594,7 @@ class DeseqDataSet(ad.AnnData):
         self.uns["_squared_logres"] = (
             mean_absolute_deviation(disp_residuals[above_min_disp]) ** 2
         )
+
         self.uns["prior_disp_var"] = np.maximum(
             self.uns["_squared_logres"] - polygamma(1, (num_samples - num_vars) / 2),
             0.25,
