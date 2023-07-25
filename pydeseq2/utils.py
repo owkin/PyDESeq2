@@ -1290,7 +1290,7 @@ def make_scatter(
         (``default=None``).
 
     **kwargs
-        Keyword arguments for the scatter plot.
+        Matplotlib keyword arguments for the scatter plot.
     """
 
     # Adding more colors if plotting more than 3 traces
@@ -1327,3 +1327,66 @@ def make_scatter(
     if save_path is not None:
         plt.savefig(save_path, bbox_inches="tight")
     plt.show()
+
+
+def make_MA_plot(
+    results_df: pd.DataFrame,
+    padj_thresh: float = 0.05,
+    log: bool = True,
+    save_path: Optional[str] = None,
+    **kwargs,
+) -> None:
+    """
+    Create an log ratio (M)-average (A) plot using matplotlib.
+
+    Useful for looking at log fold-change versus mean expression
+    between two groups/samples/etc.
+    Uses matplotlib to emulate make_MA() function in DESeq2 in R.
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        Resultant dataframe after running DeseqStats() and .summary().
+
+    padj_thresh : float
+        P-value threshold to subset scatterplot colors on.
+
+    log : bool
+        Whether or not to log scale x and y axes (``default=True``).
+
+    save_path : str or None
+        The path where to save the plot. If left None, the plot won't be saved
+        (``default=None``).
+
+    **kwargs
+        Matplotlib keyword arguments for the scatter plot.
+    """
+
+    colors = results_df["padj"].apply(lambda x: "darkred" if x < padj_thresh else "gray")
+
+    fig, ax = plt.subplots(dpi=600)
+
+    # Set default alpha and s parameters, if not already specified
+    kwargs.setdefault("alpha", 0.5)
+    kwargs.setdefault("s", 0.2)
+
+    plt.scatter(
+        x=results_df["baseMean"],
+        y=results_df["log2FoldChange"],
+        c=colors,
+        **kwargs,
+    )
+
+    ax.set_adjustable("datalim")
+
+    if log is True:
+        plt.xscale("log")
+
+    plt.xlabel("mean of normalized counts")
+    plt.ylabel("log2 fold change")
+
+    plt.axhline(0, color="red", alpha=0.5, linestyle="--", zorder=3)
+    plt.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches="tight")

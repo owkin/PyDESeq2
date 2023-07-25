@@ -414,3 +414,36 @@ def test_zero_inflated():
     dds = DeseqDataSet(counts=counts_df, clinical=clinical_df)
     with pytest.warns(RuntimeWarning):
         dds.deseq2()
+
+
+def test_plot_MA():
+    """
+    Test that a KeyError is thrown when attempting to run plot_MA without running the
+    statistical analysis first.
+    """
+
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    clinical_df = load_example_data(
+        modality="clinical",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    dds = DeseqDataSet(counts=counts_df, clinical=clinical_df)
+    dds.deseq2()
+
+    # Initialize a DeseqStats object without runnning the analysis
+    res = DeseqStats(dds)
+
+    with pytest.raises(AttributeError):
+        res.plot_MA()
+
+    # Run the analysis
+    res.summary()
+    # Now this shouldn't throw an error
+    res.plot_MA()
