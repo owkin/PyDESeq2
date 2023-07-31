@@ -27,8 +27,8 @@ def test_deseq(tol=0.02):
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -37,9 +37,7 @@ def test_deseq(tol=0.02):
         os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
     )
 
-    dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors="condition"
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
     dds.deseq2()
 
     res = DeseqStats(dds)
@@ -73,8 +71,8 @@ def test_deseq_no_refit_cooks(tol=0.02):
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -85,7 +83,7 @@ def test_deseq_no_refit_cooks(tol=0.02):
 
     dds = DeseqDataSet(
         counts=counts_df,
-        clinical=clinical_df,
+        metadata=metadata,
         design_factors="condition",
         refit_cooks=False,
     )
@@ -127,8 +125,8 @@ def test_lfc_shrinkage(tol=0.02):
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -142,9 +140,7 @@ def test_lfc_shrinkage(tol=0.02):
         os.path.join(test_path, "data/single_factor/r_test_dispersions.csv"), index_col=0
     ).squeeze()
 
-    dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors="condition"
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
     dds.deseq2()
     dds.obsm["size_factors"] = r_size_factors.values
     dds.varm["dispersions"] = r_dispersions.values
@@ -176,8 +172,8 @@ def test_iterative_size_factors(tol=0.02):
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -187,9 +183,7 @@ def test_iterative_size_factors(tol=0.02):
         index_col=0,
     ).squeeze()
 
-    dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors="condition"
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
     dds._fit_iterate_size_factors()
 
     # Check that the same LFC are found (up to tol)
@@ -212,8 +206,8 @@ def test_multifactor_deseq(tol=0.02):
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -223,7 +217,7 @@ def test_multifactor_deseq(tol=0.02):
     )
 
     dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors=["group", "condition"]
+        counts=counts_df, metadata=metadata, design_factors=["group", "condition"]
     )
     dds.deseq2()
 
@@ -263,8 +257,8 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -279,7 +273,7 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
     ).squeeze()
 
     dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors=["group", "condition"]
+        counts=counts_df, metadata=metadata, design_factors=["group", "condition"]
     )
     dds.deseq2()
     dds.obsm["size_factors"] = r_size_factors.values
@@ -311,14 +305,14 @@ def test_contrast():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
 
     dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors=["group", "condition"]
+        counts=counts_df, metadata=metadata, design_factors=["group", "condition"]
     )
     dds.deseq2()
 
@@ -360,14 +354,14 @@ def test_anndata_init(tol=0.02):
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
 
     # Make an anndata object
-    adata = ad.AnnData(X=counts_df.astype(int), obs=clinical_df)
+    adata = ad.AnnData(X=counts_df.astype(int), obs=metadata)
 
     # Put some dummy data in unused fields
     adata.obsm["dummy_metadata"] = np.random.choice(2, adata.n_obs)
@@ -415,8 +409,8 @@ def test_vst(tol=0.02):
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -433,16 +427,12 @@ def test_vst(tol=0.02):
     ).T
 
     # Test blind design
-    dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors=["condition"]
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors=["condition"])
     dds.vst(use_design=False)
     assert (np.abs(r_vst - dds.layers["vst_counts"]) / r_vst).max().max() < tol
 
     # Test full design
-    dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors=["condition"]
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors=["condition"])
     dds.vst(use_design=True)
     assert (
         np.abs(r_vst_with_design - dds.layers["vst_counts"]) / r_vst_with_design
@@ -461,8 +451,8 @@ def test_mean_vst(tol=0.02):
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -475,9 +465,7 @@ def test_mean_vst(tol=0.02):
     ).T
 
     # Test blind design
-    dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors=["condition"]
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors=["condition"])
     dds.vst(use_design=False, fit_type="mean")
     assert (np.abs(r_vst - dds.layers["vst_counts"]) / r_vst).max().max() < tol
 
@@ -492,15 +480,15 @@ def test_ref_level():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
 
     dds = DeseqDataSet(
         counts=counts_df,
-        clinical=clinical_df,
+        metadata=metadata,
         design_factors=["group", "condition"],
         ref_level=["group", "Y"],
     )
@@ -510,7 +498,7 @@ def test_ref_level():
     # Check that its content is correct
     assert (
         dds.obsm["design_matrix"]["group_X_vs_Y"]
-        == clinical_df["group"].apply(
+        == metadata["group"].apply(
             lambda x: 1 if x == "X" else 0 if x == "Y" else np.NaN
         )
     ).all()
@@ -526,14 +514,14 @@ def test_deseq2_norm():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
 
     # Fit size factors from DeseqDataSet
-    dds = DeseqDataSet(counts=counts_df, clinical=clinical_df)
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata)
     dds.fit_size_factors()
     s1 = dds.obsm["size_factors"]
 

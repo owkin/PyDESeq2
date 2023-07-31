@@ -43,7 +43,7 @@ if SAVE:
 #
 #   * A count matrix of shape 'number of samples' x 'number of genes', containing
 #     read counts (non-negative integers),
-#   * Clinical data (or "column" data) of shape 'number of samples' x
+#   * Metadata (or "column" data) of shape 'number of samples' x
 #     'number of variables', containing sample annotations that will be used
 #     to split the data in cohorts.
 #
@@ -63,8 +63,8 @@ counts_df = load_example_data(
     debug=False,
 )
 
-clinical_df = load_example_data(
-    modality="clinical",
+metadata = load_example_data(
+    modality="metadata",
     dataset="synthetic",
     debug=False,
 )
@@ -76,12 +76,12 @@ clinical_df = load_example_data(
 # <dds.DeseqDataSet>` class
 #
 # The :class:`DeseqDataSet <dds.DeseqDataSet>` class has two mandatory
-# arguments, `counts_df` and
-# `clinical_df`, as well as a set of optional keyword arguments, among which:
+# arguments, ``counts`` and
+# ``metadata``, as well as a set of optional keyword arguments, among which:
 #
-# - `design_factor`: the name of the column of clinical to be used as a design
+# - ``design_factor``: the name of the column of metadata to be used as a design
 #   variable
-# - `refit_cooks`: whether to refit cooks outliers – this is advised, in general.
+# - ``refit_cooks``: whether to refit cooks outliers – this is advised, in general.
 #
 # .. note::
 #   in the case of the provided synthetic data, there won't be any Cooks
@@ -89,7 +89,7 @@ clinical_df = load_example_data(
 
 dds = DeseqDataSet(
     counts=counts_df,
-    clinical=clinical_df,
+    metadata=metadata,
     design_factors="condition",  # compare samples based on the "condition"
     # column ("B" vs "A")
     refit_cooks=True,
