@@ -39,7 +39,7 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)  # Create path if it doesn't exist
 #
 #   * A count matrix of shape 'number of samples' x 'number of genes', containing
 #     read counts (non-negative integers),
-#   * Clinical data (or annotations, or "column" data) of shape 'number of samples' x
+#   * Metadata (or annotations, or "column" data) of shape 'number of samples' x
 #     'number of variables', containing sample annotations that will be used
 #     to split the data in cohorts.
 #
@@ -53,7 +53,7 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)  # Create path if it doesn't exist
 # <https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html#pandas.read_csv>`_.
 #
 # We assume that ``DATA_PATH`` is a directory containing a ``test_counts.csv`` and a
-# ``test_clinical.csv`` file.
+# ``test_metadata.csv`` file.
 
 # Replace this with the path to your dataset
 DATA_PATH = "https://raw.githubusercontent.com/owkin/PyDESeq2/main/datasets/synthetic/"
@@ -71,12 +71,12 @@ counts_df = counts_df.T
 print(counts_df)
 
 # %% Loading annotations
-clinical_df = pd.read_csv(os.path.join(DATA_PATH, "test_clinical.csv"), index_col=0)
-print(clinical_df)
+metadata = pd.read_csv(os.path.join(DATA_PATH, "test_metadata.csv"), index_col=0)
+print(metadata)
 
 
 # %%
-# In this example, the clinical data contains two columns, ``condition`` and ``group``,
+# In this example, the metadata data contains two columns, ``condition`` and ``group``,
 # representing two types of bi-level annotations. Here, we will only use the
 # ``condition`` factor.
 
@@ -87,9 +87,9 @@ print(clinical_df)
 # Before proceeding with DEA, we start by preprocessing the data, as in the
 # :doc:`getting started example <plot_minimal_pydeseq2_pipeline>`.
 
-samples_to_keep = ~clinical_df.condition.isna()
+samples_to_keep = ~metadata.condition.isna()
 counts_df = counts_df.loc[samples_to_keep]
-clinical_df = clinical_df.loc[samples_to_keep]
+metadata = metadata.loc[samples_to_keep]
 
 # %%
 # Next, we filter out genes that have less than 10 read counts in total. Note again that
@@ -118,12 +118,12 @@ counts_df = counts_df[genes_to_keep]
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We start by creating a :class:`DeseqDataSet`
-# object from the count and clinical data that were just loaded.
+# object from the count and metadata data that were just loaded.
 #
 
 dds = DeseqDataSet(
     counts=counts_df,
-    clinical=clinical_df,
+    metadata=metadata,
     design_factors="condition",
     refit_cooks=True,
     n_cpus=8,

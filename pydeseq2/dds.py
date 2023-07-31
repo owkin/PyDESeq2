@@ -56,19 +56,19 @@ class DeseqDataSet(ad.AnnData):
     ----------
     adata : anndata.AnnData
         AnnData from which to initialize the DeseqDataSet. Must have counts ('X') and
-        clinical metadata ('obs') fields. If ``None``, both ``counts`` and ``clinical``
+        sample metadata ('obs') fields. If ``None``, both ``counts`` and ``metadata``
         arguments must be provided.
 
     counts : pandas.DataFrame
         Raw counts. One column per gene, rows are indexed by sample barcodes.
 
-    clinical : pandas.DataFrame
-        DataFrame containing clinical information.
+    metadata : pandas.DataFrame
+        DataFrame containing sample metadata.
         Must be indexed by sample barcodes.
 
     design_factors : str or list
-        Name of the columns of clinical to be used as design variables.
-        Only bi-level factors are supported. (default: ``'condition'``).
+        Name of the columns of metadata to be used as design variables.
+        Only categorial factors are supported. (default: ``'condition'``).
 
     ref_level : list or None
         An optional list of two strings of the form ``["factor", "test_level"]``
@@ -168,7 +168,7 @@ class DeseqDataSet(ad.AnnData):
         *,
         adata: Optional[ad.AnnData] = None,
         counts: Optional[pd.DataFrame] = None,
-        clinical: Optional[pd.DataFrame] = None,
+        metadata: Optional[pd.DataFrame] = None,
         design_factors: Union[str, List[str]] = "condition",
         ref_level: Optional[List[str]] = None,
         min_mu: float = 0.5,
@@ -188,21 +188,21 @@ class DeseqDataSet(ad.AnnData):
                 warnings.warn(
                     "adata was provided; ignoring counts.", UserWarning, stacklevel=2
                 )
-            if clinical is not None:
+            if metadata is not None:
                 warnings.warn(
-                    "adata was provided; ignoring clinical.", UserWarning, stacklevel=2
+                    "adata was provided; ignoring metadata.", UserWarning, stacklevel=2
                 )
             # Test counts before going further
             test_valid_counts(adata.X)
             # Copy fields from original AnnData
             self.__dict__.update(adata.__dict__)
-        elif counts is not None and clinical is not None:
+        elif counts is not None and metadata is not None:
             # Test counts before going further
             test_valid_counts(counts)
-            super().__init__(X=counts.astype(int), obs=clinical)
+            super().__init__(X=counts.astype(int), obs=metadata)
         else:
             raise ValueError(
-                "Either adata or both counts and clinical arguments must be provided."
+                "Either adata or both counts and metadata arguments must be provided."
             )
 
         # Convert design_factors to list if a single string was provided.
@@ -216,7 +216,7 @@ class DeseqDataSet(ad.AnnData):
         # Build the design matrix
         # Stored in the obsm attribute of the dataset
         self.obsm["design_matrix"] = build_design_matrix(
-            clinical_df=self.obs,
+            metadata=self.obs,
             design_factors=self.design_factors,
             ref_level=ref_level,
             expanded=False,
@@ -934,7 +934,7 @@ class DeseqDataSet(ad.AnnData):
                 index=self.counts_to_refit.obs_names,
                 columns=self.counts_to_refit.var_names,
             ),
-            clinical=self.obs,
+            metadata=self.obs,
             design_factors=self.design_factors,
             ref_level=self.ref_level,
             min_mu=self.min_mu,

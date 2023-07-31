@@ -36,7 +36,7 @@ if SAVE:
 #
 #   * A count matrix of shape 'number of samples' x 'number of genes', containing
 #     read counts (non-negative integers),
-#   * Clinical data (or "column" data) of shape 'number of samples' x
+#   * Metadata (or "column" data) of shape 'number of samples' x
 #     'number of variables', containing sample annotations that will be used
 #     to split the data in cohorts.
 #
@@ -55,8 +55,8 @@ counts_df = load_example_data(
     debug=False,
 )
 
-clinical_df = load_example_data(
-    modality="clinical",
+metadata = load_example_data(
+    modality="metadata",
     dataset="synthetic",
     debug=False,
 )
@@ -64,11 +64,11 @@ clinical_df = load_example_data(
 print(counts_df)
 
 # %%
-print(clinical_df)
+print(metadata)
 
 
 # %%
-# In this example, the clinical data contains two columns, ``condition`` and ``group``,
+# In this example, the metadata data contains two columns, ``condition`` and ``group``,
 # representing two types of bi-level annotations. In the first part, we will only use the
 # ``condition`` factor. Later on, we'll see how to use both the `condition` and the
 # ``group`` factors in our analysis (see :ref:`multifactor_ref`).
@@ -83,12 +83,12 @@ print(clinical_df)
 # this step if you are using real data. To this end you can use the code below.
 #
 # We start by removing samples for which ``condition`` is ``NaN``. If you are using
-# another dataset, do not forget to change "condition" for the column of ``clinical_df``
+# another dataset, do not forget to change "condition" for the column of ``metadata``
 # you wish to use as a design factor in your analysis.
 
-samples_to_keep = ~clinical_df.condition.isna()
+samples_to_keep = ~metadata.condition.isna()
 counts_df = counts_df.loc[samples_to_keep]
-clinical_df = clinical_df.loc[samples_to_keep]
+metadata = metadata.loc[samples_to_keep]
 
 # %%
 # .. note::
@@ -123,14 +123,14 @@ counts_df = counts_df[genes_to_keep]
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We start by creating a :class:`DeseqDataSet`
-# object from the count and clinical data.
+# object from the count and metadata data.
 # A :class:`DeseqDataSet` fits dispersion and
 # log-fold change (LFC) parameters from the data, and stores them.
 #
 
 dds = DeseqDataSet(
     counts=counts_df,
-    clinical=clinical_df,
+    metadata=metadata,
     design_factors="condition",
     refit_cooks=True,
     n_cpus=8,
@@ -138,17 +138,17 @@ dds = DeseqDataSet(
 
 # %%
 # A :class:`DeseqDataSet` has two mandatory
-# arguments: a ``counts`` and a ``clinical`` dataframe, like the ones we've loaded in the
+# arguments: a ``counts`` and a ``metadata`` dataframe, like the ones we've loaded in the
 # first part of this tutorial.
 #
-# Next, we should specify the ``design_factor``, i.e. the column of the ``clinical``
+# Next, we should specify the ``design_factor``, i.e. the column of the ``metadata``
 # dataframe that will be used to compare samples. This can be a single string as above,
 # or a list of strings, as in the
 # :ref:`section on multifactor analysis<multifactor_ref>`.
 #
 # .. note::
 #   The ``"condition"`` argument passed to ``design_factors`` corresponds to a column
-#   from the ``clinical_df`` dataframe we loaded earlier.
+#   from the ``metadata`` dataframe we loaded earlier.
 #   You might need to change it according to your own dataset.
 #
 # Several other arguments may be optionally specified (see the :doc:`API documentation
@@ -283,11 +283,11 @@ print(stat_res.shrunk_LFCs)  # Will be True only if lfc_shrink() was run.
 #
 # .. currentmodule:: pydeseq2.dds
 #
-# So far, we have only used the ``condition`` column of ``clinical_df``, which divides
-# samples between conditions ``A`` and ``B``. Yet, ``clinical_df`` contains second
+# So far, we have only used the ``condition`` column of ``metadata``, which divides
+# samples between conditions ``A`` and ``B``. Yet, ``metadata`` contains second
 # column, which separates samples according to ``group`` ``X`` and ``Y``.
 
-print(clinical_df)
+print(metadata)
 
 # %%
 # The goal of multifactor analysis is to use *both* variables to fit LFCs.
@@ -302,7 +302,7 @@ print(clinical_df)
 
 dds = DeseqDataSet(
     counts=counts_df,
-    clinical=clinical_df,
+    metadata=metadata,
     design_factors=["group", "condition"],
     refit_cooks=True,
     n_cpus=8,

@@ -18,8 +18,8 @@ def test_zero_genes():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -32,9 +32,7 @@ def test_zero_genes():
     counts_df[zero_genes] = 0
 
     # Run analysis
-    dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors="condition"
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
     dds.deseq2()
 
     # check that the corresponding parameters are NaN
@@ -60,10 +58,10 @@ def test_nan_counts():
     counts_df = pd.DataFrame(
         {"gene1": [0, np.nan], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
+    metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
 
 
 def test_numeric_counts():
@@ -73,10 +71,10 @@ def test_numeric_counts():
     counts_df = pd.DataFrame(
         {"gene1": [0, "a"], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
+    metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
 
 
 def test_integer_counts():
@@ -85,10 +83,10 @@ def test_integer_counts():
     counts_df = pd.DataFrame(
         {"gene1": [0, 1.5], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
+    metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
 
 
 def test_non_negative_counts():
@@ -97,22 +95,22 @@ def test_non_negative_counts():
     counts_df = pd.DataFrame(
         {"gene1": [0, -1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
+    metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
 
 
-# Tests on the clinical data (design factors)
+# Tests on the metadata data (design factors)
 def test_nan_factors():
     """Test that a ValueError is thrown when the design factor contains NaNs."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    clinical_df = pd.DataFrame({"condition": [0, np.NaN]}, index=["sample1", "sample2"])
+    metadata = pd.DataFrame({"condition": [0, np.NaN]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
 
 
 def test_one_factor():
@@ -120,10 +118,10 @@ def test_one_factor():
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    clinical_df = pd.DataFrame({"condition": [0, 0]}, index=["sample1", "sample2"])
+    metadata = pd.DataFrame({"condition": [0, 0]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, clinical=clinical_df, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
 
 
 def test_rank_deficient_design():
@@ -132,13 +130,13 @@ def test_rank_deficient_design():
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    clinical_df = pd.DataFrame(
+    metadata = pd.DataFrame(
         {"condition": [0, 1], "batch": ["A", "B"]}, index=["sample1", "sample2"]
     )
 
     with pytest.warns(UserWarning):
         DeseqDataSet(
-            counts=counts_df, clinical=clinical_df, design_factors=["condition", "batch"]
+            counts=counts_df, metadata=metadata, design_factors=["condition", "batch"]
         )
 
 
@@ -148,12 +146,12 @@ def test_reference_level():
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
+    metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(KeyError):
         DeseqDataSet(
             counts=counts_df,
-            clinical=clinical_df,
+            metadata=metadata,
             design_factors="condition",
             ref_level="control",
         )
@@ -170,15 +168,13 @@ def test_lfc_shrinkage_coeff():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
 
-    dds = DeseqDataSet(
-        counts=counts_df, clinical=clinical_df, design_factors="condition"
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
     dds.deseq2()
 
     # Check that coeff=None gives the same results as the default
@@ -200,17 +196,17 @@ def test_lfc_shrinkage_coeff():
 
 
 def test_indexes():
-    """Test that a ValueError is thrown when the count matrix and the clinical data
+    """Test that a ValueError is thrown when the count matrix and the metadata data
     don't have the same index."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    clinical_df = pd.DataFrame({"condition": [0, 1]}, index=["sample01", "sample02"])
+    metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample01", "sample02"])
 
     with pytest.raises(ValueError):  # Should be raised by AnnData
         DeseqDataSet(
             counts=counts_df,
-            clinical=clinical_df,
+            metadata=metadata,
             design_factors="condition",
         )
 
@@ -225,8 +221,8 @@ def test_contrast():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -234,7 +230,7 @@ def test_contrast():
     # Run analysis
     dds = DeseqDataSet(
         counts=counts_df,
-        clinical=clinical_df,
+        metadata=metadata,
         refit_cooks=False,
         design_factors=["condition", "group"],
     )
@@ -268,8 +264,8 @@ def test_cooks_not_refitted():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -277,7 +273,7 @@ def test_cooks_not_refitted():
     # Run analysis
     dds = DeseqDataSet(
         counts=counts_df,
-        clinical=clinical_df,
+        metadata=metadata,
         refit_cooks=False,
         design_factors="condition",
     )
@@ -303,8 +299,8 @@ def test_few_samples():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -312,7 +308,7 @@ def test_few_samples():
     # Subsample two samples for each condition
     samples_to_keep = ["sample1", "sample2", "sample99", "sample100"]
     counts_df = counts_df.loc[samples_to_keep]
-    clinical_df = clinical_df.loc[samples_to_keep]
+    metadata = metadata.loc[samples_to_keep]
 
     # Introduce an outlier
     counts_df.iloc[0, 0] = 1000
@@ -320,7 +316,7 @@ def test_few_samples():
     # Run analysis. Should not throw degrees of freedom warning.
     dds = DeseqDataSet(
         counts=counts_df,
-        clinical=clinical_df,
+        metadata=metadata,
         refit_cooks=True,
         design_factors="condition",
     )
@@ -347,8 +343,8 @@ def test_few_samples_and_outlier():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -369,7 +365,7 @@ def test_few_samples_and_outlier():
     ]
 
     counts_df = counts_df.loc[samples_to_keep]
-    clinical_df = clinical_df.loc[samples_to_keep]
+    metadata = metadata.loc[samples_to_keep]
 
     # Introduce outliers
     counts_df.iloc[0, 0] = 1000
@@ -378,7 +374,7 @@ def test_few_samples_and_outlier():
     # Run analysis. Should not throw an error.
     dds = DeseqDataSet(
         counts=counts_df,
-        clinical=clinical_df,
+        metadata=metadata,
         refit_cooks=True,
         design_factors="condition",
     )
@@ -399,8 +395,8 @@ def test_zero_inflated():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
@@ -411,7 +407,7 @@ def test_zero_inflated():
     idx = np.random.choice(len(counts_df), counts_df.shape[-1])
     counts_df.iloc[idx, :] = 0
 
-    dds = DeseqDataSet(counts=counts_df, clinical=clinical_df)
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata)
     with pytest.warns(RuntimeWarning):
         dds.deseq2()
 
@@ -428,13 +424,13 @@ def test_plot_MA():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
 
-    dds = DeseqDataSet(counts=counts_df, clinical=clinical_df)
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata)
     dds.deseq2()
 
     # Initialize a DeseqStats object without runnning the analysis

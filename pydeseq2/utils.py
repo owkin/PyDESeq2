@@ -25,21 +25,21 @@ from pydeseq2.grid_search import grid_fit_shrink_beta
 
 
 def load_example_data(
-    modality: Literal["raw_counts", "clinical"] = "raw_counts",
+    modality: Literal["raw_counts", "metadata"] = "raw_counts",
     dataset: Literal["synthetic"] = "synthetic",
     debug: bool = False,
     debug_seed: int = 42,
 ) -> pd.DataFrame:
     """Load synthetic example data.
 
-    May load either clinical or rna-seq data. For now, this function may only return the
+    May load either metadata or rna-seq data. For now, this function may only return the
     synthetic data provided as part of this repo, but new datasets might be added in the
     future.
 
     Parameters
     ----------
     modality : str
-        Data modality. "raw_counts" or "clinical".
+        Data modality. "raw_counts" or "metadata".
 
     dataset : str
         The dataset for which to return gene expression data.
@@ -59,8 +59,8 @@ def load_example_data(
         Requested data modality.
     """
 
-    assert modality in ["raw_counts", "clinical"], (
-        "The modality argument must be one of the following: " "raw_counts, clinical"
+    assert modality in ["raw_counts", "metadata"], (
+        "The modality argument must be one of the following: " "raw_counts, metadata"
     )
 
     assert dataset in [
@@ -76,7 +76,7 @@ def load_example_data(
             # Cast the Paths to strings to have coherent types wrt to the url case (that
             # does not handle Paths), else mypy throws an error.
             path_to_data_counts = str(path_to_data / "test_counts.csv")
-            path_to_data_clinical = str(path_to_data / "test_clinical.csv")
+            path_to_data_metadata = str(path_to_data / "test_metadata.csv")
         else:
             # if the path does not exist (as is the case in RDT) load it from github
             url_to_data = (
@@ -84,7 +84,7 @@ def load_example_data(
                 "PyDESeq2/main/datasets/synthetic/"
             )
             path_to_data_counts = url_to_data + "/test_counts.csv"
-            path_to_data_clinical = url_to_data + "/test_clinical.csv"
+            path_to_data_metadata = url_to_data + "/test_metadata.csv"
 
         if modality == "raw_counts":
             df = pd.read_csv(
@@ -92,9 +92,9 @@ def load_example_data(
                 sep=",",
                 index_col=0,
             ).T
-        elif modality == "clinical":
+        elif modality == "metadata":
             df = pd.read_csv(
-                path_to_data_clinical,
+                path_to_data_metadata,
                 sep=",",
                 index_col=0,
             )
@@ -138,7 +138,7 @@ def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
 
 
 def build_design_matrix(
-    clinical_df: pd.DataFrame,
+    metadata: pd.DataFrame,
     design_factors: Union[str, List[str]] = "condition",
     ref_level: Optional[List[str]] = None,
     expanded: bool = False,
@@ -152,12 +152,12 @@ def build_design_matrix(
 
     Parameters
     ----------
-    clinical_df : pandas.DataFrame
-        DataFrame containing clinical information.
+    metadata : pandas.DataFrame
+        DataFrame containing metadata information.
         Must be indexed by sample barcodes.
 
     design_factors : str or list
-        Name of the columns of clinical_df to be used as design_matrix variables.
+        Name of the columns of metadata to be used as design_matrix variables.
         (default: ``"condition"``).
 
     ref_level : list or None
@@ -186,20 +186,20 @@ def build_design_matrix(
 
     for factor in design_factors:
         # Check that each factor has at least 2 levels
-        if len(np.unique(clinical_df[factor])) < 2:
+        if len(np.unique(metadata[factor])) < 2:
             raise ValueError(
                 f"Factors should take at least two values, but {factor} "
-                f"takes the single value '{np.unique(clinical_df[factor])}'."
+                f"takes the single value '{np.unique(metadata[factor])}'."
             )
 
-    design_matrix = pd.get_dummies(clinical_df[design_factors], drop_first=not expanded)
+    design_matrix = pd.get_dummies(metadata[design_factors], drop_first=not expanded)
 
     if ref_level is not None:
         if len(ref_level) != 2:
             raise KeyError("The reference level should contain 2 strings.")
-        if ref_level[1] not in clinical_df[ref_level[0]].values:
+        if ref_level[1] not in metadata[ref_level[0]].values:
             raise KeyError(
-                f"The clinical data should contain a '{ref_level[0]}' column"
+                f"The metadata data should contain a '{ref_level[0]}' column"
                 f" with a '{ref_level[1]}' level."
             )
 
@@ -212,7 +212,7 @@ def build_design_matrix(
             ]
             missing_level = next(
                 level
-                for level in np.unique(clinical_df[ref_level[0]])
+                for level in np.unique(metadata[ref_level[0]])
                 if f"{ref_level[0]}_{level}" not in design_matrix.columns
             )
             design_matrix[f"{ref_level[0]}_{missing_level}"] = 1 - design_matrix[
@@ -227,7 +227,7 @@ def build_design_matrix(
                 # The reference is the unique level that is no longer there
                 ref = next(
                     level
-                    for level in np.unique(clinical_df[factor])
+                    for level in np.unique(metadata[factor])
                     if f"{factor}_{level}" not in design_matrix.columns
                 )
             else:
