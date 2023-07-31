@@ -1,10 +1,25 @@
 <img src="docs/source/_static/pydeseq2_logo_green.png" width="600">
 
+#
+[![pypi version](https://img.shields.io/pypi/v/pydeseq2)](https://pypi.org/project/pydeseq2)
+[![pypiDownloads](https://pepy.tech/badge/pydeseq2)](https://pepy.tech/project/pydeseq2)
+[![condaDownloads](https://img.shields.io/conda/dn/bioconda/pydeseq2?logo=Anaconda)](https://anaconda.org/bioconda/pydeseq2)
+[![license](https://img.shields.io/pypi/l/pydeseq2)](LICENSE)
+
+PyDESeq2 is a python implementation of the [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) 
+method [1] for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
+It aims to facilitate DEA experiments for python users.
+
+As PyDESeq2 is a re-implementation of [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) from 
+scratch, you may experience some differences in terms of retrieved values or available features.
+
+Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor 
+and n-level multi-factor analysis (with categorical factors), but we plan to implement more in the future.
+In case there is a feature you would particularly like to be implemented, feel free to open an issue.
 
 ## Table of Contents
 - [PyDESeq2](#pydeseq2)
   - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
   - [Installation](#installation)
     - [Requirements](#requirements)
   - [Getting started](#getting-started)
@@ -17,19 +32,6 @@
   - [Citing this work](#citing-this-work)
   - [References](#references)
   - [License](#license)
-
-## Overview
-
-This package is a python implementation of the [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) 
-method [1] for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
-It aims to facilitate DEA experiments for python users.
-
-As PyDESeq2 is a re-implementation of [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) from 
-scratch, you may experience some differences in terms of retrieved values or available features.
-
-Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor 
-and n-level multi-factor analysis (with categorical factors), but we plan to implement more in the future.
-In case there is a feature you would particularly like to be implemented, feel free to open an issue.
 
 ## Installation
 
@@ -126,8 +128,9 @@ Here are some of the features and improvements we plan to implement in the futur
   * [x] Submitting a PR to be listed as an [scverse ecosystem](https://github.com/scverse/ecosystem-packages/) package
 - [x] Variance-stabilizing transformation
 - [ ] Improving multi-factor analysis:
-  * [x] Allowing n-level factors (only bi-level for now)
+  * [x] Allowing n-level factors
   * [ ] Implementing interaction terms
+  * [ ] Support for continuous covariates
 
 ## Citing this work
 
