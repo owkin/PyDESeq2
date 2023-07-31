@@ -141,14 +141,13 @@ def build_design_matrix(
     metadata: pd.DataFrame,
     design_factors: Union[str, List[str]] = "condition",
     ref_level: Optional[List[str]] = None,
+    factor_types: Optional[List[str]] = None,
     expanded: bool = False,
     intercept: bool = True,
 ) -> pd.DataFrame:
     """Build design_matrix matrix for DEA.
 
-    Only single factor, 2-level designs are currently supported.
     Unless specified, the reference factor is chosen alphabetically.
-    NOTE: For now, each factor should have exactly two levels.
 
     Parameters
     ----------
@@ -164,6 +163,14 @@ def build_design_matrix(
         An optional list of two strings of the form ``["factor", "ref_level"]``
         specifying the factor of interest and the desired reference level, e.g.
         ``["condition", "A"]``. (default: ``None``).
+
+    factor_types : dict or None
+        An optional dictionary describing whether the provided factors should be
+        considered as continuous or categorical, e.g.
+        ``{"condition": "categorical", "age": "continuous"}``.
+        If None, covariates which may be cast to numerical
+        types will be considered continuous, and the others numerical. The same applies
+        to factors not in ``factor_types`` keys. (default: ``None``).
 
     expanded : bool
         If true, use one column per category. Else, use a single column.
@@ -191,6 +198,12 @@ def build_design_matrix(
                 f"Factors should take at least two values, but {factor} "
                 f"takes the single value '{np.unique(metadata[factor])}'."
             )
+
+    # TODO factor_types
+    if factor_types is not None:
+        pass
+    else:
+        pass
 
     design_matrix = pd.get_dummies(metadata[design_factors], drop_first=not expanded)
 
