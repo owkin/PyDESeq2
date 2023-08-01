@@ -304,7 +304,14 @@ class DeseqStats:
             (default: ``None``).
         """
 
-        contrast_level = f"{self.contrast[0]}_{self.contrast[1]}_vs_{self.contrast[2]}"
+        if self.contrast[1] == self.contrast[2] == "":
+            # The factor being tested is continuous
+            contrast_level = self.contrast[0]
+        else:
+            # The factor being tested is categorical
+            contrast_level = (
+                f"{self.contrast[0]}_{self.contrast[1]}_vs_{self.contrast[2]}"
+            )
 
         if coeff is not None:
             if coeff not in self.LFC.columns:
