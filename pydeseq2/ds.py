@@ -301,8 +301,6 @@ class DeseqStats:
             shrink the coefficient corresponding to the ``contrast`` attribute.
             If the desired coefficient is not available, it may be set from the
             :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
-
-            TODO : implement for continuous variables
             (default: ``None``).
         """
 
@@ -408,17 +406,21 @@ class DeseqStats:
         if hasattr(self, "results_df"):
             self.results_df["log2FoldChange"] = self.LFC.iloc[:, coeff_idx] / np.log(2)
             self.results_df["lfcSE"] = self.SE / np.log(2)
-
-            # Get the corrresponding factor, tested and reference levels of the shrunk
+            # Get the corresponding factor, tested and reference levels of the shrunk
             # coefficient
             split_coeff = coeff.split("_")
-            # coeffs are of the form "factor_A_vs_B", hence "factor" is split_coeff[0],
-            # "A" is split_coeff[1] and "B" split_coeff[3]
-            if not self.quiet:
+            # Categorical coeffs are of the form "factor_A_vs_B", and continuous coeffs
+            # of the form "factor".
+            if len(split_coeff) == 1:
+                # The factor is continuous
+                print(f"Shrunk log2 fold change & Wald test p-value: " f"{coeff}")
+            else:
+                # The factor is categorical
+                # Categorical coeffs are of the form "factor_A_vs_B", hence "factor"
+                # is split_coeff[0], "A" is split_coeff[1] and "B" split_coeff[3]
                 print(
-                    f"Shrunk Log2 fold change & Wald test p-value: "
-                    f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}",
-                    file=sys.stderr,
+                    f"Shrunk log2 fold change & Wald test p-value: "
+                    f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}"
                 )
 
             display(self.results_df)
