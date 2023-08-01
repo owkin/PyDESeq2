@@ -40,7 +40,10 @@ class DeseqStats:
         ``['variable_of_interest', 'tested_level', 'ref_level']``.
         Names must correspond to the metadata data passed to the DeseqDataSet.
         E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared
-        to 'condition A'. If None, the last variable from the design matrix is chosen
+        to 'condition A'.
+        For continuous variables, the last two strings should be left empty, e.g.
+        ``['measurement', '', ''].
+        If None, the last variable from the design matrix is chosen
         as the variable of interest, and the reference level is picked alphabetically.
         (default: ``None``).
 
@@ -206,11 +209,14 @@ class DeseqStats:
         self.results_df["pvalue"] = self.p_values
         self.results_df["padj"] = self.padj
 
-        if not self.quiet:
+        if self.contrast[1] == self.contrast[2] == "":
+            # The factor is continuous
+            print(f"Log2 fold change & Wald test p-value: " f"{self.contrast[0]}")
+        else:
+            # The factor is categorical
             print(
                 f"Log2 fold change & Wald test p-value: "
-                f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}",
-                file=sys.stderr,
+                f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
             )
         display(self.results_df)
 
@@ -295,6 +301,8 @@ class DeseqStats:
             shrink the coefficient corresponding to the ``contrast`` attribute.
             If the desired coefficient is not available, it may be set from the
             :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
+
+            TODO : implement for continuous variables
             (default: ``None``).
         """
 
@@ -613,7 +621,10 @@ class DeseqStats:
         ``['variable_of_interest', 'tested_level', 'reference_level']``.
         Names must correspond to the metadata data passed to the DeseqDataSet.
         E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B'
-        compared to 'condition A'. If None, the last variable from the design matrix
+        compared to 'condition A'.
+        For continuous variables, the last two strings will be left empty, e.g.
+        ``['measurement', '', ''].
+        If None, the last variable from the design matrix
         is chosen as the variable of interest, and the reference level is picked
         alphabetically.
 
@@ -633,26 +644,38 @@ class DeseqStats:
                     f"The contrast variable ('{contrast[0]}') should be one "
                     f"of the design factors."
                 )
-            if contrast[1] not in self.dds.obs[contrast[0]].values:
-                raise KeyError(
-                    f"The tested level ('{contrast[1]}') should correspond to one of the"
-                    f" levels of '{contrast[0]}'"
-                )
-            if contrast[2] not in self.dds.obs[contrast[0]].values:
-                raise KeyError(
-                    f"The reference level ('{contrast[2]}') should correspond to one of"
-                    f" the levels of '{contrast[0]}'"
-                )
+            if not contrast[1] == contrast[2] == "":
+                # The contrast factor is categorical, so we should check that the tested
+                # and reference levels are valid.
+                if contrast[1] not in self.dds.obs[contrast[0]].values:
+                    raise KeyError(
+                        f"The tested level ('{contrast[1]}') should correspond to "
+                        f"one of the levels of '{contrast[0]}'"
+                    )
+                if contrast[2] not in self.dds.obs[contrast[0]].values:
+                    raise KeyError(
+                        f"The reference level ('{contrast[2]}') should correspond to "
+                        f"one of the levels of '{contrast[0]}'"
+                    )
             self.contrast = contrast
         else:  # Build contrast if None
             factor = self.dds.design_factors[-1]
-            factor_col = next(
-                col
-                for col in self.dds.obsm["design_matrix"].columns
-                if col.startswith(factor)
-            )
-            split_col = factor_col.split("_")
-            self.contrast = [split_col[0], split_col[1], split_col[-1]]
+            # Check whether this factor is categorical or continuous.
+            if (
+                self.dds.continuous_factors is not None
+                and factor in self.dds.continuous_factors
+            ):
+                # The factor is continuous
+                self.contrast = [factor, "", ""]
+            else:
+                # The factor is categorical
+                factor_col = next(
+                    col
+                    for col in self.dds.obsm["design_matrix"].columns
+                    if col.startswith(factor)
+                )
+                split_col = factor_col.split("_")
+                self.contrast = [split_col[0], split_col[1], split_col[-1]]
 
     def _build_contrast_vector(self) -> None:
         """
@@ -663,7 +686,11 @@ class DeseqStats:
         factor = self.contrast[0]
         alternative = self.contrast[1]
         ref = self.contrast[2]
-        contrast_level = f"{factor}_{alternative}_vs_{ref}"
+        if ref == alternative == "":
+            # "factor" is a continuous variable
+            contrast_level = factor
+        else:
+            contrast_level = f"{factor}_{alternative}_vs_{ref}"
 
         self.contrast_vector = np.zeros(self.LFC.shape[-1])
         if contrast_level in self.design_matrix.columns:

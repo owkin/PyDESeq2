@@ -68,7 +68,7 @@ class DeseqDataSet(ad.AnnData):
 
     design_factors : str or list
         Name of the columns of metadata to be used as design variables.
-        Only categorical factors are supported. (default: ``'condition'``).
+        (default: ``'condition'``).
 
     continuous_factors : list or None
         An optional list of continuous (as opposed to categorical) factors. Any factor
