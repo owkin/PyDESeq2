@@ -69,6 +69,9 @@ class DeseqDataSet(ad.AnnData):
     design_factors : str or list
         Name of the columns of metadata to be used as design variables.
         Only categorial factors are supported. (default: ``'condition'``).
+        # TODO : update
+
+        # TODO : is it possible to only provide numerical factors ?
 
     ref_level : list or None
         An optional list of two strings of the form ``["factor", "test_level"]``
