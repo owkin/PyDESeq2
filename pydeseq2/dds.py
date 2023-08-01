@@ -68,10 +68,11 @@ class DeseqDataSet(ad.AnnData):
 
     design_factors : str or list
         Name of the columns of metadata to be used as design variables.
-        Only categorial factors are supported. (default: ``'condition'``).
-        # TODO : update
+        Only categorical factors are supported. (default: ``'condition'``).
 
-        # TODO : is it possible to only provide numerical factors ?
+    continuous_factors : list or None
+        An optional list of continuous (as opposed to categorical) factors. Any factor
+        not in ``continuous_factors`` will be considered categorical (default: ``None``).
 
     ref_level : list or None
         An optional list of two strings of the form ``["factor", "test_level"]``
@@ -173,6 +174,7 @@ class DeseqDataSet(ad.AnnData):
         counts: Optional[pd.DataFrame] = None,
         metadata: Optional[pd.DataFrame] = None,
         design_factors: Union[str, List[str]] = "condition",
+        continuous_factors: Optional[List[str]] = None,
         ref_level: Optional[List[str]] = None,
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
@@ -212,6 +214,8 @@ class DeseqDataSet(ad.AnnData):
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
         )
+        self.continuous_factors = continuous_factors
+
         if self.obs[self.design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
         self.obs[self.design_factors] = self.obs[self.design_factors].astype(str)
@@ -221,6 +225,7 @@ class DeseqDataSet(ad.AnnData):
         self.obsm["design_matrix"] = build_design_matrix(
             metadata=self.obs,
             design_factors=self.design_factors,
+            continuous_factors=self.continuous_factors,
             ref_level=ref_level,
             expanded=False,
             intercept=True,
