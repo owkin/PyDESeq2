@@ -121,17 +121,17 @@ def test_underscores_in_factors():
         debug=False,
     )
 
-    clinical_df = load_example_data(
-        modality="clinical",
+    metadata = load_example_data(
+        modality="metadata",
         dataset="synthetic",
         debug=False,
     )
 
-    # Rename clinical_df's columns and variables to add underscores
-    clinical_df.rename(
+    # Rename metadata's columns and variables to add underscores
+    metadata.rename(
         columns={"condition": "some_variable_with_underscores"}, inplace=True
     )
-    clinical_df.replace(
+    metadata.replace(
         {"A": "level_with_underscores", "B": "level_with_even_more_underscores"},
         inplace=True,
     )
@@ -139,7 +139,7 @@ def test_underscores_in_factors():
     # Run the pipeline. This should not cause bugs.
     dds = DeseqDataSet(
         counts=counts_df,
-        clinical=clinical_df,
+        metadata=metadata,
         design_factors="some_variable_with_underscores",
     )
     dds.deseq2()
