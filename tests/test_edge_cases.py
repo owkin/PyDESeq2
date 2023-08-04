@@ -136,12 +136,14 @@ def test_underscores_in_factors():
         inplace=True,
     )
 
-    # Run the pipeline. This should not cause bugs.
-    dds = DeseqDataSet(
-        counts=counts_df,
-        metadata=metadata,
-        design_factors="some_variable_with_underscores",
-    )
+    # Run the pipeline. This should raise a warning, but not cause bugs.
+    with pytest.warns(UserWarning):
+        dds = DeseqDataSet(
+            counts=counts_df,
+            metadata=metadata,
+            design_factors="some_variable_with_underscores",
+            ref_level=["some_variable_with_underscores", "level_with_underscores"],
+        )
     dds.deseq2()
 
     stat_res = DeseqStats(dds)

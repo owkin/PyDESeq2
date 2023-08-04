@@ -1,4 +1,5 @@
 import multiprocessing
+import warnings
 from math import floor
 from pathlib import Path
 from typing import List
@@ -191,6 +192,21 @@ def build_design_matrix(
                 f"Factors should take at least two values, but {factor} "
                 f"takes the single value '{np.unique(metadata[factor])}'."
             )
+
+    # Check that level factors in the design don't contain underscores. If so, convert
+    # them to hyphens
+    warning_issued = False
+    for factor in design_factors:
+        if np.any(["_" in value for value in metadata[factor]]):
+            if not warning_issued:
+                warnings.warn(
+                    """Some factor levels in the design contain underscores ('_').
+                    They will be converted to hyphens ('-').""",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                warning_issued = True
+            metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
 
     design_matrix = pd.get_dummies(metadata[design_factors], drop_first=not expanded)
 

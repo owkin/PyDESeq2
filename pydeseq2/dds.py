@@ -213,6 +213,33 @@ class DeseqDataSet(ad.AnnData):
             raise ValueError("NaNs are not allowed in the design factors.")
         self.obs[self.design_factors] = self.obs[self.design_factors].astype(str)
 
+        # Check that design factors don't contain underscores. If so, convert them to
+        # hyphens.
+        if np.any(["_" in factor for factor in self.design_factors]):
+            warnings.warn(
+                """Same factor names in the design contain underscores ('_'). They will
+                be converted to hyphens ('-').""",
+                UserWarning,
+                stacklevel=2,
+            )
+
+            new_factors = [factor.replace("_", "-") for factor in self.design_factors]
+
+            self.obs.rename(
+                columns={
+                    old_factor: new_factor
+                    for (old_factor, new_factor) in zip(self.design_factors, new_factors)
+                },
+                inplace=True,
+            )
+
+            self.design_factors = new_factors
+
+        # If ref_level has underscores, covert them to hyphens
+        # Don't raise a warning: it will be raised by build_design_matrix()
+        if ref_level is not None:
+            ref_level = [name.replace("_", "-") for name in ref_level]
+
         # Build the design matrix
         # Stored in the obsm attribute of the dataset
         self.obsm["design_matrix"] = build_design_matrix(
