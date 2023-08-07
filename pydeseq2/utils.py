@@ -252,7 +252,6 @@ def build_design_matrix(
                     f"{col}_vs_{ref}" if col.startswith(factor) else col
                     for col in design_matrix.columns
                 ]
-
     else:
         # There is no categorical factor in the design
         design_matrix = pd.DataFrame(index=metadata.index)
