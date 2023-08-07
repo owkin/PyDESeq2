@@ -141,14 +141,13 @@ def build_design_matrix(
     metadata: pd.DataFrame,
     design_factors: Union[str, List[str]] = "condition",
     ref_level: Optional[List[str]] = None,
+    continuous_factors: Optional[List[str]] = None,
     expanded: bool = False,
     intercept: bool = True,
 ) -> pd.DataFrame:
     """Build design_matrix matrix for DEA.
 
-    Only single factor, 2-level designs are currently supported.
     Unless specified, the reference factor is chosen alphabetically.
-    NOTE: For now, each factor should have exactly two levels.
 
     Parameters
     ----------
@@ -160,13 +159,18 @@ def build_design_matrix(
         Name of the columns of metadata to be used as design_matrix variables.
         (default: ``"condition"``).
 
-    ref_level : list or None
+    ref_level : dict or None
         An optional list of two strings of the form ``["factor", "ref_level"]``
         specifying the factor of interest and the desired reference level, e.g.
         ``["condition", "A"]``. (default: ``None``).
 
+    continuous_factors : list or None
+        An optional list of continuous (as opposed to categorical) factors. Any factor
+        not in ``continuous_factors`` will be considered categorical (default: ``None``).
+
     expanded : bool
-        If true, use one column per category. Else, use a single column.
+        If true, use one column per category. Else, use n-1 columns, for each n-level
+        categorical factor.
         (default: ``False``).
 
     intercept : bool
@@ -192,55 +196,78 @@ def build_design_matrix(
                 f"takes the single value '{np.unique(metadata[factor])}'."
             )
 
-    design_matrix = pd.get_dummies(metadata[design_factors], drop_first=not expanded)
+    if continuous_factors is not None:
+        categorical_factors = [
+            factor for factor in design_factors if factor not in continuous_factors
+        ]
+    else:
+        categorical_factors = design_factors
 
-    if ref_level is not None:
-        if len(ref_level) != 2:
-            raise KeyError("The reference level should contain 2 strings.")
-        if ref_level[1] not in metadata[ref_level[0]].values:
-            raise KeyError(
-                f"The metadata data should contain a '{ref_level[0]}' column"
-                f" with a '{ref_level[1]}' level."
-            )
+    # Check that there is at least one categorical factor
+    if len(categorical_factors) > 0:
+        design_matrix = pd.get_dummies(
+            metadata[categorical_factors], drop_first=not expanded
+        )
 
-        # Check that the reference level is not in the matrix (if unexpanded design)
-        ref_level_name = "_".join(ref_level)
-        if (not expanded) and ref_level_name in design_matrix.columns:
-            # Remove the reference level and add one
-            factor_cols = [
-                col for col in design_matrix.columns if col.startswith(ref_level[0])
-            ]
-            missing_level = next(
-                level
-                for level in np.unique(metadata[ref_level[0]])
-                if f"{ref_level[0]}_{level}" not in design_matrix.columns
-            )
-            design_matrix[f"{ref_level[0]}_{missing_level}"] = 1 - design_matrix[
-                factor_cols
-            ].sum(1)
-            design_matrix.drop(ref_level_name, axis="columns", inplace=True)
-
-    if not expanded:
-        # Add reference level as column name suffix
-        for factor in design_factors:
-            if ref_level is None or factor != ref_level[0]:
-                # The reference is the unique level that is no longer there
-                ref = next(
-                    level
-                    for level in np.unique(metadata[factor])
-                    if f"{factor}_{level}" not in design_matrix.columns
+        if ref_level is not None:
+            if len(ref_level) != 2:
+                raise KeyError("The reference level should contain 2 strings.")
+            if ref_level[1] not in metadata[ref_level[0]].values:
+                raise KeyError(
+                    f"The metadata data should contain a '{ref_level[0]}' column"
+                    f" with a '{ref_level[1]}' level."
                 )
-            else:
-                # The reference level is given as an argument
-                ref = ref_level[1]
-            design_matrix.columns = [
-                f"{col}_vs_{ref}" if col.startswith(factor) else col
-                for col in design_matrix.columns
-            ]
+
+            # Check that the reference level is not in the matrix (if unexpanded design)
+            ref_level_name = "_".join(ref_level)
+            if (not expanded) and ref_level_name in design_matrix.columns:
+                # Remove the reference level and add one
+                factor_cols = [
+                    col for col in design_matrix.columns if col.startswith(ref_level[0])
+                ]
+                missing_level = next(
+                    level
+                    for level in np.unique(metadata[ref_level[0]])
+                    if f"{ref_level[0]}_{level}" not in design_matrix.columns
+                )
+                design_matrix[f"{ref_level[0]}_{missing_level}"] = 1 - design_matrix[
+                    factor_cols
+                ].sum(1)
+                design_matrix.drop(ref_level_name, axis="columns", inplace=True)
+
+        if not expanded:
+            # Add reference level as column name suffix
+            for factor in design_factors:
+                if ref_level is None or factor != ref_level[0]:
+                    # The reference is the unique level that is no longer there
+                    ref = next(
+                        level
+                        for level in np.unique(metadata[factor])
+                        if f"{factor}_{level}" not in design_matrix.columns
+                    )
+                else:
+                    # The reference level is given as an argument
+                    ref = ref_level[1]
+                design_matrix.columns = [
+                    f"{col}_vs_{ref}" if col.startswith(factor) else col
+                    for col in design_matrix.columns
+                ]
+    else:
+        # There is no categorical factor in the design
+        design_matrix = pd.DataFrame(index=metadata.index)
 
     if intercept:
         design_matrix.insert(0, "intercept", 1)
-    return design_matrix.astype("int")
+
+    # Convert categorical factors one-hot encodings to int
+    design_matrix = design_matrix.astype("int")
+
+    # Add continuous factors
+    if continuous_factors is not None:
+        for factor in continuous_factors:
+            # This factor should be numeric
+            design_matrix[factor] = pd.to_numeric(metadata[factor])
+    return design_matrix
 
 
 def dispersion_trend(
