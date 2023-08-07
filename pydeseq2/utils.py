@@ -1,4 +1,5 @@
 import multiprocessing
+import warnings
 from math import floor
 from pathlib import Path
 from typing import List
@@ -196,6 +197,21 @@ def build_design_matrix(
                 f"takes the single value '{np.unique(metadata[factor])}'."
             )
 
+    # Check that level factors in the design don't contain underscores. If so, convert
+    # them to hyphens
+    warning_issued = False
+    for factor in design_factors:
+        if np.any(["_" in value for value in metadata[factor]]):
+            if not warning_issued:
+                warnings.warn(
+                    """Some factor levels in the design contain underscores ('_').
+                    They will be converted to hyphens ('-').""",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                warning_issued = True
+            metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
+
     if continuous_factors is not None:
         categorical_factors = [
             factor for factor in design_factors if factor not in continuous_factors
@@ -268,6 +284,26 @@ def build_design_matrix(
             # This factor should be numeric
             design_matrix[factor] = pd.to_numeric(metadata[factor])
     return design_matrix
+
+
+def replace_underscores(factors: List[str]):
+    """Replace all underscores from strings in a list by hyphens.
+
+    To be used on design factors to avoid bugs due to the reliance on `str.split("_")` in
+    parts of the code.
+
+    Parameters
+    ----------
+    factors : list
+        A list of strings which may contain underscores.
+
+    Returns
+    -------
+    list
+        A list of strings in which underscores were replaced by hyphens.
+    """
+
+    return [factor.replace("_", "-") for factor in factors]
 
 
 def dispersion_trend(

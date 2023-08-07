@@ -32,6 +32,7 @@ from pydeseq2.utils import irls_solver
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import nb_nll
+from pydeseq2.utils import replace_underscores
 from pydeseq2.utils import robust_method_of_moments_disp
 from pydeseq2.utils import test_valid_counts
 from pydeseq2.utils import trimmed_mean
@@ -219,6 +220,37 @@ class DeseqDataSet(ad.AnnData):
         if self.obs[self.design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
         self.obs[self.design_factors] = self.obs[self.design_factors].astype(str)
+
+        # Check that design factors don't contain underscores. If so, convert them to
+        # hyphens.
+        if np.any(["_" in factor for factor in self.design_factors]):
+            warnings.warn(
+                """Same factor names in the design contain underscores ('_'). They will
+                be converted to hyphens ('-').""",
+                UserWarning,
+                stacklevel=2,
+            )
+
+            new_factors = replace_underscores(self.design_factors)
+
+            self.obs.rename(
+                columns={
+                    old_factor: new_factor
+                    for (old_factor, new_factor) in zip(self.design_factors, new_factors)
+                },
+                inplace=True,
+            )
+
+            self.design_factors = new_factors
+
+            # Also check continuous factors
+            if self.continuous_factors is not None:
+                self.continuous_factors = replace_underscores(self.continuous_factors)
+
+        # If ref_level has underscores, covert them to hyphens
+        # Don't raise a warning: it will be raised by build_design_matrix()
+        if ref_level is not None:
+            ref_level = replace_underscores(ref_level)
 
         # Build the design matrix
         # Stored in the obsm attribute of the dataset
