@@ -653,7 +653,7 @@ class DeseqStats:
                     f"The contrast variable ('{contrast[0]}') should be one "
                     f"of the design factors."
                 )
-            if not contrast[1] == contrast[2] == "":
+            if not (contrast[1] == contrast[2] == ""):
                 # The contrast factor is categorical, so we should check that the tested
                 # and reference levels are valid.
                 if contrast[1] not in self.dds.obs[contrast[0]].values:
