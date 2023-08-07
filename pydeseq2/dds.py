@@ -32,6 +32,7 @@ from pydeseq2.utils import irls_solver
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import nb_nll
+from pydeseq2.utils import replace_underscores
 from pydeseq2.utils import robust_method_of_moments_disp
 from pydeseq2.utils import test_valid_counts
 from pydeseq2.utils import trimmed_mean
@@ -230,7 +231,7 @@ class DeseqDataSet(ad.AnnData):
                 stacklevel=2,
             )
 
-            new_factors = [factor.replace("_", "-") for factor in self.design_factors]
+            new_factors = replace_underscores(self.design_factors)
 
             self.obs.rename(
                 columns={
@@ -244,14 +245,12 @@ class DeseqDataSet(ad.AnnData):
 
             # Also check continuous factors
             if self.continuous_factors is not None:
-                self.continuous_factors = [
-                    factor.replace("_", "-") for factor in self.continuous_factors
-                ]
+                self.continuous_factors = replace_underscores(self.continuous_factors)
 
         # If ref_level has underscores, covert them to hyphens
         # Don't raise a warning: it will be raised by build_design_matrix()
         if ref_level is not None:
-            ref_level = [name.replace("_", "-") for name in ref_level]
+            ref_level = replace_underscores(ref_level)
 
         # Build the design matrix
         # Stored in the obsm attribute of the dataset

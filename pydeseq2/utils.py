@@ -286,6 +286,25 @@ def build_design_matrix(
     return design_matrix
 
 
+def replace_underscores(factors: List[str]):
+    """Replace all underscores from strings in a list by hyphens.
+
+    To be used on design factors to avoid bugs due to the reliance on `str.split("_")` in
+    parts of the code.
+
+    Parameters
+    ----------
+    factors : list
+        A list of strings which may contain underscores.
+    Returns
+    -------
+    list
+        A list of strings in which underscores were replaced by hyphens.
+    """
+
+    return [factor.replace("_", "-") for factor in factors]
+
+
 def dispersion_trend(
     normed_mean: Union[float, np.ndarray],
     coeffs: Union["pd.Series[float]", np.ndarray],
