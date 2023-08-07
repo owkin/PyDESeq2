@@ -296,6 +296,7 @@ def replace_underscores(factors: List[str]):
     ----------
     factors : list
         A list of strings which may contain underscores.
+
     Returns
     -------
     list
