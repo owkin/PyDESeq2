@@ -949,7 +949,7 @@ def fit_rough_dispersions(
 
     Parameters
     ----------
-    normed_counts : ndarry
+    normed_counts : ndarray
         Array of deseq2-normalized read counts. Rows: samples, columns: genes.
 
     design_matrix : pandas.DataFrame
