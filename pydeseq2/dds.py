@@ -826,12 +826,11 @@ class DeseqDataSet(ad.AnnData):
         """
 
         # Check that size_factors are available. If not, compute them.
-        if "size_factors" not in self.obsm:
+        if "normed_counts" not in self.layers:
             self.fit_size_factors()
 
         rde = fit_rough_dispersions(
-            self.X,
-            self.obsm["size_factors"],
+            self.layers["normed_counts"],
             self.obsm["design_matrix"],
         )
         mde = fit_moments_dispersions(self.X, self.obsm["size_factors"])
@@ -1053,7 +1052,9 @@ class DeseqDataSet(ad.AnnData):
 
         """
 
+        # Initialize size factors and normed counts fields
         self.obsm["size_factors"] = np.ones(self.n_obs)
+        self.layers["normed_counts"] = self.X
 
         # Reduce the design matrix to an intercept and reconstruct at the end
         self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()

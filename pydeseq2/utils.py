@@ -940,7 +940,7 @@ def wald_test(
 
 
 def fit_rough_dispersions(
-    counts: np.ndarray, size_factors: np.ndarray, design_matrix: pd.DataFrame
+    normed_counts: np.ndarray, design_matrix: pd.DataFrame
 ) -> np.ndarray:
     """ "Rough dispersion" estimates from linear model, as per the R code.
 
@@ -949,11 +949,8 @@ def fit_rough_dispersions(
 
     Parameters
     ----------
-    counts : ndarray
-        Raw counts. One column per gene, one row per sample.
-
-    size_factors : ndarray
-        DESeq2 normalization factors.
+    normed_counts : ndarry
+        Array of deseq2-normalized read counts. Rows: samples, columns: genes.
 
     design_matrix : pandas.DataFrame
         A DataFrame with experiment design information (to split cohorts).
@@ -966,9 +963,6 @@ def fit_rough_dispersions(
     """
 
     num_samples, num_vars = design_matrix.shape
-
-    normed_counts = counts / size_factors[:, None]
-
     # Exclude genes with all zeroes
     normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
 
