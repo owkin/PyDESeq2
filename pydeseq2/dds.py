@@ -467,7 +467,7 @@ class DeseqDataSet(ad.AnnData):
                         counts=self.X[:, i],
                         size_factors=self.obsm["size_factors"],
                         design_matrix=design_matrix,
-                        disp=self.varm["_rough_dispersions"][i],
+                        disp=self.varm["_MoM_dispersions"][i],
                         min_mu=self.min_mu,
                         beta_tol=self.beta_tol,
                     )
@@ -493,7 +493,7 @@ class DeseqDataSet(ad.AnnData):
                     counts=self.X[:, i],
                     design_matrix=design_matrix,
                     mu=self.layers["_mu_hat"][:, i],
-                    alpha_hat=self.varm["_rough_dispersions"][i],
+                    alpha_hat=self.varm["_MoM_dispersions"][i],
                     min_disp=self.min_disp,
                     max_disp=self.max_disp,
                 )
@@ -838,8 +838,8 @@ class DeseqDataSet(ad.AnnData):
         )
         alpha_hat = np.minimum(rde, mde)
 
-        self.varm["_rough_dispersions"] = np.full(self.n_vars, np.NaN)
-        self.varm["_rough_dispersions"][self.varm["non_zero"]] = np.clip(
+        self.varm["_MoM_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.varm["_MoM_dispersions"][self.varm["non_zero"]] = np.clip(
             alpha_hat, self.min_disp, self.max_disp
         )
 
