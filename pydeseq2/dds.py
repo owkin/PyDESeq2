@@ -833,7 +833,9 @@ class DeseqDataSet(ad.AnnData):
             self.layers["normed_counts"],
             self.obsm["design_matrix"],
         )
-        mde = fit_moments_dispersions(self.X, self.obsm["size_factors"])
+        mde = fit_moments_dispersions(
+            self.layers["normed_counts"], self.obsm["size_factors"]
+        )
         alpha_hat = np.minimum(rde, mde)
 
         self.varm["_rough_dispersions"] = np.full(self.n_vars, np.NaN)
