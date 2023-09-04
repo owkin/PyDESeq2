@@ -2,7 +2,7 @@
 
 #
 [![pypi version](https://img.shields.io/pypi/v/pydeseq2)](https://pypi.org/project/pydeseq2)
-[![pypiDownloads](https://pepy.tech/badge/pydeseq2)](https://pepy.tech/project/pydeseq2)
+[![pypiDownloads](https://static.pepy.tech/badge/pydeseq2)](https://pepy.tech/project/pydeseq2)
 [![condaDownloads](https://img.shields.io/conda/dn/bioconda/pydeseq2?logo=Anaconda)](https://anaconda.org/bioconda/pydeseq2)
 [![license](https://img.shields.io/pypi/l/pydeseq2)](LICENSE)
 
