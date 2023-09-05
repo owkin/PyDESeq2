@@ -57,7 +57,7 @@ def test_deseq(tol=0.02):
     assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
 
 
-@pytest.mark.parametrize("alt_hypothesis", ["lessAbs", "greaterAbs", "greater"])
+@pytest.mark.parametrize("alt_hypothesis", ["lessAbs", "greaterAbs", "less", "greater"])
 def test_alt_hypothesis(alt_hypothesis, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error, with the alternative hypothesis test.
