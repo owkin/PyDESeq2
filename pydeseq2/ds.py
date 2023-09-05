@@ -81,10 +81,10 @@ class DeseqStats:
     base_mean : pandas.Series
         Genewise means of normalized counts.
 
-    lfc_null: float
+    lfc_null : float
         The (log2) log fold change under the null hypothesis.
 
-    alt_hypothesis: str or None
+    alt_hypothesis : str or None
         The alternative hypothesis for computing wald p-values.
 
     contrast_vector : ndarray
@@ -199,11 +199,11 @@ class DeseqStats:
 
         Parameters
         ----------
-        lfc_null: float or None
+        lfc_null : float or None
             The (log2) log fold change under the null hypothesis. If None, uses the
             value given to the DeseqDataSet constructor. (default: ``None``).
 
-        alt_hypothesis: str or None
+        alt_hypothesis : str or None
             The alternative hypothesis for computing wald p-values. If None, the normal
             Wald test assesses deviation of the estimated log fold change from the null
             hypothesis, as given by ``lfc_null``.

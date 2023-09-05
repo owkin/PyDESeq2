@@ -917,10 +917,10 @@ def wald_test(
     contrast : ndarray
         Vector encoding the contrast that is being tested.
 
-    lfc_null: float
+    lfc_null : float
         The (log2) log fold change under the null hypothesis.
 
-    alt_hypothesis: str or None
+    alt_hypothesis : str or None
         The alternative hypothesis for computing wald p-values.
 
     Returns
@@ -1463,10 +1463,10 @@ def make_MA_plot(
         The path where to save the plot. If left None, the plot won't be saved
         (``default=None``).
 
-    lfc_null: float
+    lfc_null : float
         The (log2) log fold change under the null hypothesis. (default: ``0``).
 
-    alt_hypothesis: str or None
+    alt_hypothesis : str or None
         The alternative hypothesis for computing wald p-values. (default: ``None``).
 
     **kwargs

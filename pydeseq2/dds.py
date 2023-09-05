@@ -91,10 +91,10 @@ class DeseqDataSet(ad.AnnData):
         Note: The threshold that is actually enforced is max(max_disp, len(counts)).
         (default: ``10``).
 
-    lfc_null: float
+    lfc_null : float
         The (log2) log fold change under the null hypothesis. (default: ``0``).
 
-    alt_hypothesis: str or None
+    alt_hypothesis : str or None
         The alternative hypothesis for computing wald p-values. By default, the normal
         Wald test assesses deviation of the estimated log fold change from the null
         hypothesis, as given by ``lfc_null``.
