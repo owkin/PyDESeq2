@@ -66,6 +66,17 @@ class DeseqStats:
     prior_LFC_var : ndarray
         Prior variance for LFCs, used for ridge regularization. (default: ``None``).
 
+    lfc_null : float
+        The (log2) log fold change under the null hypothesis. (default: ``0``).
+
+    alt_hypothesis : str or None
+        The alternative hypothesis for computing wald p-values. By default, the normal
+        Wald test assesses deviation of the estimated log fold change from the null
+        hypothesis, as given by ``lfc_null``.
+        One of ["greaterAbs", "lessAbs", "greater", "less"] or None. The alternative
+        hypothesis corresponds to what the user wants to find rather than the null
+        hypothesis. (default: ``None``).
+
     batch_size : int
         Number of tasks to allocate to each joblib parallel worker. (default: ``128``).
 
@@ -141,6 +152,10 @@ class DeseqStats:
         independent_filter: bool = True,
         n_cpus: Optional[int] = None,
         prior_LFC_var: Optional[np.ndarray] = None,
+        lfc_null: float = 0.0,
+        alt_hypothesis: Optional[
+            Literal["greaterAbs", "lessAbs", "greater", "less"]
+        ] = None,
         batch_size: int = 128,
         joblib_verbosity: int = 0,
         quiet: bool = False,
@@ -156,8 +171,8 @@ class DeseqStats:
         self.independent_filter = independent_filter
         self.base_mean = self.dds.varm["_normed_means"].copy()
         self.prior_LFC_var = prior_LFC_var
-        self.lfc_null = self.dds.lfc_null
-        self.alt_hypothesis = self.dds.alt_hypothesis
+        self.lfc_null = lfc_null
+        self.alt_hypothesis = alt_hypothesis
 
         # Check the validity of the contrast (if provided) or build it.
         self._build_contrast(contrast)
@@ -200,8 +215,8 @@ class DeseqStats:
         Parameters
         ----------
         lfc_null : float or None
-            The (log2) log fold change under the null hypothesis. If None, uses the
-            value given to the DeseqDataSet constructor. (default: ``None``).
+            The (log2) log fold change under the null hypothesis. If None, sets the
+            value at 0. (default: ``None``).
 
         alt_hypothesis : str or None
             The alternative hypothesis for computing wald p-values. If None, the normal
@@ -209,8 +224,8 @@ class DeseqStats:
             hypothesis, as given by ``lfc_null``.
             One of ["greaterAbs", "lessAbs", "greater", "less", ""] or None. The
             alternative hypothesis corresponds to what the user wants to find rather
-            than the null hypothesis. If empty string "", uses the value given to the
-            DeseqDataSet constructor. (default: ``""``).
+            than the null hypothesis. If empty string "", sets the value at None.
+            (default: ``""``).
         """
         rerun_summary = False
         if lfc_null is None:
@@ -299,37 +314,24 @@ class DeseqStats:
         if not self.quiet:
             print("Running Wald tests...", file=sys.stderr)
         start = time.time()
-        res = (
-            wald_test(
-                design_matrix=design_matrix,
-                disp=self.dds.varm["dispersions"][i],
-                lfc=LFCs[i],
-                mu=mu[:, i],
-                ridge_factor=ridge_factor,
-                contrast=self.contrast_vector,
-                lfc_null=np.log(2**self.lfc_null),
-                alt_hypothesis=self.alt_hypothesis,
+        with parallel_backend("loky", inner_max_num_threads=1):
+            res = Parallel(
+                n_jobs=self.n_processes,
+                verbose=self.joblib_verbosity,
+                batch_size=self.batch_size,
+            )(
+                delayed(wald_test)(
+                    design_matrix=design_matrix,
+                    disp=self.dds.varm["dispersions"][i],
+                    lfc=LFCs[i],
+                    mu=mu[:, i],
+                    ridge_factor=ridge_factor,
+                    contrast=self.contrast_vector,
+                    lfc_null=np.log(2**self.lfc_null),  # Convert log2 to natural log
+                    alt_hypothesis=self.alt_hypothesis,
+                )
+                for i in range(num_genes)
             )
-            for i in range(num_genes)
-        )
-        # with parallel_backend("loky", inner_max_num_threads=1):
-        #     res = Parallel(
-        #         n_jobs=self.n_processes,
-        #         verbose=self.joblib_verbosity,
-        #         batch_size=self.batch_size,
-        #     )(
-        #         delayed(wald_test)(
-        #             design_matrix=design_matrix,
-        #             disp=self.dds.varm["dispersions"][i],
-        #             lfc=LFCs[i],
-        #             mu=mu[:, i],
-        #             ridge_factor=ridge_factor,
-        #             contrast=self.contrast_vector,
-        #             lfc_null=np.log(2**self.lfc_null),
-        #             alt_null_hypothesis=self.alt_null_hypothesis,
-        #         )
-        #         for i in range(num_genes)
-        #     )
         end = time.time()
         if not self.quiet:
             print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)

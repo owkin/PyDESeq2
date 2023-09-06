@@ -86,12 +86,14 @@ def test_alt_hypothesis(alt_hypothesis, tol=0.02):
         counts=counts_df,
         metadata=metadata,
         design_factors="condition",
-        lfc_null=-0.5 if alt_hypothesis == "less" else 0.5,
-        alt_hypothesis=alt_hypothesis,
     )
     dds.deseq2()
 
-    res = DeseqStats(dds)
+    res = DeseqStats(
+        dds,
+        lfc_null=-0.5 if alt_hypothesis == "less" else 0.5,
+        alt_hypothesis=alt_hypothesis,
+    )
     res.summary()
     res_df = res.results_df
 

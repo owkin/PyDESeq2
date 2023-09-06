@@ -91,17 +91,6 @@ class DeseqDataSet(ad.AnnData):
         Note: The threshold that is actually enforced is max(max_disp, len(counts)).
         (default: ``10``).
 
-    lfc_null : float
-        The (log2) log fold change under the null hypothesis. (default: ``0``).
-
-    alt_hypothesis : str or None
-        The alternative hypothesis for computing wald p-values. By default, the normal
-        Wald test assesses deviation of the estimated log fold change from the null
-        hypothesis, as given by ``lfc_null``.
-        One of ["greaterAbs", "lessAbs", "greater", "less"] or None. The alternative
-        hypothesis corresponds to what the user wants to find rather than the null
-        hypothesis. (default: ``None``).
-
     refit_cooks : bool
         Whether to refit cooks outliers. (default: ``True``).
 
@@ -191,10 +180,6 @@ class DeseqDataSet(ad.AnnData):
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
         max_disp: float = 10.0,
-        lfc_null: float = 0.0,
-        alt_hypothesis: Optional[
-            Literal["greaterAbs", "lessAbs", "greater", "less"]
-        ] = None,
         refit_cooks: bool = True,
         min_replicates: int = 7,
         beta_tol: float = 1e-8,
@@ -284,8 +269,6 @@ class DeseqDataSet(ad.AnnData):
         self.min_mu = min_mu
         self.min_disp = min_disp
         self.max_disp = np.maximum(max_disp, self.n_obs)
-        self.lfc_null = lfc_null
-        self.alt_hypothesis = alt_hypothesis
         self.refit_cooks = refit_cooks
         self.ref_level = ref_level
         self.min_replicates = min_replicates
