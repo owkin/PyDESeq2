@@ -171,6 +171,12 @@ class DeseqStats:
         self.independent_filter = independent_filter
         self.base_mean = self.dds.varm["_normed_means"].copy()
         self.prior_LFC_var = prior_LFC_var
+
+        if lfc_null < 0 and alt_hypothesis in {"greaterAbs", "lessAbs"}:
+            raise ValueError(
+                f"The alternative hypothesis being {alt_hypothesis}, please provide a",
+                f"positive lfc_null value (got {lfc_null}).",
+            )
         self.lfc_null = lfc_null
         self.alt_hypothesis = alt_hypothesis
 
@@ -232,6 +238,11 @@ class DeseqStats:
             lfc_null = self.lfc_null
         if alt_hypothesis == "":
             alt_hypothesis = self.alt_hypothesis
+        if lfc_null < 0 and alt_hypothesis in {"greaterAbs", "lessAbs"}:
+            raise ValueError(
+                f"The alternative hypothesis being {alt_hypothesis}, please provide a",
+                f"positive lfc_null value (got {lfc_null}).",
+            )
 
         if (
             not hasattr(self, "p_values")
