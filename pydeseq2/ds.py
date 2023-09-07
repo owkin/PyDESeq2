@@ -334,7 +334,7 @@ class DeseqStats:
                     mu=mu[:, i],
                     ridge_factor=ridge_factor,
                     contrast=self.contrast_vector,
-                    lfc_null=np.log(2**self.lfc_null),  # Convert log2 to natural log
+                    lfc_null=np.log(2) * self.lfc_null,  # Convert log2 to natural log
                     alt_hypothesis=self.alt_hypothesis,
                 )
                 for i in range(num_genes)
