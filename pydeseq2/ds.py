@@ -222,15 +222,15 @@ class DeseqStats:
             ``alt_hypothesis`` will override the corresponding ``DeseqStat`` attributes.
         """
 
-        new_lfc_null = kwargs.get("lfc_null", None)
-        new_alt_hypothesis = kwargs.get("alt_hypothesis", None)
+        new_lfc_null = kwargs.get("lfc_null", "default")
+        new_alt_hypothesis = kwargs.get("alt_hypothesis", "default")
 
         rerun_summary = False
-        if new_lfc_null is None:
+        if new_lfc_null == "default":
             lfc_null = self.lfc_null
         else:
             lfc_null = new_lfc_null
-        if new_alt_hypothesis is None:
+        if new_alt_hypothesis == "default":
             alt_hypothesis = self.alt_hypothesis
         else:
             alt_hypothesis = new_alt_hypothesis
