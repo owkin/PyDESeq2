@@ -209,10 +209,7 @@ class DeseqStats:
 
     def summary(
         self,
-        lfc_null: Optional[float] = None,
-        alt_hypothesis: Optional[
-            Literal["greaterAbs", "lessAbs", "greater", "less", ""]
-        ] = "",
+        **kwargs,
     ) -> None:
         """Run the statistical analysis.
 
@@ -220,24 +217,23 @@ class DeseqStats:
 
         Parameters
         ----------
-        lfc_null : float or None
-            The (log2) log fold change under the null hypothesis. If None, sets the
-            value at 0. (default: ``None``).
-
-        alt_hypothesis : str or None
-            The alternative hypothesis for computing wald p-values. If None, the normal
-            Wald test assesses deviation of the estimated log fold change from the null
-            hypothesis, as given by ``lfc_null``.
-            One of ["greaterAbs", "lessAbs", "greater", "less", ""] or None. The
-            alternative hypothesis corresponds to what the user wants to find rather
-            than the null hypothesis. If empty string "", sets the value at None.
-            (default: ``""``).
+        **kwargs
+            Keyword arguments: providing new values for ``lfc_null`` or
+            ``alt_hypothesis`` will override the corresponding ``DeseqStat`` attributes.
         """
+
+        new_lfc_null = kwargs.get("lfc_null", None)
+        new_alt_hypothesis = kwargs.get("alt_hypothesis", None)
+
         rerun_summary = False
-        if lfc_null is None:
+        if new_lfc_null is None:
             lfc_null = self.lfc_null
-        if alt_hypothesis == "":
+        else:
+            lfc_null = new_lfc_null
+        if new_alt_hypothesis is None:
             alt_hypothesis = self.alt_hypothesis
+        else:
+            alt_hypothesis = new_alt_hypothesis
         if lfc_null < 0 and alt_hypothesis in {"greaterAbs", "lessAbs"}:
             raise ValueError(
                 f"The alternative hypothesis being {alt_hypothesis}, please provide a",
