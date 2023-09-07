@@ -73,9 +73,9 @@ class DeseqStats:
         The alternative hypothesis for computing wald p-values. By default, the normal
         Wald test assesses deviation of the estimated log fold change from the null
         hypothesis, as given by ``lfc_null``.
-        One of ``["greaterAbs", "lessAbs", "greater", "less"]`` or ``None``. The alternative
-        hypothesis corresponds to what the user wants to find rather than the null
-        hypothesis. (default: ``None``).
+        One of ``["greaterAbs", "lessAbs", "greater", "less"]`` or ``None``.
+        The alternative hypothesis corresponds to what the user wants to find rather
+        than the null hypothesis. (default: ``None``).
 
     batch_size : int
         Number of tasks to allocate to each joblib parallel worker. (default: ``128``).
