@@ -1,6 +1,7 @@
 import sys
 import time
 from typing import List
+from typing import Literal
 from typing import Optional
 
 # import anndata as ad
@@ -65,6 +66,17 @@ class DeseqStats:
     prior_LFC_var : ndarray
         Prior variance for LFCs, used for ridge regularization. (default: ``None``).
 
+    lfc_null : float
+        The (log2) log fold change under the null hypothesis. (default: ``0``).
+
+    alt_hypothesis : str or None
+        The alternative hypothesis for computing wald p-values. By default, the normal
+        Wald test assesses deviation of the estimated log fold change from the null
+        hypothesis, as given by ``lfc_null``.
+        One of ``["greaterAbs", "lessAbs", "greater", "less"]`` or ``None``.
+        The alternative hypothesis corresponds to what the user wants to find rather
+        than the null hypothesis. (default: ``None``).
+
     batch_size : int
         Number of tasks to allocate to each joblib parallel worker. (default: ``128``).
 
@@ -79,6 +91,12 @@ class DeseqStats:
     ----------
     base_mean : pandas.Series
         Genewise means of normalized counts.
+
+    lfc_null : float
+        The (log2) log fold change under the null hypothesis.
+
+    alt_hypothesis : str or None
+        The alternative hypothesis for computing wald p-values.
 
     contrast_vector : ndarray
         Vector encoding the contrast (variable being tested).
@@ -134,6 +152,10 @@ class DeseqStats:
         independent_filter: bool = True,
         n_cpus: Optional[int] = None,
         prior_LFC_var: Optional[np.ndarray] = None,
+        lfc_null: float = 0.0,
+        alt_hypothesis: Optional[
+            Literal["greaterAbs", "lessAbs", "greater", "less"]
+        ] = None,
         batch_size: int = 128,
         joblib_verbosity: int = 0,
         quiet: bool = False,
@@ -149,6 +171,14 @@ class DeseqStats:
         self.independent_filter = independent_filter
         self.base_mean = self.dds.varm["_normed_means"].copy()
         self.prior_LFC_var = prior_LFC_var
+
+        if lfc_null < 0 and alt_hypothesis in {"greaterAbs", "lessAbs"}:
+            raise ValueError(
+                f"The alternative hypothesis being {alt_hypothesis}, please provide a",
+                f"positive lfc_null value (got {lfc_null}).",
+            )
+        self.lfc_null = lfc_null
+        self.alt_hypothesis = alt_hypothesis
 
         # Check the validity of the contrast (if provided) or build it.
         self._build_contrast(contrast)
@@ -177,21 +207,55 @@ class DeseqStats:
                 "to False."
             )
 
-    def summary(self) -> None:
+    def summary(
+        self,
+        **kwargs,
+    ) -> None:
         """Run the statistical analysis.
 
         The results are stored in the ``results_df`` attribute.
+
+        Parameters
+        ----------
+        **kwargs
+            Keyword arguments: providing new values for ``lfc_null`` or
+            ``alt_hypothesis`` will override the corresponding ``DeseqStat`` attributes.
         """
 
-        if not hasattr(self, "p_values"):
+        new_lfc_null = kwargs.get("lfc_null", "default")
+        new_alt_hypothesis = kwargs.get("alt_hypothesis", "default")
+
+        rerun_summary = False
+        if new_lfc_null == "default":
+            lfc_null = self.lfc_null
+        else:
+            lfc_null = new_lfc_null
+        if new_alt_hypothesis == "default":
+            alt_hypothesis = self.alt_hypothesis
+        else:
+            alt_hypothesis = new_alt_hypothesis
+        if lfc_null < 0 and alt_hypothesis in {"greaterAbs", "lessAbs"}:
+            raise ValueError(
+                f"The alternative hypothesis being {alt_hypothesis}, please provide a",
+                f"positive lfc_null value (got {lfc_null}).",
+            )
+
+        if (
+            not hasattr(self, "p_values")
+            or self.lfc_null != lfc_null
+            or self.alt_hypothesis != alt_hypothesis
+        ):
             # Estimate p-values with Wald test
+            self.lfc_null = lfc_null
+            self.alt_hypothesis = alt_hypothesis
+            rerun_summary = True
             self.run_wald_test()
 
         if self.cooks_filter:
             # Filter p-values based on Cooks outliers
             self._cooks_filtering()
 
-        if not hasattr(self, "padj"):
+        if not hasattr(self, "padj") or rerun_summary:
             if self.independent_filter:
                 # Compute adjusted p-values and correct p-value trend
                 self._independent_filtering()
@@ -270,6 +334,8 @@ class DeseqStats:
                     mu=mu[:, i],
                     ridge_factor=ridge_factor,
                     contrast=self.contrast_vector,
+                    lfc_null=np.log(2) * self.lfc_null,  # Convert log2 to natural log
+                    alt_hypothesis=self.alt_hypothesis,
                 )
                 for i in range(num_genes)
             )
@@ -466,6 +532,8 @@ class DeseqStats:
             padj_thresh=self.alpha,
             log=log,
             save_path=save_path,
+            lfc_null=self.lfc_null,
+            alt_hypothesis=self.alt_hypothesis,
             **kwargs,
         )
 

@@ -889,6 +889,8 @@ def wald_test(
     mu: float,
     ridge_factor: np.ndarray,
     contrast: np.ndarray,
+    lfc_null: float,
+    alt_hypothesis: Optional[Literal["greaterAbs", "lessAbs", "greater", "less"]],
 ) -> Tuple[float, float, float]:
     """Run Wald test for differential expression.
 
@@ -915,6 +917,12 @@ def wald_test(
     contrast : ndarray
         Vector encoding the contrast that is being tested.
 
+    lfc_null : float
+        The (log2) log fold change under the null hypothesis.
+
+    alt_hypothesis : str or None
+        The alternative hypothesis for computing wald p-values.
+
     Returns
     -------
     wald_p_value : float
@@ -934,8 +942,40 @@ def wald_test(
     Hc = H @ contrast
     # Evaluate standard error and Wald statistic
     wald_se: float = np.sqrt(Hc.T @ M @ Hc)
-    wald_statistic: float = contrast @ lfc / wald_se
-    wald_p_value = 2 * norm.sf(np.abs(wald_statistic))
+
+    def greater(lfc_null):
+        stat = contrast @ np.fmax((lfc - lfc_null) / wald_se, 0)
+        pval = norm.sf(stat)
+        return stat, pval
+
+    def less(lfc_null):
+        stat = contrast @ np.fmin((lfc - lfc_null) / wald_se, 0)
+        pval = norm.sf(np.abs(stat))
+        return stat, pval
+
+    def greater_abs(lfc_null):
+        stat = contrast @ (np.sign(lfc) * np.fmax((np.abs(lfc) - lfc_null) / wald_se, 0))
+        pval = 2 * norm.sf(np.abs(stat))  # Only case where the test is two-tailed
+        return stat, pval
+
+    def less_abs(lfc_null):
+        stat_above, pval_above = greater(-abs(lfc_null))
+        stat_below, pval_below = less(abs(lfc_null))
+        return min(stat_above, stat_below, key=abs), max(pval_above, pval_below)
+
+    wald_statistic: float
+    wald_p_value: float
+    if alt_hypothesis:
+        wald_statistic, wald_p_value = {
+            "greaterAbs": greater_abs(lfc_null),
+            "lessAbs": less_abs(lfc_null),
+            "greater": greater(lfc_null),
+            "less": less(lfc_null),
+        }[alt_hypothesis]
+    else:
+        wald_statistic = contrast @ (lfc - lfc_null) / wald_se
+        wald_p_value = 2 * norm.sf(np.abs(wald_statistic))
+
     return wald_p_value, wald_statistic, wald_se
 
 
@@ -1397,6 +1437,8 @@ def make_MA_plot(
     padj_thresh: float = 0.05,
     log: bool = True,
     save_path: Optional[str] = None,
+    lfc_null: float = 0,
+    alt_hypothesis: Optional[Literal["greaterAbs", "lessAbs", "greater", "less"]] = None,
     **kwargs,
 ) -> None:
     """
@@ -1420,6 +1462,12 @@ def make_MA_plot(
     save_path : str or None
         The path where to save the plot. If left None, the plot won't be saved
         (``default=None``).
+
+    lfc_null : float
+        The (log2) log fold change under the null hypothesis. (default: ``0``).
+
+    alt_hypothesis : str or None
+        The alternative hypothesis for computing wald p-values. (default: ``None``).
 
     **kwargs
         Matplotlib keyword arguments for the scatter plot.
@@ -1448,7 +1496,9 @@ def make_MA_plot(
     plt.xlabel("mean of normalized counts")
     plt.ylabel("log2 fold change")
 
-    plt.axhline(0, color="red", alpha=0.5, linestyle="--", zorder=3)
+    plt.axhline(lfc_null, color="red", alpha=0.5, linestyle="--", zorder=3)
+    if alt_hypothesis and alt_hypothesis in ["greaterAbs", "lessAbs"]:
+        plt.axhline(-lfc_null, color="red", alpha=0.5, linestyle="--", zorder=3)
     plt.tight_layout()
 
     if save_path is not None:

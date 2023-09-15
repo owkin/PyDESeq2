@@ -12,6 +12,7 @@ RNAseq data, using PyDESeq2.
 We start by importing required packages and setting up an optional path to save results.
 
 """
+# %%
 
 import os
 import pickle as pkl
@@ -251,6 +252,19 @@ if SAVE:
 
 # %%
 # The results are then stored in the ``results_df`` attribute (``stat_res.results_df``).
+
+# %%
+# Optional: threshold-based tests
+# """"""""""""""""""""""""""""""""
+#
+# The user can specify a (log2) log fold change under the null hypothesis and an
+# alternative hypothesis to re-compute Wald statistics and p-values.
+# The alternative hypothesis corresponds to what the user wants to find rather than the
+# null hypothesis. It can take one of the values
+# ``["greaterAbs", "lessAbs", "greater", "less"]``.
+
+stat_res.summary(lfc_null=0.1, alt_hypothesis="greaterAbs")
+stat_res.plot_MA(s=20)
 
 # %%
 # LFC shrinkage
