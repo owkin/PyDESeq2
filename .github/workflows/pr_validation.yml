@@ -16,8 +16,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        python: ["3.8", "3.9", "3.10", "3.11"]
+        include:
+          - os: ubuntu-latest
+            python: "3.8"
+          - os: ubuntu-latest
+            python: "3.9"
+          - os: ubuntu-latest
+            python: "3.10"
+          - os: ubuntu-latest
+            python: "3.10"
+            pip-flags: "--pre"
+          - os: ubuntu-latest
+            python: "3.11"
+          - os: ubuntu-latest
+            python: "3.11"
+            pip-flags: "--pre"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
