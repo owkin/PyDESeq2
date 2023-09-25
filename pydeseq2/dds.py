@@ -467,7 +467,7 @@ class DeseqDataSet(ad.AnnData):
                         counts=self.X[:, i],
                         size_factors=self.obsm["size_factors"],
                         design_matrix=design_matrix,
-                        disp=self.varm["_rough_dispersions"][i],
+                        disp=self.varm["_MoM_dispersions"][i],
                         min_mu=self.min_mu,
                         beta_tol=self.beta_tol,
                     )
@@ -493,7 +493,7 @@ class DeseqDataSet(ad.AnnData):
                     counts=self.X[:, i],
                     design_matrix=design_matrix,
                     mu=self.layers["_mu_hat"][:, i],
-                    alpha_hat=self.varm["_rough_dispersions"][i],
+                    alpha_hat=self.varm["_MoM_dispersions"][i],
                     min_disp=self.min_disp,
                     max_disp=self.max_disp,
                 )
@@ -826,19 +826,20 @@ class DeseqDataSet(ad.AnnData):
         """
 
         # Check that size_factors are available. If not, compute them.
-        if "size_factors" not in self.obsm:
+        if "normed_counts" not in self.layers:
             self.fit_size_factors()
 
         rde = fit_rough_dispersions(
-            self.X,
-            self.obsm["size_factors"],
+            self.layers["normed_counts"],
             self.obsm["design_matrix"],
         )
-        mde = fit_moments_dispersions(self.X, self.obsm["size_factors"])
+        mde = fit_moments_dispersions(
+            self.layers["normed_counts"], self.obsm["size_factors"]
+        )
         alpha_hat = np.minimum(rde, mde)
 
-        self.varm["_rough_dispersions"] = np.full(self.n_vars, np.NaN)
-        self.varm["_rough_dispersions"][self.varm["non_zero"]] = np.clip(
+        self.varm["_MoM_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.varm["_MoM_dispersions"][self.varm["non_zero"]] = np.clip(
             alpha_hat, self.min_disp, self.max_disp
         )
 
@@ -1053,7 +1054,9 @@ class DeseqDataSet(ad.AnnData):
 
         """
 
+        # Initialize size factors and normed counts fields
         self.obsm["size_factors"] = np.ones(self.n_obs)
+        self.layers["normed_counts"] = self.X
 
         # Reduce the design matrix to an intercept and reconstruct at the end
         self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
