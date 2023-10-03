@@ -163,8 +163,8 @@ def test_one_factor():
 
 
 def test_rank_deficient_design():
-    """Test that a ValueError is thrown when the design matrix does not have full column
-    rank."""
+    """Test that a UserWarning is thrown when the design matrix does not have full
+    column rank."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
@@ -176,6 +176,28 @@ def test_rank_deficient_design():
         DeseqDataSet(
             counts=counts_df, metadata=metadata, design_factors=["condition", "batch"]
         )
+
+
+def test_equal_num_vars_num_samples_design():
+    """Test that a ValueError is thrown when fitting dispersions if the design matrix
+    has eaual numbers of rows and columns."""
+    counts_df = pd.DataFrame(
+        {"gene1": [0, 1, 55], "gene2": [4, 12, 60]},
+        index=["sample1", "sample2", "sample3"],
+    )
+    metadata = pd.DataFrame(
+        {"condition": [0, 1, 0], "batch": ["A", "B", "B"]},
+        index=["sample1", "sample2", "sample3"],
+    )
+
+    dds = DeseqDataSet(
+        counts=counts_df, metadata=metadata, design_factors=["condition", "batch"]
+    )
+
+    dds.fit_size_factors()
+
+    with pytest.raises(ValueError):
+        dds.fit_genewise_dispersions()
 
 
 def test_reference_level():

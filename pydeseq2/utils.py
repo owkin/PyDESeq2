@@ -1003,6 +1003,15 @@ def fit_rough_dispersions(
     """
 
     num_samples, num_vars = design_matrix.shape
+    # This method is only possible when num_samples > num_vars.
+    # If this is not the case, throw an error.
+    if num_samples == num_vars:
+        raise ValueError(
+            "The number of samples and the number of design variables are "
+            "equal, i.e., there are no replicates to estimate the "
+            "dispersion. Please use a design with fewer variables."
+        )
+
     # Exclude genes with all zeroes
     normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
 
