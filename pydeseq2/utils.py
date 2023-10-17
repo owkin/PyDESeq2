@@ -517,6 +517,9 @@ def irls_solver(
     """
 
     assert optimizer in ["BFGS", "L-BFGS-B"]
+    print("counts shape: ", counts.shape)
+    print("design_matrix shape: ", design_matrix.shape)
+    print("size_factors shape: ", size_factors.shape)
 
     num_vars = design_matrix.shape[1]
     X = design_matrix
