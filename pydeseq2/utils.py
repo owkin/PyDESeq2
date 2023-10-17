@@ -1032,7 +1032,6 @@ def lrt_test(
         :math:`\vert dev - dev_{old}\vert / \vert dev + 0.1 \vert < \beta_{tol}`.
         (default: ``1e-8``).
 
-
     Returns
     -------
     lrt_p_value : float
