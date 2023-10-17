@@ -16,8 +16,8 @@ from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
 from scipy.special import gammaln  # type: ignore
 from scipy.special import polygamma  # type: ignore
-from scipy.stats import norm  # type: ignore
 from scipy.stats import chi2  # type: ignore
+from scipy.stats import norm  # type: ignore
 from sklearn.linear_model import LinearRegression  # type: ignore
 
 import pydeseq2
@@ -999,6 +999,39 @@ def lrt_test(
 
     Parameters
     ----------
+    counts : ndarray
+        Raw counts for a given gene.
+
+    design_matrix : ndarray
+        Design matrix.
+
+    reduced_design_matrix : ndarray
+        Reduced design matrix.
+
+    size_factors : ndarray
+        DESeq2 normalization factors.
+
+    disp : float
+        Dispersion estimate.
+
+    lfc : ndarray
+        Log-fold change estimate (in natural log scale).
+
+    min_mu : float
+        Lower bound on estimated means, to ensure numerical stability.
+        (default: ``0.5``).
+
+    ridge_factor : ndarray
+        Regularization factors.
+
+    reduced_ridge_factor : ndarray
+        Reduced regularization factors.
+
+    beta_tol : float
+        Stopping criterion for IRWLS:
+        :math:`\vert dev - dev_{old}\vert / \vert dev + 0.1 \vert < \beta_{tol}`.
+        (default: ``1e-8``).
+
 
     Returns
     -------
@@ -1008,6 +1041,7 @@ def lrt_test(
     lrt_statistic : float
         LRT statistic.
     """
+
     def reg_nb_nll(
         beta: np.ndarray, design_matrix: np.ndarray, ridge_factor: np.ndarray
     ) -> float:
@@ -1031,6 +1065,9 @@ def lrt_test(
     lrt_statistic = 2 * (full_ll - reduced_ll)
     # df = 1 since contrast_idx is the only variable removed
     lrt_p_value = chi2.sf(lrt_statistic, df=1)
+
+    print(lrt_p_value)
+    print(lrt_statistic)
 
     return lrt_p_value, lrt_statistic
 

@@ -19,9 +19,9 @@ from statsmodels.stats.multitest import multipletests  # type: ignore
 
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.utils import get_num_processes
+from pydeseq2.utils import lrt_test
 from pydeseq2.utils import make_MA_plot
 from pydeseq2.utils import nbinomGLM
-from pydeseq2.utils import lrt_test
 from pydeseq2.utils import wald_test
 
 
@@ -38,8 +38,8 @@ class DeseqStats:
     dds : DeseqDataSet
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
-    test : Literal["wald", "lrt"]
-        The statistical test to use. One of ``["wald", "lrt"]``.
+    test : Literal["Wald", "LRT"]
+        The statistical test to use. One of ``["Wald", "LRT"]``.
 
     contrast : list or None
         A list of three strings, in the following format:
@@ -172,7 +172,7 @@ class DeseqStats:
 
         self.dds = dds
 
-        if test not in ("wald", "LRT"):
+        if test not in ("Wald", "LRT"):
             raise ValueError(f"Available tests are `wald` and `LRT`. Got: {test}.")
         self.test = test
 
@@ -260,7 +260,7 @@ class DeseqStats:
             self.alt_hypothesis = alt_hypothesis
             rerun_summary = True
 
-            if self.test == "wald":
+            if self.test == "Wald":
                 self.run_wald_test()
             else:
                 self.run_likelihood_ratio_test()
@@ -282,7 +282,8 @@ class DeseqStats:
         self.results_df = pd.DataFrame(index=self.dds.var_names)
         self.results_df["baseMean"] = self.base_mean
         self.results_df["log2FoldChange"] = self.LFC @ self.contrast_vector / np.log(2)
-        self.results_df["lfcSE"] = self.SE / np.log(2)
+        if self.test == "Wald":
+            self.results_df["lfcSE"] = self.SE / np.log(2)
         self.results_df["stat"] = self.statistics
         self.results_df["pvalue"] = self.p_values
         self.results_df["padj"] = self.padj
@@ -385,7 +386,7 @@ class DeseqStats:
         ) -> Tuple[np.ndarray, np.ndarray]:
             indices = np.full(design_matrix.shape[1], True, dtype=bool)
             indices[self.contrast_idx] = False
-            return design_matrix[:, indices], ridge_factor[indices]
+            return design_matrix[:, indices], ridge_factor[indices][:, indices]
 
         # Set regularization factors.
         if self.prior_LFC_var is not None:
