@@ -698,3 +698,58 @@ def test_deseq2_norm():
         s2,
         decimal=8,
     )
+
+
+@pytest.fixture
+def counts():
+    return load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+
+@pytest.fixture
+def train_counts(counts):
+    return counts[25:75]
+
+
+@pytest.fixture
+def test_counts(counts):
+    return counts[0:25]
+
+
+@pytest.fixture
+def train_metadata():
+    return load_example_data(
+        modality="metadata",
+        dataset="synthetic",
+        debug=False,
+    )[25:75]
+
+
+@pytest.fixture
+def train_dds(train_counts, train_metadata):
+    return DeseqDataSet(
+        counts=train_counts, metadata=train_metadata, design_factors="condition"
+    )
+
+
+def test_vst_fit(train_dds):
+    # patient from 25 to 75
+    train_dds.vst_fit()
+
+    # the correct attributes are fit
+    assert "trend_coeffs" in train_dds.uns
+    assert "normed_counts" in train_dds.layers
+    assert "size_factors" in train_dds.obsm
+
+
+def test_vst_transform(train_dds, test_counts):
+    # First fit with some indices
+    train_dds.vst_fit()
+
+    result = train_dds.vst_transform(test_counts.to_numpy())
+    assert isinstance(result, np.ndarray)
+    # 25 samples, 10 genes
+    assert result.shape == (25, 10)
