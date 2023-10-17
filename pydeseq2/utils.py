@@ -196,11 +196,13 @@ def build_design_matrix(
                     unique_left_categories = list(set(metadata[left_factor]))
                     unique_right_categories = list(set(metadata[right_factor]))
                     from itertools import product
-                    new_categories = product(unique_left_categories, unique_right_categories)
+                    new_categories = [str(left) + str(right) for left, right in product(unique_left_categories, unique_right_categories)]
                     new_categories_dict = {cat: i for i, cat in enumerate(new_categories)}
+
                     def map_to_new_categories(element):
                         return new_categories_dict[element]
-                    metadata[left_factor + "_inter_" + right_factor] = map(metadata[left_factor] + metadata[right_factor], map_to_new_categories)
+
+                    metadata[left_factor + "_inter_" + right_factor] = list(map(map_to_new_categories, (metadata[left_factor].astype(str) + metadata[right_factor].astype(str)).tolist()))
                 elif right_factor in continuous_factors:
                     unique_left_categories = list(set(metadata[left_factor]))
                     # convert categorical factor to float
