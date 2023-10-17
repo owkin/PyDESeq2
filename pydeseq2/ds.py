@@ -219,6 +219,7 @@ class DeseqStats:
 
         self.p_values: pd.Series
         self.statistics: pd.Series
+        self.SE: pd.Series
 
     def summary(
         self,
@@ -365,7 +366,7 @@ class DeseqStats:
 
         self.p_values = pd.Series(pvals, index=self.dds.var_names)
         self.statistics = pd.Series(stats, index=self.dds.var_names)
-        self.SE: pd.Series = pd.Series(se, index=self.dds.var_names)
+        self.SE = pd.Series(se, index=self.dds.var_names)
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
         if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
