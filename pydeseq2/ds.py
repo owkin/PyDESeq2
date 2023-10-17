@@ -36,6 +36,9 @@ class DeseqStats:
     dds : DeseqDataSet
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
+    test : Literal["wald", "lrt"]
+        The statistical test to use. One of ``["wald", "lrt"]``.
+
     contrast : list or None
         A list of three strings, in the following format:
         ``['variable_of_interest', 'tested_level', 'ref_level']``.
@@ -167,8 +170,11 @@ class DeseqStats:
 
         self.dds = dds
 
-        self.alpha = alpha
+        if test not in ("wald", "LRT"):
+            raise ValueError(f"Available tests are `wald` and `LRT`. Got: {test}.")
         self.test = test
+
+        self.alpha = alpha
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
         self.base_mean = self.dds.varm["_normed_means"].copy()
