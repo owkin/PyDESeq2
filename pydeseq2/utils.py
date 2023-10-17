@@ -128,7 +128,7 @@ def load_example_data(
     if debug:
         # TODO: until we provide a larger dataset, this option is useless
         # subsample 10 samples and 100 genes
-        df = df.sample(n=10, axis=0, random_state=debug_seed)
+        df = df.sample(n=10, axis=1, random_state=debug_seed)
         if modality == "raw_counts":
             df = df.sample(n=100, axis="index", random_state=debug_seed)
 
