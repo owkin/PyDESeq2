@@ -146,6 +146,7 @@ class DeseqStats:
     def __init__(
         self,
         dds: DeseqDataSet,
+        test: Literal["Wald", "LRT"] = "Wald",
         contrast: Optional[List[str]] = None,
         alpha: float = 0.05,
         cooks_filter: bool = True,
@@ -167,6 +168,7 @@ class DeseqStats:
         self.dds = dds
 
         self.alpha = alpha
+        self.test = test
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
         self.base_mean = self.dds.varm["_normed_means"].copy()
