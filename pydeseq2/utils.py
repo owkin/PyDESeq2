@@ -158,7 +158,7 @@ def build_design_matrix(
         DataFrame containing metadata information.
         Must be indexed by sample barcodes.
 
-    design_factors : str or list
+    design_factors : list
         Name of the columns of metadata to be used as design_matrix variables.
         (default: ``"condition"``).
 
@@ -179,6 +179,16 @@ def build_design_matrix(
     intercept : bool
         If true, add an intercept (a column containing only ones). (default: ``True``).
 
+    Raises
+    ------
+    ValueError
+        If design_factors is not a list
+    ValueError
+        If a factor has only one level
+    KeyError
+        If the reference level does not contain two strings
+    KeyError
+        If the reference level is not in the metadata.
     Returns
     -------
     pandas.DataFrame
@@ -191,6 +201,21 @@ def build_design_matrix(
         new_design_factor = build_single_interaction_factor(metadata, design_factors, continuous_factors)
         design_factors = [new_design_factor]
 
+    if isinstance(design_factors, str):
+        raise ValueError(f"Design factors: {design_factors} should be a list")
+        # inter_design_factor, _ = build_single_interaction_factor(metadata, design_factors, continuous_factors)
+        # if inter_design_factor is not None:
+        #     design_factors = [inter_design_factor]
+        # else:
+        #     design_factors = [design_factors]
+
+    # formula case
+    if len(design_factors) == 1:
+        if design_factors[0].startswith("~"):
+            print("Warning because the user's column starts with ~ we assume the"
+            " formula syntax is being used")
+            design_factors = design_factors[0][1:].split("+")
+
     for factor in design_factors:
         # Check that each factor has at least 2 levels
         if len(np.unique(metadata[factor])) < 2:
@@ -202,7 +227,10 @@ def build_design_matrix(
     # Check that level factors in the design don't contain underscores. If so, convert
     # them to hyphens
     warning_issued = False
-    new_design_factors = []
+    # categorical interaction design factors
+    cat_inter_design_factors = []
+    # continuous interadtion design factors
+    cont_inter_design_factors = []
     for factor in design_factors:
         if np.any(["_" in value for value in metadata[factor]]):
             if not warning_issued:
@@ -214,11 +242,14 @@ def build_design_matrix(
                 )
                 warning_issued = True
             metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
-            new_design_factors.append(build_single_interaction_factor(metadata, factor, continuous_factors))
-    design_factors += new_design_factors
-
-
-
+            # check if interaction factor
+            inter_design_factor, is_categorical = build_single_interaction_factor(metadata, factor, continuous_factors)
+            if not is_categorical:
+                cont_inter_design_factors.append(inter_design_factor)
+            else:
+                cat_inter_design_factors.append(inter_design_factor)
+    continuous_factors += cont_inter_design_factors
+    design_factors += cont_inter_design_factors + cat_inter_design_factors
 
     if continuous_factors is not None:
         categorical_factors = [
@@ -1609,6 +1640,7 @@ def lowess(
 def convert_categorical_to_continuous_column(metadata, col):
     metadata[col] = metadata[col].astype("category").cat.codes.astype(float)
 
+
 def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
     """
     Merge two categorical columns in a pandas dataframe into a new column.
@@ -1640,6 +1672,19 @@ def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
 
 
 def build_single_interaction_factor(metadata, design_factor, continuous_factors):
+    """
+    Create an interaction factor from two design factors. This function supports
+    categorical and continuous factors.
+
+    Parameters
+    ----------
+    metadata: pandas.DataFrame
+        The dataframe to modify.
+    design_factor: str
+        The name of the design factor to split.
+    continuous_factors: list
+        The list of continuous factors.
+    """
     if ":" in design_factor:
         left_factor, right_factor = design_factor.split(':')
         column_name = left_factor + "_inter_" + right_factor
@@ -1664,4 +1709,4 @@ def build_single_interaction_factor(metadata, design_factor, continuous_factors)
                 # Now all variables are continuous
                 metadata[column_name] = metadata[left_factor] * metadata[right_factor]
                 continuous_factors.append(column_name)
-        return column_name
+        return column_name, is_any_categorical
