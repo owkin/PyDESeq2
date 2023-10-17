@@ -6,7 +6,11 @@ This experiment aims to run pydeseq2 on real data.
 
 """
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 from pydeseq2.dds import DeseqDataSet
+from pydeseq2.ds import DeseqStats
 from pydeseq2.utils import load_example_data
 
 # %%
@@ -74,18 +78,6 @@ metadata = metadata.set_index("Run")[["Sample Characteristic[biopsy site]"]].ren
 # ``primary tumor`` to those that have ``normal`` condition.
 #
 
-# %%
-# .. currentmodule:: pydeseq2.dds
-#
-# Read counts modeling with the :class:`DeseqDataSet` class
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# We start by creating a :class:`DeseqDataSet`
-# object from the count and metadata data.
-# A :class:`DeseqDataSet` fits dispersion and
-# log-fold change (LFC) parameters from the data, and stores them.
-#
-
 dds = DeseqDataSet(
     counts=counts_df,
     metadata=metadata,
@@ -95,3 +87,28 @@ dds = DeseqDataSet(
 )
 
 dds.deseq2()
+
+# %%
+# Generate summary statistics
+# --------------------------
+# We are here interested in comparing "primary tumor vs "normal" samples
+
+stat_res_tumor_vs_normal = DeseqStats(
+    dds, contrast=["condition", "primary tumor", "normal"], n_cpus=8
+)
+
+# As we did not really performed a thorough exploration of the data
+# and gene counts, we would like to test for a lfc of 1 at least
+
+stat_res_tumor_vs_normal.summary(lfc_null=1, alt_hypothesis="greaterAbs")
+
+# Some visualization
+
+stat_res_tumor_vs_normal.plot_MA(s=20)
+
+# Volcano plot
+
+plt.scatter(
+    stat_res_tumor_vs_normal.results_df["log2FoldChange"],
+    -np.log(stat_res_tumor_vs_normal.results_df["padj"]),
+)
