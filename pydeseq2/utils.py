@@ -209,14 +209,8 @@ def build_design_matrix(
         # else:
         #     design_factors = [design_factors]
 
-    # formula case
-    if len(design_factors) == 1:
-        if design_factors[0].startswith("~"):
-            print("Warning because the user's column starts with ~ we assume the"
-            " formula syntax is being used")
-            design_factors = design_factors[0][1:].split("+")
-
-    for factor in design_factors:
+    single_design_factors = list(set(design_factors) & set(metadata.columns))
+    for factor in single_design_factors:
         # Check that each factor has at least 2 levels
         if len(np.unique(metadata[factor])) < 2:
             raise ValueError(
@@ -232,7 +226,7 @@ def build_design_matrix(
     # continuous interadtion design factors
     cont_inter_design_factors = []
     for factor in design_factors:
-        if np.any(["_" in value for value in metadata[factor]]):
+        if (factor in single_design_factors) and np.any(["_" in value for value in metadata[factor]]):
             if not warning_issued:
                 warnings.warn(
                     """Some factor levels in the design contain underscores ('_').
@@ -242,14 +236,14 @@ def build_design_matrix(
                 )
                 warning_issued = True
             metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
-            # check if interaction factor
-            inter_design_factor, is_categorical = build_single_interaction_factor(metadata, factor, continuous_factors)
-            if not is_categorical:
-                cont_inter_design_factors.append(inter_design_factor)
-            else:
-                cat_inter_design_factors.append(inter_design_factor)
+        # check if interaction factor
+        inter_design_factor, is_categorical = build_single_interaction_factor(metadata, factor, continuous_factors)
+        if not is_categorical and (inter_design_factor is not None):
+            cont_inter_design_factors.append(inter_design_factor)
+        elif is_categorical and (inter_design_factor is None):
+            cat_inter_design_factors.append(inter_design_factor)
     continuous_factors += cont_inter_design_factors
-    design_factors += cont_inter_design_factors + cat_inter_design_factors
+    # design_factors += cont_inter_design_factors + cat_inter_design_factors
 
     if continuous_factors is not None:
         categorical_factors = [
@@ -1667,7 +1661,7 @@ def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
 
     def map_to_new_categories(element):
         return new_categories_dict[element]
-    new_col_name = left_factor + "_inter_" + right_factor
+    new_col_name = left_factor + ":" + right_factor
     metadata[new_col_name] = list(map(map_to_new_categories, (metadata[left_factor].astype(str) + metadata[right_factor].astype(str)).tolist()))
 
 
@@ -1687,7 +1681,7 @@ def build_single_interaction_factor(metadata, design_factor, continuous_factors)
     """
     if ":" in design_factor:
         left_factor, right_factor = design_factor.split(':')
-        column_name = left_factor + "_inter_" + right_factor
+        column_name = left_factor + ":" + right_factor
         is_left_categorical = left_factor not in continuous_factors
         is_right_categorical = right_factor not in continuous_factors
         is_any_categorical = is_left_categorical or is_right_categorical
@@ -1698,15 +1692,17 @@ def build_single_interaction_factor(metadata, design_factor, continuous_factors)
         else:
             if is_left_categorical and is_right_categorical:
                 merge_categorical_columns_inplace(metadata, left_factor, right_factor)
-                cat_col_name = None
+                return None, None
             elif is_left_categorical:
                 cat_col_name = left_factor
             elif is_right_categorical:
                 cat_col_name = right_factor
             # We convert remaining categorical column to continuous factor
-            if cat_col_name is not None:
-                convert_categorical_to_continuous_column(cat_col_name)
-                # Now all variables are continuous
-                metadata[column_name] = metadata[left_factor] * metadata[right_factor]
-                continuous_factors.append(column_name)
+            # if cat_col_name is not None:
+            convert_categorical_to_continuous_column(cat_col_name)
+            # Now all variables are continuous
+            metadata[column_name] = metadata[left_factor] * metadata[right_factor]
+            continuous_factors.append(column_name)
         return column_name, is_any_categorical
+    else:
+        return None, None
