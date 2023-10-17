@@ -159,12 +159,7 @@ def build_design_matrix(
 
     design_factors : str or list
         Name of the columns of metadata to be used as design_matrix variables.
-        (default: ``"condition"``). One can also use the 'formula' syntax:
-        ~x+y+x:y. For interactions terms use either the formula syntax as a string
-        or use x:y in the name with the name of two columns to combine.
-        If one or more of the columns to combine are contiinuous the resulting
-        column will be a multiplication term by term.
-
+        (default: ``"condition"``).
 
     ref_level : dict or None
         An optional list of two strings of the form ``["factor", "ref_level"]``
@@ -192,6 +187,30 @@ def build_design_matrix(
     if isinstance(
         design_factors, str
     ):  # if there is a single factor, convert to singleton list
+        if ":" in design_factors:
+            left_factor, right_factor = design_factors.split(':')
+            at_least_one_categorical = False
+            if left_factor not in continuous_factors:
+                at_least_one_categorical = True
+                if right_factor not in continuous_factors:
+                    unique_left_categories = list(set(metadata[left_factor]))
+                    unique_right_categories = list(set(metadata[right_factor]))
+                    from itertools import product
+                    new_categories = product(unique_left_categories, unique_right_categories)
+                    new_categories_dict = {cat: i for i, cat in enumerate(new_categories)}
+                    def map_to_new_categories(element):
+                        return new_categories_dict[element]
+                    metadata[left_factor + "_inter_" + right_factor] = map(metadata[left_factor] + metadata[right_factor], map_to_new_categories)
+                elif right_factor in continuous_factors:
+                    unique_left_categories = list(set(metadata[left_factor]))
+                    # convert categorical factor to float
+                    left_factor_values = metadata[left_factor].astype("category").cat.codes
+                    metadata[left_factor + "_inter_" + right_factor] = left_factor_values * metadata[right_factor]
+            # if right_factor not in continuous_factors:
+            if not at_least_one_categorical:
+                # both factors are continuous -> take the product
+                metadata[left_factor + "_inter_" + right_factor] = metadata[left_factor] * metadata[right_factor]
+
         design_factors = [design_factors]
 
     for factor in design_factors:
@@ -288,6 +307,7 @@ def build_design_matrix(
         for factor in continuous_factors:
             # This factor should be numeric
             design_matrix[factor] = pd.to_numeric(metadata[factor])
+
     return design_matrix
 
 
