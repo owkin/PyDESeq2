@@ -6,9 +6,8 @@ from typing import Optional
 
 import pytest
 from anndata import AnnData
-
-from tests.discover import all_estimators
-from tests.discover import all_functions
+from experiments.discover import all_estimators
+from experiments.discover import all_functions
 
 numpydoc_validation = pytest.importorskip("numpydoc.validate")
 

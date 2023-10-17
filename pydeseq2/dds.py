@@ -440,6 +440,7 @@ class DeseqDataSet(ad.AnnData):
             len(self.obsm["design_matrix"].value_counts())
             == self.obsm["design_matrix"].shape[-1]
         ):
+            print("fit_lin_mu")
             with parallel_backend("loky", inner_max_num_threads=1):
                 mu_hat_ = np.array(
                     Parallel(
@@ -457,6 +458,7 @@ class DeseqDataSet(ad.AnnData):
                     )
                 )
         else:
+            print("irls solver")
             with parallel_backend("loky", inner_max_num_threads=1):
                 res = Parallel(
                     n_jobs=self.n_processes,

@@ -2,11 +2,11 @@ import os
 from pathlib import Path
 
 import anndata as ad
+import experiments
 import numpy as np
 import pandas as pd
 import pytest
 
-import tests
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
 from pydeseq2.preprocessing import deseq2_norm
@@ -20,7 +20,7 @@ def test_deseq(tol=0.02):
     package, up to a tolerance in relative error.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
 
     counts_df = load_example_data(
         modality="raw_counts",
@@ -63,7 +63,7 @@ def test_alt_hypothesis(alt_hypothesis, tol=0.02):
     package, up to a tolerance in relative error, with the alternative hypothesis test.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
 
     counts_df = load_example_data(
         modality="raw_counts",
@@ -127,7 +127,7 @@ def test_deseq_no_refit_cooks(tol=0.02):
     in the synthetic dataset.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
 
     counts_df = load_example_data(
         modality="raw_counts",
@@ -174,7 +174,7 @@ def test_lfc_shrinkage(tol=0.02):
     R package (starting from the same inputs), up to a tolerance in relative error.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
     r_res = pd.read_csv(
         os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
     )
@@ -229,7 +229,7 @@ def test_iterative_size_factors(tol=0.02):
     error.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
     counts_df = load_example_data(
         modality="raw_counts",
         dataset="synthetic",
@@ -262,7 +262,7 @@ def test_multifactor_deseq(tol=0.02):
     package, up to a tolerance in relative error.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
 
     counts_df = load_example_data(
         modality="raw_counts",
@@ -306,7 +306,7 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
     R package (starting from the same inputs), up to a tolerance in relative error.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
     r_res = pd.read_csv(
         os.path.join(test_path, "data/multi_factor/r_test_res.csv"), index_col=0
     )
@@ -363,7 +363,7 @@ def test_continuous_deseq(tol=0.02):
     package, up to a tolerance in relative error, with a continuous factor.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
 
     counts_df = pd.read_csv(
         os.path.join(test_path, "data/continuous/test_counts.csv"), index_col=0
@@ -406,7 +406,7 @@ def test_continuous_lfc_shrinkage(tol=0.02):
     R package (starting from the same inputs), up to a tolerance in relative error.
     """
 
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
 
     r_res = pd.read_csv(
         os.path.join(test_path, "data/continuous/r_test_res.csv"), index_col=0
@@ -536,7 +536,7 @@ def test_anndata_init(tol=0.02):
     adata.varm["dispersions"] = np.random.randn(adata.n_vars) ** 2
 
     # Load R data
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
 
     r_res = pd.read_csv(
         os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
@@ -581,7 +581,7 @@ def test_vst(tol=0.02):
     )
 
     # Load R data
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
 
     r_vst = pd.read_csv(
         os.path.join(test_path, "data/single_factor/r_vst.csv"), index_col=0
@@ -623,7 +623,7 @@ def test_mean_vst(tol=0.02):
     )
 
     # Load R data
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    test_path = str(Path(os.path.realpath(experiments.__file__)).parent.resolve())
 
     r_vst = pd.read_csv(
         os.path.join(test_path, "data/single_factor/r_mean_vst.csv"), index_col=0
