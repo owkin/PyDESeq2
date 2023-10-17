@@ -9,6 +9,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 from typing import cast
+from itertools import product
 
 import numpy as np
 import pandas as pd
@@ -187,31 +188,34 @@ def build_design_matrix(
     if isinstance(
         design_factors, str
     ):  # if there is a single factor, convert to singleton list
+
         if ":" in design_factors:
             left_factor, right_factor = design_factors.split(':')
-            at_least_one_categorical = False
-            if left_factor not in continuous_factors:
-                at_least_one_categorical = True
-                if right_factor not in continuous_factors:
-                    unique_left_categories = list(set(metadata[left_factor]))
-                    unique_right_categories = list(set(metadata[right_factor]))
-                    from itertools import product
-                    new_categories = [str(left) + str(right) for left, right in product(unique_left_categories, unique_right_categories)]
-                    new_categories_dict = {cat: i for i, cat in enumerate(new_categories)}
+            column_name = left_factor + "_inter_" + right_factor
+            is_left_categorical = left_factor not in continuous_factors
+            is_right_categorical = right_factor not in continuous_factors
+            is_any_categorical = is_left_categorical or is_right_categorical
+            if not is_any_categorical:
+                # All factors are continuous
+                metadata[column_name] = metadata[left_factor] * metadata[right_factor]
+                continuous_factors.append(column_name)
+            else:
+                if is_left_categorical and is_right_categorical:
+                    merge_categorical_columns_inplace(metadata, left_factor, right_factor)
+                    cat_col_name = None
+                elif is_left_categorical:
+                    cat_col_name = left_factor
+                elif is_right_categorical:
+                    cat_col_name = right_factor
+                # We convert remaining categorical column to continuous factor
+                if cat_col_name is not None:
+                    convert_categorical_to_continuous_column(cat_col_name)
+                    # Now all variables are continuous
+                    metadata[column_name] = metadata[left_factor] * metadata[right_factor]
+                    continuous_factors.append(column_name)
 
-                    def map_to_new_categories(element):
-                        return new_categories_dict[element]
+            design_factors = [design_factors, column_name]
 
-                    metadata[left_factor + "_inter_" + right_factor] = list(map(map_to_new_categories, (metadata[left_factor].astype(str) + metadata[right_factor].astype(str)).tolist()))
-                elif right_factor in continuous_factors:
-                    unique_left_categories = list(set(metadata[left_factor]))
-                    # convert categorical factor to float
-                    left_factor_values = metadata[left_factor].astype("category").cat.codes
-                    metadata[left_factor + "_inter_" + right_factor] = left_factor_values * metadata[right_factor]
-            # if right_factor not in continuous_factors:
-            if not at_least_one_categorical:
-                # both factors are continuous -> take the product
-                metadata[left_factor + "_inter_" + right_factor] = metadata[left_factor] * metadata[right_factor]
 
         design_factors = [design_factors]
 
@@ -1624,3 +1628,35 @@ def lowess(
         delta = (1 - delta**2) ** 2
 
     return yest
+def convert_categorical_to_continuous_column(metadata, col):
+    metadata[col] = metadata[col].astype("category").cat.codes.astype(float)
+
+def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
+    """
+    Merge two categorical columns in a pandas dataframe into a new column.
+
+    Parameters
+    ----------
+    metadata : pandas.DataFrame
+        The dataframe to modify.
+    left_factor : str
+        The name of the first column.
+    right_factor : str
+        The name of the second column.
+
+    Returns
+    -------
+    None
+        Modifies the dataframe in place.
+    """
+
+    unique_left_categories = list(set(metadata[left_factor]))
+    unique_right_categories = list(set(metadata[right_factor]))
+    new_categories = [str(left) + str(right) for left, right in product(unique_left_categories, unique_right_categories)]
+    new_categories_dict = {cat: i for i, cat in enumerate(new_categories)}
+
+    def map_to_new_categories(element):
+        return new_categories_dict[element]
+    new_col_name = left_factor + "_inter_" + right_factor
+    metadata[new_col_name] = list(map(map_to_new_categories, (metadata[left_factor].astype(str) + metadata[right_factor].astype(str)).tolist()))
+
