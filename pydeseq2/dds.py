@@ -223,7 +223,10 @@ class DeseqDataSet(ad.AnnData):
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
         )
-        self.continuous_factors = continuous_factors
+        # self.continuous_factors = continuous_factors
+        self.continuous_factors = (
+            [continuous_factors] if isinstance(continuous_factors, str) else continuous_factors
+        )
 
         if self.obs[self.design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
