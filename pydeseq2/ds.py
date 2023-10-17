@@ -3,6 +3,7 @@ import time
 from typing import List
 from typing import Literal
 from typing import Optional
+from typing import Tuple
 
 # import anndata as ad
 import numpy as np
@@ -20,6 +21,7 @@ from pydeseq2.dds import DeseqDataSet
 from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import make_MA_plot
 from pydeseq2.utils import nbinomGLM
+from pydeseq2.utils import lrt_test
 from pydeseq2.utils import wald_test
 
 
@@ -372,7 +374,67 @@ class DeseqStats:
 
         Get gene-wise p-values for gene over/under-expression.
         """
-        raise NotImplementedError
+
+        num_genes = self.dds.n_vars
+        num_vars = self.design_matrix.shape[1]
+
+        # XXX: Raise a warning if LFCs are shrunk.
+
+        def reduce(
+            design_matrix: np.ndarray, ridge_factor: np.ndarray
+        ) -> Tuple[np.ndarray, np.ndarray]:
+            indices = np.full(design_matrix.shape[1], True, dtype=bool)
+            indices[self.contrast_idx] = False
+            return design_matrix[:, indices], ridge_factor[indices]
+
+        # Set regularization factors.
+        if self.prior_LFC_var is not None:
+            ridge_factor = np.diag(1 / self.prior_LFC_var**2)
+        else:
+            ridge_factor = np.diag(np.repeat(1e-6, num_vars))
+
+        design_matrix = self.design_matrix.values
+        LFCs = self.LFC.values
+
+        reduced_design_matrix, reduced_ridge_factor = reduce(design_matrix, ridge_factor)
+        self.dds.obsm["reduced_design_matrix"] = reduced_design_matrix
+
+        if not self.quiet:
+            print("Running LRT tests...", file=sys.stderr)
+        start = time.time()
+        with parallel_backend("loky", inner_max_num_threads=1):
+            res = Parallel(
+                n_jobs=self.n_processes,
+                verbose=self.joblib_verbosity,
+                batch_size=self.batch_size,
+            )(
+                delayed(lrt_test)(
+                    counts=self.dds.X[:, i],
+                    design_matrix=design_matrix,
+                    reduced_design_matrix=reduced_design_matrix,
+                    size_factors=self.dds.obsm["size_factors"],
+                    disp=self.dds.varm["dispersions"][i],
+                    lfc=LFCs[i],
+                    min_mu=self.dds.min_mu,
+                    ridge_factor=ridge_factor,
+                    reduced_ridge_factor=reduced_ridge_factor,
+                    beta_tol=self.dds.beta_tol,
+                )
+                for i in range(num_genes)
+            )
+        end = time.time()
+        if not self.quiet:
+            print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
+
+        pvals, stats = zip(*res)
+
+        self.p_values: pd.Series = pd.Series(pvals, index=self.dds.var_names)
+        self.statistics: pd.Series = pd.Series(stats, index=self.dds.var_names)
+
+        # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
+        if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
+            self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
+            self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
 
     def lfc_shrink(self, coeff: Optional[str] = None) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.

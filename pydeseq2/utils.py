@@ -17,6 +17,7 @@ from scipy.optimize import minimize  # type: ignore
 from scipy.special import gammaln  # type: ignore
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import norm  # type: ignore
+from scipy.stats import chi2  # type: ignore
 from sklearn.linear_model import LinearRegression  # type: ignore
 
 import pydeseq2
@@ -977,6 +978,61 @@ def wald_test(
         wald_p_value = 2 * norm.sf(np.abs(wald_statistic))
 
     return wald_p_value, wald_statistic, wald_se
+
+
+def lrt_test(
+    counts: np.ndarray,
+    design_matrix: np.ndarray,
+    reduced_design_matrix: np.ndarray,
+    size_factors: np.ndarray,
+    disp: float,
+    lfc: np.ndarray,
+    min_mu: float,
+    ridge_factor: np.ndarray,
+    reduced_ridge_factor: np.ndarray,
+    beta_tol: float,
+) -> Tuple[float, float]:
+    """Run likelihood ratio test for differential expression.
+
+    Compute likelihood ratio test statistics and p-values from
+    dispersion and LFC estimates.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    lrt_p_value : float
+        Estimated p-value.
+
+    lrt_statistic : float
+        LRT statistic.
+    """
+    def reg_nb_nll(
+        beta: np.ndarray, design_matrix: np.ndarray, ridge_factor: np.ndarray
+    ) -> float:
+        # closure to minimize
+        mu_ = np.maximum(size_factors * np.exp(design_matrix @ beta), min_mu)
+        val = nb_nll(counts, mu_, disp) + 0.5 * (ridge_factor @ beta**2).sum()
+        return -1.0 * val  # maximize the likelihood
+
+    beta_reduced, *_ = irls_solver(
+        counts=counts,
+        size_factors=size_factors,
+        design_matrix=reduced_design_matrix,
+        disp=disp,
+        min_mu=min_mu,
+        beta_tol=beta_tol,
+    )
+
+    reduced_ll = reg_nb_nll(beta_reduced, reduced_design_matrix, reduced_ridge_factor)
+    full_ll = reg_nb_nll(lfc, design_matrix, ridge_factor)
+
+    lrt_statistic = 2 * (full_ll - reduced_ll)
+    # df = 1 since contrast_idx is the only variable removed
+    lrt_p_value = chi2.sf(lrt_statistic, df=1)
+
+    return lrt_p_value, lrt_statistic
 
 
 def fit_rough_dispersions(
