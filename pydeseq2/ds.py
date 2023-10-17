@@ -151,7 +151,7 @@ class DeseqStats:
     def __init__(
         self,
         dds: DeseqDataSet,
-        test: Literal["Wald", "LRT"] = "Wald",
+        test: Literal["wald", "LRT"] = "wald",
         contrast: Optional[List[str]] = None,
         alpha: float = 0.05,
         cooks_filter: bool = True,
@@ -172,7 +172,7 @@ class DeseqStats:
 
         self.dds = dds
 
-        if test not in ("Wald", "LRT"):
+        if test not in ("wald", "LRT"):
             raise ValueError(f"Available tests are `wald` and `LRT`. Got: {test}.")
         self.test = test
 
@@ -217,6 +217,9 @@ class DeseqStats:
                 "to False."
             )
 
+        self.p_values: pd.Series
+        self.statistics: pd.Series
+
     def summary(
         self,
         **kwargs,
@@ -260,7 +263,7 @@ class DeseqStats:
             self.alt_hypothesis = alt_hypothesis
             rerun_summary = True
 
-            if self.test == "Wald":
+            if self.test == "wald":
                 self.run_wald_test()
             else:
                 self.run_likelihood_ratio_test()
@@ -282,7 +285,7 @@ class DeseqStats:
         self.results_df = pd.DataFrame(index=self.dds.var_names)
         self.results_df["baseMean"] = self.base_mean
         self.results_df["log2FoldChange"] = self.LFC @ self.contrast_vector / np.log(2)
-        if self.test == "Wald":
+        if self.test == "wald":
             self.results_df["lfcSE"] = self.SE / np.log(2)
         self.results_df["stat"] = self.statistics
         self.results_df["pvalue"] = self.p_values
@@ -290,11 +293,11 @@ class DeseqStats:
 
         if self.contrast[1] == self.contrast[2] == "":
             # The factor is continuous
-            print(f"Log2 fold change & Wald test p-value: " f"{self.contrast[0]}")
+            print(f"Log2 fold change & test p-value: " f"{self.contrast[0]}")
         else:
             # The factor is categorical
             print(
-                f"Log2 fold change & Wald test p-value: "
+                f"Log2 fold change & test p-value: "
                 f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
             )
         display(self.results_df)
@@ -360,8 +363,8 @@ class DeseqStats:
 
         pvals, stats, se = zip(*res)
 
-        self.p_values: pd.Series = pd.Series(pvals, index=self.dds.var_names)
-        self.statistics: pd.Series = pd.Series(stats, index=self.dds.var_names)
+        self.p_values = pd.Series(pvals, index=self.dds.var_names)
+        self.statistics = pd.Series(stats, index=self.dds.var_names)
         self.SE: pd.Series = pd.Series(se, index=self.dds.var_names)
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
@@ -386,7 +389,7 @@ class DeseqStats:
         ) -> Tuple[np.ndarray, np.ndarray]:
             indices = np.full(design_matrix.shape[1], True, dtype=bool)
             indices[self.contrast_idx] = False
-            return design_matrix[:, indices], ridge_factor[indices][:, indices]
+            return design_matrix[:, indices], ridge_factor[:, indices][indices]
 
         # Set regularization factors.
         if self.prior_LFC_var is not None:
@@ -429,8 +432,8 @@ class DeseqStats:
 
         pvals, stats = zip(*res)
 
-        self.p_values: pd.Series = pd.Series(pvals, index=self.dds.var_names)
-        self.statistics: pd.Series = pd.Series(stats, index=self.dds.var_names)
+        self.p_values = pd.Series(pvals, index=self.dds.var_names)
+        self.statistics = pd.Series(stats, index=self.dds.var_names)
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
         if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
