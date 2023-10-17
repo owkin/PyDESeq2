@@ -28,12 +28,31 @@ def deseq2_norm(
         DESeq2 normalization factors.
     """
 
+    logmeans, filtered_genes = deseq2_norm_fit(counts)
+    deseq2_counts, size_factors = deseq2_norm_transform(counts, logmeans, filtered_genes)
+    return deseq2_counts, size_factors
+
+
+def deseq2_norm_fit(
+    counts: Union[pd.DataFrame, np.ndarray]
+) -> Tuple[np.ndarray, np.ndarray]:
     # Compute gene-wise mean log counts
     with np.errstate(divide="ignore"):  # ignore division by zero warnings
         log_counts = np.log(counts)
     logmeans = log_counts.mean(0)
     # Filter out genes with -∞ log means
     filtered_genes = ~np.isinf(logmeans)
+
+    return logmeans, filtered_genes
+
+
+def deseq2_norm_transform(
+    counts: Union[pd.DataFrame, np.ndarray],
+    logmeans: np.ndarray,
+    filtered_genes: np.ndarray,
+) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
+    with np.errstate(divide="ignore"):  # ignore division by zero warnings
+        log_counts = np.log(counts)
     # Subtract filtered log means from log counts
     if isinstance(log_counts, pd.DataFrame):
         log_ratios = log_counts.loc[:, filtered_genes] - logmeans[filtered_genes]

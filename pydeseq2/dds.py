@@ -20,7 +20,8 @@ from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
 from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
-from pydeseq2.preprocessing import deseq2_norm
+from pydeseq2.preprocessing import deseq2_norm_fit
+from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
 from pydeseq2.utils import fit_alpha_mle
@@ -375,7 +376,9 @@ class DeseqDataSet(ad.AnnData):
             # use the counts from the train dataset
             normed_counts = self.layers["normed_counts"]
         else:
-            normed_counts, _ = deseq2_norm(counts)
+            normed_counts, _ = deseq2_norm_transform(
+                counts, self.logmeans, self.filtered_genes
+            )
 
         if self.fit_type == "parametric":
             a0, a1 = self.uns["trend_coeffs"]
@@ -459,7 +462,11 @@ class DeseqDataSet(ad.AnnData):
             )
             self._fit_iterate_size_factors()
         else:
-            self.layers["normed_counts"], self.obsm["size_factors"] = deseq2_norm(self.X)
+            self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X)
+            (
+                self.layers["normed_counts"],
+                self.obsm["size_factors"],
+            ) = deseq2_norm_transform(self.X, self.logmeans, self.filtered_genes)
         end = time.time()
 
         if not self.quiet:
