@@ -257,7 +257,11 @@ class DeseqStats:
             self.lfc_null = lfc_null
             self.alt_hypothesis = alt_hypothesis
             rerun_summary = True
-            self.run_wald_test()
+
+            if self.test == "wald":
+                self.run_wald_test()
+            else:
+                self.run_likelihood_ratio_test()
 
         if self.cooks_filter:
             # Filter p-values based on Cooks outliers
@@ -362,6 +366,13 @@ class DeseqStats:
             self.SE.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
+
+    def run_likelihood_ratio_test(self) -> None:
+        """Perform a Likelihood Ratio test.
+
+        Get gene-wise p-values for gene over/under-expression.
+        """
+        raise NotImplementedError
 
     def lfc_shrink(self, coeff: Optional[str] = None) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
