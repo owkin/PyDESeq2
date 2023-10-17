@@ -159,7 +159,12 @@ def build_design_matrix(
 
     design_factors : str or list
         Name of the columns of metadata to be used as design_matrix variables.
-        (default: ``"condition"``).
+        (default: ``"condition"``). One can also use the 'formula' syntax:
+        ~x+y+x:y. For interactions terms use either the formula syntax as a string
+        or use x:y in the name with the name of two columns to combine.
+        If one or more of the columns to combine are contiinuous the resulting
+        column will be a multiplication term by term.
+
 
     ref_level : dict or None
         An optional list of two strings of the form ``["factor", "ref_level"]``
