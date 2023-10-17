@@ -60,7 +60,10 @@ class DeseqDataSet(ad.AnnData):
 
     design_factors : str or list
         Name of the columns of metadata to be used as design variables.
-        (default: ``'condition'``).
+        (default: ``'condition'``). In the case you wish to use a formula, you can
+        provide a string of the form ``"~ factor1 + factor2 + ... + factorN + factor1:factor2"``.
+        In this case, the formula will be parsed and the factors will be extracted. Note that
+        ``factor1:factor2`` refers to interactions terms
 
     continuous_factors : list or None
         An optional list of continuous (as opposed to categorical) factors. Any factor
@@ -219,6 +222,12 @@ class DeseqDataSet(ad.AnnData):
                 "Either adata or both counts and metadata arguments must be provided."
             )
 
+        # formula case
+        if design_factors.isinstance(str) and design_factors.startswith("~"):
+                warnings.warn("Design factors argument is a string and starts with ~"
+                "therefore we assume theformula syntax is being used")
+                design_factors = design_factors[0][1:].split("+")
+
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
@@ -227,10 +236,10 @@ class DeseqDataSet(ad.AnnData):
         self.continuous_factors = (
             [continuous_factors] if isinstance(continuous_factors, str) else continuous_factors
         )
-
-        if self.obs[self.design_factors].isna().any().any():
+        self.single_design_factors = list(set(self.design_factors) & set(self.obs.columns))
+        if self.obs[self.single_design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
-        self.obs[self.design_factors] = self.obs[self.design_factors].astype(str)
+        self.obs[self.single_design_factors] = self.obs[self.single_design_factors].astype(str)
 
         # Check that design factors don't contain underscores. If so, convert them to
         # hyphens.
