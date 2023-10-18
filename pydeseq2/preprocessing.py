@@ -8,8 +8,7 @@ import pandas as pd
 def deseq2_norm(
     counts: Union[pd.DataFrame, np.ndarray]
 ) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
-    """
-    Return normalized counts and size_factors.
+    """Return normalized counts and size_factors.
 
     Uses the median of ratios method.
 
@@ -36,6 +35,22 @@ def deseq2_norm(
 def deseq2_norm_fit(
     counts: Union[pd.DataFrame, np.ndarray]
 ) -> Tuple[np.ndarray, np.ndarray]:
+    """Return logmeans and filtered_genes, needed in the median of ratios method.
+
+    Parameters
+    ----------
+    counts : pandas.DataFrame or ndarray
+            Raw counts. One column per gene, one row per sample.
+
+    Returns
+    -------
+    logmeans : ndarray
+        Gene-wise mean log counts.
+
+    filtered_genes : ndarray
+        Genes which log means are different from -∞.
+    """
+
     # Compute gene-wise mean log counts
     with np.errstate(divide="ignore"):  # ignore division by zero warnings
         log_counts = np.log(counts)
@@ -51,6 +66,32 @@ def deseq2_norm_transform(
     logmeans: np.ndarray,
     filtered_genes: np.ndarray,
 ) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
+    """Return normalized counts and size_factors from the median of ratios method.
+
+    Can be applied on external dataset, using the logmeans and filtered_genes previously
+    computed in the fit function.
+
+    Parameters
+    ----------
+    counts : pandas.DataFrame or ndarray
+            Raw counts. One column per gene, one row per sample.
+
+    logmeans : ndarray
+        Gene-wise mean log counts.
+
+    filtered_genes : ndarray
+        Genes which log means are different from -∞.
+
+    Returns
+    -------
+    deseq2_counts : pandas.DataFrame or ndarray
+        DESeq2 normalized counts.
+        One column per gene, rows are indexed by sample barcodes.
+
+    size_factors : pandas.DataFrame or ndarray
+        DESeq2 normalization factors.
+    """
+
     with np.errstate(divide="ignore"):  # ignore division by zero warnings
         log_counts = np.log(counts)
     # Subtract filtered log means from log counts

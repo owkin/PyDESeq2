@@ -169,6 +169,13 @@ class DeseqDataSet(ad.AnnData):
         gamma-family GLM. mean - use the mean of gene-wise dispersion estimates.
         (default: ``"parametric"``).
 
+    logmeans: ndarray
+        Gene-wise mean log counts, computed in preprocessing.deseq2_norm_fit().
+
+    filtered_genes: ndarray
+        Genes which log means are different from -∞, computed in 
+        preprocessing.deseq2_norm_fit().
+
     References
     ----------
     .. bibliography::
@@ -284,14 +291,15 @@ class DeseqDataSet(ad.AnnData):
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
         self.quiet = quiet
+        self.logmeans = None
+        self.filtered_genes = None
 
     def vst(
         self,
         use_design: bool = False,
         fit_type: Literal["parametric", "mean"] = "parametric",
     ) -> None:
-        """
-        Fit a variance stabilizing transformation, and apply it to normalized counts.
+        """Fit a variance stabilizing transformation, and apply it to normalized counts.
 
         Results are stored in ``dds.layers["vst_counts"]``.
 
@@ -330,11 +338,13 @@ class DeseqDataSet(ad.AnnData):
             gamma-family GLM. mean - use the mean of gene-wise dispersion estimates.
             (default: ``"parametric"``).
         """
+
         self.fit_type = fit_type  # to re-use inside vst_transform
 
-        # Start by fitting median-of-ratio size factors, if not already present.
-        if "size_factors" not in self.obsm:
-            self.fit_size_factors()
+        # Start by fitting median-of-ratio size factors if not already present, 
+        # or if it was computed iteratively
+        if "size_factors" not in self.obsm or self.logmeans is None:
+            self.fit_size_factors() # by default, fit_type != "iterative"
 
         if use_design:
             # Check that the dispersion trend curve was fitted. If not, fit it.
@@ -359,12 +369,12 @@ class DeseqDataSet(ad.AnnData):
     def vst_transform(self, counts: Optional[np.ndarray] = None) -> np.ndarray:
         """Apply the variance stabilizing transformation.
 
-        Uses the median of ratios method.
+        Uses the results from vst_fit method.
 
         Parameters
         ----------
         counts : np.ndarray
-            Counts to transform. If ``None``, use the counts from the train dataset.
+            Counts to transform. If ``None``, use the counts from the current dataset.
             (default: ``None``).
 
         Returns
@@ -372,12 +382,32 @@ class DeseqDataSet(ad.AnnData):
         np.ndarray
             Variance stabilized counts.
         """
+
+        if "size_factors" not in self.obsm:
+            raise RuntimeError(
+                "The method vst_fit should be called prior to vst_transform."
+                )
+
         if counts is None:
-            # use the counts from the train dataset
+            # the transformed counts will be the current ones
             normed_counts = self.layers["normed_counts"]
         else:
+            if self.logmeans is None:
+                # the size factors were still computed iteratively
+                warnings.warn(
+                    "The size factors were fitted iteratively. The size factors will "
+                    "be re-computed with the counts to be transformed. In a train/test "
+                    "fashion with a downstream task, this would result in a leak of "
+                    "data.",
+                    UserWarning
+                )
+                logmeans, filtered_genes = deseq2_norm_fit(counts)
+            else:
+                logmeans, filtered_genes = self.logmeans, self.filtered_genes
+
+
             normed_counts, _ = deseq2_norm_transform(
-                counts, self.logmeans, self.filtered_genes
+                counts, logmeans, filtered_genes
             )
 
         if self.fit_type == "parametric":
