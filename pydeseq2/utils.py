@@ -25,6 +25,7 @@ import pydeseq2
 from pydeseq2.grid_search import grid_fit_alpha
 from pydeseq2.grid_search import grid_fit_beta
 from pydeseq2.grid_search import grid_fit_shrink_beta
+from pydeseq2.interaction_utils import build_single_interaction_factor
 
 
 def load_example_data(
@@ -203,14 +204,12 @@ def build_design_matrix(
 
     if isinstance(design_factors, str):
         raise ValueError(f"Design factors: {design_factors} should be a list")
-        # inter_design_factor, _ = build_single_interaction_factor(metadata, design_factors, continuous_factors)
-        # if inter_design_factor is not None:
-        #     design_factors = [inter_design_factor]
-        # else:
-        #     design_factors = [design_factors]
 
-    single_design_factors = list(set(design_factors) & set(metadata.columns))
-    for factor in single_design_factors:
+    atomic_design_factors = [factor for factor in design_factors if ":" not in factor]
+    if any([atomic_fact not in metadata.columns for atomic_fact in atomic_design_factors]):
+        raise ValueError("Some design factors are not found in the metadata.")
+
+    for factor in atomic_design_factors:
         # Check that each factor has at least 2 levels
         if len(np.unique(metadata[factor])) < 2:
             raise ValueError(
@@ -221,12 +220,10 @@ def build_design_matrix(
     # Check that level factors in the design don't contain underscores. If so, convert
     # them to hyphens
     warning_issued = False
-    # categorical interaction design factors
-    cat_inter_design_factors = []
-    # continuous interadtion design factors
-    cont_inter_design_factors = []
+
+    # Loop to convert underscores to hyphens AND deal with interaction terms
     for factor in design_factors:
-        if (factor in single_design_factors) and np.any(["_" in value for value in metadata[factor]]):
+        if (factor in atomic_design_factors) and np.any(["_" in value for value in metadata[factor]]):
             if not warning_issued:
                 warnings.warn(
                     """Some factor levels in the design contain underscores ('_').
@@ -236,14 +233,10 @@ def build_design_matrix(
                 )
                 warning_issued = True
             metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
-        # check if interaction factor
-        inter_design_factor, is_categorical = build_single_interaction_factor(metadata, factor, continuous_factors)
-        if not is_categorical and (inter_design_factor is not None):
-            cont_inter_design_factors.append(inter_design_factor)
-        elif is_categorical and (inter_design_factor is None):
-            cat_inter_design_factors.append(inter_design_factor)
-    continuous_factors += cont_inter_design_factors
-    # design_factors += cont_inter_design_factors + cat_inter_design_factors
+        # Check if factor has interacting terms and if there are then build
+        # interaction column into metadata
+        build_single_interaction_factor(metadata, factor, continuous_factors)
+
 
     if continuous_factors is not None:
         categorical_factors = [
@@ -1633,6 +1626,7 @@ def lowess(
     return yest
 def convert_categorical_to_continuous_column(metadata, col):
     metadata[col] = metadata[col].astype("category").cat.codes.astype(float)
+    
 
 
 def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
@@ -1679,30 +1673,55 @@ def build_single_interaction_factor(metadata, design_factor, continuous_factors)
     continuous_factors: list
         The list of continuous factors.
     """
-    if ":" in design_factor:
-        left_factor, right_factor = design_factor.split(':')
-        column_name = left_factor + ":" + right_factor
+    if isinstance(design_factor, str):
+        if ":" in design_factor:
+            design_factor = design_factor.split(':')
+        else:
+            return
+
+    nfactors = len(design_factor)
+    if nfactors > 2:
+        m = nfactors // 2
+        # function modifies metadata, continuous_factors inplace
+        left_part = build_single_interaction_factor(metadata, design_factor[:m], continuous_factors)
+        right_part = build_single_interaction_factor(metadata, design_factor[m:], continuous_factors)
+        return build_single_interaction_factor(metadata, left_part + right_part, continuous_factors)
+
+    if nfactors == 2:
+        left_factor, right_factor = design_factor[0], design_factor[1] 
+        interaction_column_name = left_factor + ":" + right_factor
         is_left_categorical = left_factor not in continuous_factors
         is_right_categorical = right_factor not in continuous_factors
         is_any_categorical = is_left_categorical or is_right_categorical
         if not is_any_categorical:
             # All factors are continuous
-            metadata[column_name] = metadata[left_factor] * metadata[right_factor]
-            continuous_factors.append(column_name)
+            metadata[interaction_column_name] = metadata[left_factor] * metadata[right_factor]
+            continuous_factors.append(interaction_column_name)
+            return interaction_column_name
         else:
             if is_left_categorical and is_right_categorical:
                 merge_categorical_columns_inplace(metadata, left_factor, right_factor)
                 return None, None
             elif is_left_categorical:
                 cat_col_name = left_factor
+                cont_col_name = right_factor
             elif is_right_categorical:
                 cat_col_name = right_factor
-            # We convert remaining categorical column to continuous factor
-            # if cat_col_name is not None:
-            convert_categorical_to_continuous_column(cat_col_name)
-            # Now all variables are continuous
-            metadata[column_name] = metadata[left_factor] * metadata[right_factor]
-            continuous_factors.append(column_name)
-        return column_name, is_any_categorical
-    else:
-        return None, None
+                cont_col_name = left_factor
+            
+            cat_levels = metadata[cat_col_name].unique()
+            # We multiplex the continuous variable to cat_levels continuous variables
+            # that are cont_col_name when the level is the right one
+            interaction_column_names = []
+            for idx, cat_level in enumerate(cat_levels):
+                current_col_name = interaction_column_name + f"_{idx}"
+                interaction_column_names.append(current_col_name)
+                metadata[current_col_name + f"_{idx}"] = (metadata[cat_col_name] == cat_level).astype("float") * metadata[cont_col_name]
+                continuous_factors.append(current_col_name)
+            return interaction_column_names
+        
+    elif nfactors == 1:
+        return [design_factor[0]]
+
+
+
