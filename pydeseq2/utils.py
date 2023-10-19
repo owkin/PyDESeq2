@@ -1,6 +1,7 @@
 import multiprocessing
 import warnings
 from math import ceil
+from itertools import product
 from math import floor
 from pathlib import Path
 from typing import List
@@ -9,7 +10,6 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 from typing import cast
-from itertools import product
 
 import numpy as np
 import pandas as pd
@@ -210,9 +210,13 @@ def build_design_matrix(
         raise ValueError(f"Design factors: {design_factors} should be a list")
 
     atomic_design_factors = [factor for factor in design_factors if ":" not in factor]
-    if any([atomic_fact not in metadata.columns for atomic_fact in atomic_design_factors]):
+    if any(
+        [atomic_fact not in metadata.columns for atomic_fact in atomic_design_factors]
+    ):
         raise ValueError("Some design factors are not found in the metadata.")
-    if continuous_factors is not None and any([cont_fact not in metadata.columns for cont_fact in continuous_factors]):
+    if continuous_factors is not None and any(
+        [cont_fact not in metadata.columns for cont_fact in continuous_factors]
+    ):
         raise ValueError("Some continuous factors are not found in the metadata.")
 
     for factor in atomic_design_factors:
@@ -229,7 +233,9 @@ def build_design_matrix(
 
     # Loop to convert underscores to hyphens AND deal with interaction terms
     for factor in design_factors:
-        if (factor in atomic_design_factors) and np.any(["_" in value for value in metadata[factor]]):
+        if (factor in atomic_design_factors) and np.any(
+            ["_" in value for value in metadata[factor]]
+        ):
             if not warning_issued:
                 warnings.warn(
                     """Some factor levels in the design contain underscores ('_').
@@ -242,7 +248,6 @@ def build_design_matrix(
         # Check if factor has interacting terms and if there are then build
         # interaction column into metadata
         build_single_interaction_factor(metadata, factor, continuous_factors)
-
 
     if continuous_factors is not None:
         categorical_factors = [
