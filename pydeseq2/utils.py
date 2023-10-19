@@ -160,7 +160,11 @@ def build_design_matrix(
         Must be indexed by sample barcodes.
 
     design_factors : list
-        Name of the columns of metadata to be used as design_matrix variables.
+        Name of the columns of metadata to be used as design variables.
+        Interaction terms can also be used such as col1:...:colN.
+        (default: ``'condition'``). Finally, if you wish to use a formula, you can
+        provide a string of the form ``"~ col1 + ... + colN + colk1:...:colN1 + ... + colkni:...:colNni"``.
+        In this case, the formula will be parsed and the factors will be extracted.
         (default: ``"condition"``).
 
     ref_level : dict or None

@@ -61,10 +61,11 @@ class DeseqDataSet(ad.AnnData):
 
     design_factors : str or list
         Name of the columns of metadata to be used as design variables.
-        (default: ``'condition'``). In the case you wish to use a formula, you can
-        provide a string of the form ``"~ factor1 + factor2 + ... + factorN + factor1:factor2"``.
-        In this case, the formula will be parsed and the factors will be extracted. Note that
-        ``factor1:factor2`` refers to interactions terms
+        Interaction terms can also be used such as col1:...:colN.
+        (default: ``'condition'``). Finally, if you wish to use a formula, you can
+        provide a string of the form ``"~ col1 + ... + colN + colk1:...:colN1 + ... + colkni:...:colNni"``.
+        In this case, the formula will be parsed and the factors will be extracted.
+        (default: ``"condition"``).
 
     continuous_factors : list or None
         An optional list of continuous (as opposed to categorical) factors. Any factor
@@ -222,24 +223,31 @@ class DeseqDataSet(ad.AnnData):
             raise ValueError(
                 "Either adata or both counts and metadata arguments must be provided."
             )
+        if any([col.strip() != col for col in self.obs.columns]):
+            raise ValueError("Columns cannot contain leading or trrailing spaces")
+        # Following lines handle the case where the user provides a formula
+        # of the type ~ fc1 + fc2 + fc3 + fc1:fc2 + fc1:fc2:fc3
+        # in its design factors
+
+        if isinstance(design_factors, str):
+            if design_factors.startswith("~"):
+                warnings.warn(f"Design factor {design_factors} starts with ~"
+                "therefore we assume the formula syntax is being used."
+                "Please rename column if this is unwanted behavior")
+                if "+" not in design_factors:
+                    raise ValueError("Formula is incorrect")
+                design_factors = design_factors.replace("(:) ")
+                design_factors = design_factors[1:].split("+")
+                # Removing trailing and leading space in formula
+                for idx, factor in enumerate(design_factors):
+                    design_factors[idx] = factor.strip()
+
 
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
         )
-        # Following lines handle the case where the user provides a formula
-        # of the type ~fc1+fc2+fc3+fc1:fc2+fc1:fc2:fc3
-        # in its design factors
-        original_design_factors = copy.deepcopy(design_factors)
-        for factor in original_design_factors:
-            if factor.startswith("~"):
-                warnings.warn(f"Design factor {factor} starts with ~"
-                "therefore we assume the formula syntax is being used."
-                "Please rename column if this is unwanted behavior")
-                if "+" not in factor:
-                    raise ValueError("Formula is incorrect")
-                factors = factor[1:].split("+")
-                design_factors += factors
+
 
         # self.continuous_factors = continuous_factors
         self.continuous_factors = (
