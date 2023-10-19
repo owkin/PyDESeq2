@@ -204,7 +204,7 @@ def merge_columns(metadata, design_factor, continuous_factors):
     design_factor : str
         The column either containing interaction terms or not.
     continuous_factors : list
-        All known coontinuous factors.
+        All known continuous factors.
 
     Returns
     -------
