@@ -175,6 +175,10 @@ def build_single_interaction_factor(metadata, design_factor, continuous_factors)
         The name of the column with potentially interaction terms.
     continuous_factors : list
         All factors known to be continuous.
+    Returns
+    -------
+    None
+        Modifies stuff inplace.
     """
     original_columns = copy.deepcopy(metadata.columns)
     interacting_columns = merge_columns(metadata, design_factor, continuous_factors)
