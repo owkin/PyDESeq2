@@ -49,7 +49,7 @@ def merge_two_columns(left_factor, right_factor, metadata, continuous_factors):
     Returns
     -------
     None
-        modifies metadata inplace.
+        Modifies metadata inplace.
     """
     interaction_column_name = left_factor + ":" + right_factor
     if continuous_factors is None:
