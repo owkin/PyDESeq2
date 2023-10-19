@@ -209,7 +209,7 @@ def merge_columns(metadata, design_factor, continuous_factors):
     Returns
     -------
     list
-        All original coolumns interacting.
+        All original columns interacting.
 
     Raises
     ------
