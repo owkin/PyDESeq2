@@ -1,7 +1,5 @@
-import copy
-from itertools import product
 from functools import reduce
-from pandas.api.types import is_numeric_dtype
+
 def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
     """
     Merge two categorical columns in a pandas dataframe into a new column.
