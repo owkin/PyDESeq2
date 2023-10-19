@@ -208,6 +208,8 @@ def build_design_matrix(
     atomic_design_factors = [factor for factor in design_factors if ":" not in factor]
     if any([atomic_fact not in metadata.columns for atomic_fact in atomic_design_factors]):
         raise ValueError("Some design factors are not found in the metadata.")
+    if any([cont_fact not in metadata.columns for atomic_fact in continuous_factors]):
+        raise ValueError("Some continuous factors are not found in the metadata.")
 
     for factor in atomic_design_factors:
         # Check that each factor has at least 2 levels

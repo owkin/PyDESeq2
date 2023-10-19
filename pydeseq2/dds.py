@@ -6,6 +6,7 @@ from typing import Literal
 from typing import Optional
 from typing import Union
 from typing import cast
+import copy
 
 import anndata as ad  # type: ignore
 import numpy as np
@@ -222,16 +223,24 @@ class DeseqDataSet(ad.AnnData):
                 "Either adata or both counts and metadata arguments must be provided."
             )
 
-        # formula case
-        if design_factors.isinstance(str) and design_factors.startswith("~"):
-                warnings.warn("Design factors argument is a string and starts with ~"
-                "therefore we assume theformula syntax is being used")
-                design_factors = design_factors[0][1:].split("+")
-
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
         )
+        # Following lines handle the case where the user provides a formula
+        # of the type ~fc1+fc2+fc3+fc1:fc2+fc1:fc2:fc3
+        # in its design factors
+        original_design_factors = copy.deepcopy(design_factors)
+        for factor in original_design_factors:
+            if factor.startswith("~"):
+                warnings.warn(f"Design factor {factor} starts with ~"
+                "therefore we assume the formula syntax is being used."
+                "Please rename column if this is unwanted behavior")
+                if "+" not in factor:
+                    raise ValueError("Formula is incorrect")
+                factors = factor[1:].split("+")
+                design_factors += factors
+
         # self.continuous_factors = continuous_factors
         self.continuous_factors = (
             [continuous_factors] if isinstance(continuous_factors, str) else continuous_factors
