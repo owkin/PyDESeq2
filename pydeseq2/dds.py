@@ -223,7 +223,7 @@ class DeseqDataSet(ad.AnnData):
                 "Either adata or both counts and metadata arguments must be provided."
             )
         if any([col.strip() != col for col in self.obs.columns]):
-            raise ValueError("Columns cannot contain leading or trrailing spaces")
+            raise ValueError("Columns cannot contain leading or trailing spaces")
         # Following lines handle the case where the user provides a formula
         # of the type ~ fc1 + fc2 + fc3 + fc1:fc2 + fc1:fc2:fc3
         # in its design factors
