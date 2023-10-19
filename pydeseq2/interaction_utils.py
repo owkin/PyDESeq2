@@ -175,6 +175,7 @@ def build_single_interaction_factor(metadata, design_factor, continuous_factors)
         The name of the column with potentially interaction terms.
     continuous_factors : list
         All factors known to be continuous.
+
     Returns
     -------
     None
@@ -196,6 +197,9 @@ def build_single_interaction_factor(metadata, design_factor, continuous_factors)
 
 def merge_columns(metadata, design_factor, continuous_factors):
     """Merge any combination of any number of columns interacting.
+
+    Can handle any number of columns interacting. The columns can be either
+    categorical or continuous.
 
     Parameters
     ----------

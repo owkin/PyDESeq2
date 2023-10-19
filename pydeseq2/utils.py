@@ -194,6 +194,7 @@ def build_design_matrix(
         If the reference level does not contain two strings
     KeyError
         If the reference level is not in the metadata.
+
     Returns
     -------
     pandas.DataFrame
