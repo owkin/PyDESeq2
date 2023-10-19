@@ -19,6 +19,18 @@ def test_build_single_factor():
     result["a:b"] = [a * b for a, b in zip(original_df["a"], original_df["b"])]
     pd.testing.assert_frame_equal(df, result)
 
+    # 2 interacting terms between categorical factors
+    df = copy.deepcopy(original_df)
+    build_single_interaction_factor(df, "a:b", continuous_factors=None)
+    # The result should be the original df
+    result = copy.deepcopy(original_df)
+    # to which we have added the column concatenating both a and  as str
+    result["a:b"] = [
+        str(a) + str(b) for a, b in zip(original_df["a"], original_df["b"])
+    ]
+    pd.testing.assert_frame_equal(df, result)
+
+
     # 3 interacting terms with the last column being categorical
     df = copy.deepcopy(original_df)
     build_single_interaction_factor(df, "a:b:c", continuous_factors=["a", "b"])
