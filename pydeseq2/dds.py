@@ -1,4 +1,3 @@
-import copy
 import sys
 import time
 import warnings
