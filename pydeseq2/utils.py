@@ -159,7 +159,7 @@ def build_design_matrix(
         DataFrame containing metadata information.
         Must be indexed by sample barcodes.
 
-    design_factors : str, list
+    design_factors : str or list
         Name of the columns of metadata to be used as design variables.
         Interaction terms can also be used such as col1:...:colN.
         Finally, if you wish to use a formula, you can write:
