@@ -273,7 +273,7 @@ def merge_columns(
             if any([des_f_temp in col for des_f_temp in design_factor_list])
         ]
         for col in metadata_cols_to_be_merged:
-            merge_two_columns(col, design_factor[j], metadata, continuous_factors)
+            merge_two_columns(col, design_factor_list[j], metadata, continuous_factors)
     return design_factor_list
 
 
