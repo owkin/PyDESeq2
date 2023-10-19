@@ -27,15 +27,16 @@ from pydeseq2.grid_search import grid_fit_shrink_beta
 
 def load_example_data(
     modality: Literal["raw_counts", "metadata"] = "raw_counts",
-    dataset: Literal["synthetic"] = "synthetic",
+    dataset: Literal["synthetic", "real"] = "synthetic",
+    url_to_data: Union[str, None] = None,
     debug: bool = False,
     debug_seed: int = 42,
 ) -> pd.DataFrame:
-    """Load synthetic example data.
+    """Load example data.
 
-    May load either metadata or rna-seq data. For now, this function may only return the
-    synthetic data provided as part of this repo, but new datasets might be added in the
-    future.
+    May load either metadata or rna-seq data. This function may either return the
+    synthetic data provided as part of this repo, download an example dataset
+    from BioStudies, or use a provided direct link to an processed read count dataset.
 
     Parameters
     ----------
@@ -45,7 +46,14 @@ def load_example_data(
     dataset : str
         The dataset for which to return gene expression data.
         If "synthetic", will return the synthetic data that is used for CI unit tests.
+        If "real", will download and return a real dataset from a given url.
         (default: ``"synthetic"``).
+
+    url_to_data : str
+        The url for the real dataset.
+        If not given, it will be set to the url of a public gene expression profiling
+        study by RNA-seq in colorectal cancer, depending on the desired modality.
+        (default: None).
 
     debug : bool
         If true, subsample 10 samples and 100 genes at random.
@@ -60,13 +68,15 @@ def load_example_data(
         Requested data modality.
     """
 
-    assert modality in ["raw_counts", "metadata"], (
-        "The modality argument must be one of the following: " "raw_counts, metadata"
-    )
+    assert modality in [
+        "raw_counts",
+        "metadata",
+    ], "The modality argument must be one of the following: raw_counts, metadata"
 
     assert dataset in [
-        "synthetic"
-    ], "The dataset argument must be one of the following: synthetic."
+        "synthetic",
+        "real",
+    ], "The dataset argument must be one of the following: synthetic, real"
 
     # Load data
     datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
@@ -100,10 +110,25 @@ def load_example_data(
                 index_col=0,
             )
 
+    elif dataset == "real":
+        default_urls = {
+            "raw_counts": (
+                "http://genomedata.org/gen-viz-workshop/intro_to_deseq2/"
+                "tutorial/E-GEOD-50760-raw-counts.tsv"
+            ),
+            "metadata": (
+                "https://www.ebi.ac.uk/gxa/experiments-content/E-GEOD-50760/"
+                "resources/ExperimentDesignFile.RnaSeq/experiment-design"
+            ),
+        }
+        if not url_to_data:
+            url_to_data = default_urls[modality]
+        df = pd.read_csv(url_to_data, sep="\t")
+
     if debug:
         # TODO: until we provide a larger dataset, this option is useless
         # subsample 10 samples and 100 genes
-        df = df.sample(n=10, axis=0, random_state=debug_seed)
+        df = df.sample(n=10, axis=1, random_state=debug_seed)
         if modality == "raw_counts":
             df = df.sample(n=100, axis="index", random_state=debug_seed)
 
