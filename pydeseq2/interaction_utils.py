@@ -1,6 +1,7 @@
 import copy
 from functools import reduce
-from typing import Union, List
+from typing import List
+from typing import Union
 
 import pandas as pd
 
