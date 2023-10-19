@@ -25,9 +25,7 @@ def test_build_single_factor():
     # The result should be the original df
     result = copy.deepcopy(original_df)
     # to which we have added the column concatenating both a and  as str
-    result["a:b"] = [
-        str(a) + str(b) for a, b in zip(original_df["a"], original_df["b"])
-    ]
+    result["a:b"] = [str(a) + str(b) for a, b in zip(original_df["a"], original_df["b"])]
     pd.testing.assert_frame_equal(df, result)
 
     # 2 interacting terms with one categorical and one continuous column
@@ -46,8 +44,7 @@ def test_build_single_factor():
         for idx, z in enumerate(zeros)
     ]
     result["a_3:b"] = [
-        z if idx != 3 else original_df["b"].iloc[idx]
-        for idx, z in enumerate(zeros)
+        z if idx != 3 else original_df["b"].iloc[idx] for idx, z in enumerate(zeros)
     ]
     pd.testing.assert_frame_equal(df, result)
 
@@ -78,29 +75,31 @@ def test_build_single_factor():
         for idx, z in enumerate(zeros)
     ]
     pd.testing.assert_frame_equal(df, result)
-    
+
     # 3 interacting terms all categorical
     df = copy.deepcopy(original_df)
     build_single_interaction_factor(df, "a:b:c", continuous_factors=None)
     # The result should be the original df
     result = copy.deepcopy(original_df)
-    # to which we have added the following column formed by concatenating 
+    # to which we have added the following column formed by concatenating
     # a, b, c as strings
     result["a:b:c"] = [
-        str(a) + str(b) + str(c) for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
+        str(a) + str(b) + str(c)
+        for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
     ]
     pd.testing.assert_frame_equal(df, result)
 
     # 3 interacting terms all continuous
     original_df["c"] = [float(el) for el in original_df["c"].tolist()]
     df = copy.deepcopy(original_df)
-    build_single_interaction_factor(df, "a:b:c", continuous_factors=["a","b","c"])
+    build_single_interaction_factor(df, "a:b:c", continuous_factors=["a", "b", "c"])
 
     # The result should be the original df
     result = copy.deepcopy(original_df)
-    # to which we have added the following column formed by multiplying 
+    # to which we have added the following column formed by multiplying
     # a, b, c coeff by coeff
     result["a:b:c"] = [
-        a*b*c for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
+        a * b * c
+        for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
     ]
     pd.testing.assert_frame_equal(df, result)

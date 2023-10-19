@@ -1,5 +1,6 @@
-from functools import reduce
 import copy
+from functools import reduce
+
 
 def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
     """
