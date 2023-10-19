@@ -1,5 +1,5 @@
 from functools import reduce
-
+import copy
 
 def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
     """
@@ -171,13 +171,15 @@ def build_single_interaction_factor(metadata, design_factor, continuous_factors)
     continuous_factors : list
         All factors known to be continuous.
     """
+    original_columns = copy.deepcopy(metadata.columns)
     interacting_columns = merge_columns(metadata, design_factor, continuous_factors)
     # Remove all intermediate columns
     # Note this could be removed in case one wants to also know inner interacting terms
+
     columns_to_drop = [
         col
         for col in metadata.columns
-        if not (col in interacting_columns)
+        if not (col in original_columns)
         and any([not (int_col in col) for int_col in interacting_columns])
     ]
     metadata.drop(columns=columns_to_drop, inplace=True)
