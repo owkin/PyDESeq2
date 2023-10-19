@@ -182,7 +182,8 @@ def build_design_matrix(
         (default: ``False``).
 
     intercept : bool
-        If true, add an intercept (a column containing only ones). (default: ``True``).
+        If true, add an intercept (a column containing only ones).
+        (default: ``True``).
 
     Returns
     -------
@@ -193,14 +194,13 @@ def build_design_matrix(
     Raises
     ------
     ValueError
-        If design_factors is not a list
+        If design_factors is not a list.
     ValueError
-        If a factor has only one level
+        If a factor has only one level.
     KeyError
-        If the reference level does not contain two strings
+        If the reference level does not contain two strings.
     KeyError
         If the reference level is not in the metadata.
-
     """
     if isinstance(
         design_factors, str
