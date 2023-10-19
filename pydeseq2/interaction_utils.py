@@ -168,6 +168,8 @@ def multiplex_continuous_factor(
 def build_single_interaction_factor(metadata: pd.DataFrame, design_factor: str, continuous_factors: Union[list[str], None])-> None:
     """Build interaction column into the design matrix.
 
+    Will either do nothing or build interacting factors column.
+
     Parameters
     ----------
     metadata : pd.DataFrame

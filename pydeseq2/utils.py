@@ -184,6 +184,12 @@ def build_design_matrix(
     intercept : bool
         If true, add an intercept (a column containing only ones). (default: ``True``).
 
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame with experiment design information (to split cohorts).
+        Indexed by sample barcodes.
+
     Raises
     ------
     ValueError
@@ -195,11 +201,6 @@ def build_design_matrix(
     KeyError
         If the reference level is not in the metadata.
 
-    Returns
-    -------
-    pandas.DataFrame
-        A DataFrame with experiment design information (to split cohorts).
-        Indexed by sample barcodes.
     """
     if isinstance(
         design_factors, str
