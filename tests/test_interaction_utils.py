@@ -78,3 +78,29 @@ def test_build_single_factor():
         for idx, z in enumerate(zeros)
     ]
     pd.testing.assert_frame_equal(df, result)
+    
+    # 3 interacting terms all categorical
+    df = copy.deepcopy(original_df)
+    build_single_interaction_factor(df, "a:b:c", continuous_factors=None)
+    # The result should be the original df
+    result = copy.deepcopy(original_df)
+    # to which we have added the following column formed by concatenating 
+    # a, b, c as strings
+    result["a:b:c"] = [
+        str(a) + str(b) + str(c) for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
+    ]
+    pd.testing.assert_frame_equal(df, result)
+
+    # 3 interacting terms all continuous
+    original_df["c"] = [float(el) for el in original_df["c"].tolist()]
+    df = copy.deepcopy(original_df)
+    build_single_interaction_factor(df, "a:b:c", continuous_factors=["a","b","c"])
+
+    # The result should be the original df
+    result = copy.deepcopy(original_df)
+    # to which we have added the following column formed by multiplying 
+    # a, b, c coeff by coeff
+    result["a:b:c"] = [
+        a*b*c for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
+    ]
+    pd.testing.assert_frame_equal(df, result)
