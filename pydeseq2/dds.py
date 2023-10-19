@@ -233,11 +233,12 @@ class DeseqDataSet(ad.AnnData):
                 warnings.warn(
                     f"Design factor {design_factors} starts with ~"
                     "therefore we assume the formula syntax is being used."
-                    "Please rename column if this is unwanted behavior"
+                    "Please rename column if this is unwanted behavior",
+                    UserWarning,
+                    stacklevel=2,
                 )
                 if "+" not in design_factors:
                     raise ValueError("Formula is incorrect")
-                design_factors = design_factors.replace("(:) ")
                 design_factors = design_factors[1:].split("+")
                 # Removing trailing and leading space in formula
                 for idx, factor in enumerate(design_factors):
@@ -248,12 +249,8 @@ class DeseqDataSet(ad.AnnData):
             [design_factors] if isinstance(design_factors, str) else design_factors
         )
 
-        # self.continuous_factors = continuous_factors
-        self.continuous_factors = (
-            [continuous_factors]
-            if isinstance(continuous_factors, str)
-            else continuous_factors
-        )
+        self.continuous_factors = continuous_factors
+
         self.single_design_factors = list(
             set(self.design_factors) & set(self.obs.columns)
         )
