@@ -1,8 +1,9 @@
 import copy
 from functools import reduce
+import pandas as pd
+from typing import Union
 
-
-def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
+def merge_categorical_columns_inplace(metadata: pd.DataFrame, left_factor: str, right_factor: str) -> None:
     """
     Merge two categorical columns in a pandas dataframe into a new column.
 
@@ -29,7 +30,7 @@ def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
     ].astype(str)
 
 
-def merge_two_columns(left_factor, right_factor, metadata, continuous_factors):
+def merge_two_columns(left_factor: str, right_factor: str, metadata: pd.DataFrame, continuous_factors: Union[list[str], None] = None) -> None:
     """Merge two columns in the general case.
 
     Handles all cases with both columns categorical, both numeric or one numeric
@@ -88,8 +89,8 @@ def merge_two_columns(left_factor, right_factor, metadata, continuous_factors):
 
 
 def multiplex_continuous_factor(
-    metadata, cat_col_name, cont_col_name, is_right_categorical, continuous_factors
-):
+    metadata: pd.DataFrame, cat_col_name: str, cont_col_name: str, is_right_categorical: bool, continuous_factors: Union[list[str], None] = None,
+) -> None:
     """Multiplex continuous factor into categorical levels.
 
     Merge two columns in the hybrid case where one is categorical and the other
@@ -164,7 +165,7 @@ def multiplex_continuous_factor(
     return interaction_column_names
 
 
-def build_single_interaction_factor(metadata, design_factor, continuous_factors):
+def build_single_interaction_factor(metadata: pd.DataFrame, design_factor: str, continuous_factors: Union[list[str], None])-> None:
     """Build interaction column into the design matrix.
 
     Parameters
@@ -195,7 +196,7 @@ def build_single_interaction_factor(metadata, design_factor, continuous_factors)
     metadata.drop(columns=columns_to_drop, inplace=True)
 
 
-def merge_columns(metadata, design_factor, continuous_factors):
+def merge_columns(metadata: pd.DataFrame, design_factor: str, continuous_factors: Union[list[str], None]) -> None:
     """Merge any combination of any number of columns interacting.
 
     Can handle any number of columns interacting. The columns can be either
@@ -249,8 +250,6 @@ def merge_columns(metadata, design_factor, continuous_factors):
 
 
 if __name__ == "__main__":
-    import pandas as pd
-
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": ["7", "8", "9"]})
     build_single_interaction_factor(df, "a:b:c", continuous_factors=["a", "b"])
 
