@@ -61,9 +61,10 @@ class DeseqDataSet(ad.AnnData):
     design_factors : str or list
         Name of the columns of metadata to be used as design variables.
         Interaction terms can also be used such as col1:...:colN.
-        (default: ``'condition'``). Finally, if you wish to use a formula, you can
-        write: ``"~ col1 + ... + colN + colk1:...:colN1 + ... + colkni:...:colNni"``.
-        In this case, the formula will be parsed and the factors will be extracted.
+        Finally, if you wish to use a formula, you can write:
+        ``"~ col1 + ... + colN + colk1:...:colN1 + ... + colkni:...:colNni"``.
+        In this case, the formula will be parsed and the factors (interacting
+        and non-interacting) will be extracted automatically.
         (default: ``"condition"``).
 
     continuous_factors : list or None
