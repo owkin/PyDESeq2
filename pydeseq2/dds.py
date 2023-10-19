@@ -100,7 +100,7 @@ class DeseqDataSet(ad.AnnData):
     beta_tol : float
         Stopping criterion for IRWLS. (default: ``1e-8``).
 
-        .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
+        .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}. # noqa: E501
 
     n_cpus : int
         Number of cpus to use.  If ``None`` and if ``inference`` is not provided, all

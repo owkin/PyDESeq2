@@ -87,7 +87,8 @@ def multiplex_continuous_factor(
 ):
     """Multiplex continuous factor into categorical levels.
 
-    Merge two columns in the hybrid case where one is categorical and the other continuous.
+    Merge two columns in the hybrid case where one is categorical and the other
+    continuous.
 
     Parameters
     ----------
@@ -137,7 +138,8 @@ def multiplex_continuous_factor(
             metadata[cat_factor_name].astype("str")
             for cat_factor_name in cat_factors_involved_names
         ]
-        # if metadata_cat_involved has only one element then no need to check if the combinaison is in the dataframe
+        # if metadata_cat_involved has only one element then no need to check
+        # if the combinaison is in the dataframe
         if len(metadata_cat_involved) > 1:
             # For some reasons sum doesn't work
             existing_categories = list(
@@ -209,7 +211,8 @@ def merge_columns(metadata, design_factor, continuous_factors):
             raise ValueError(
                 f"Some of the design factors in {design_factor} are not in metadata. It is not allowed to use : in the column names as it is interpreted as an interaction."
             )
-        # The tuples are useful to know which columns are original and which are created
+        # The tuples are useful to know which columns are original and which are
+        # created
 
     else:
         # We leave the dataframe metadata unchanged
