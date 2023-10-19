@@ -51,8 +51,12 @@ def merge_two_columns(left_factor, right_factor, metadata, continuous_factors):
         modifies metadata inplace.
     """
     interaction_column_name = left_factor + ":" + right_factor
-    is_left_categorical = left_factor not in continuous_factors
-    is_right_categorical = right_factor not in continuous_factors
+    if continuous_factors is None:
+        is_left_categorical = True
+        is_right_categorical = True
+    else:
+        is_left_categorical = left_factor not in continuous_factors
+        is_right_categorical = right_factor not in continuous_factors
     is_any_categorical = is_left_categorical or is_right_categorical
     if not is_any_categorical:
         # All factors are continuous
