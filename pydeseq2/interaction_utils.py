@@ -190,9 +190,10 @@ def merge_columns(metadata, design_factor, continuous_factors):
             merge_two_columns(col, design_factor[j], metadata, continuous_factors)
     return design_factor
 
-import pandas as pd 
-df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': ["7", "8", "9"]})
-build_single_interaction_factor(df, "a:b:c", continuous_factors=["a","b"])
+if __name__ == "__main__":
+    import pandas as pd 
+    df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': ["7", "8", "9"]})
+    build_single_interaction_factor(df, "a:b:c", continuous_factors=["a","b"])
 
 
-print(df)
+    print(df)
