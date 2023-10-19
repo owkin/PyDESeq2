@@ -1,3 +1,4 @@
+import copy
 import sys
 import time
 import warnings
@@ -6,7 +7,6 @@ from typing import Literal
 from typing import Optional
 from typing import Union
 from typing import cast
-import copy
 
 import anndata as ad  # type: ignore
 import numpy as np
@@ -231,9 +231,11 @@ class DeseqDataSet(ad.AnnData):
 
         if isinstance(design_factors, str):
             if design_factors.startswith("~"):
-                warnings.warn(f"Design factor {design_factors} starts with ~"
-                "therefore we assume the formula syntax is being used."
-                "Please rename column if this is unwanted behavior")
+                warnings.warn(
+                    f"Design factor {design_factors} starts with ~"
+                    "therefore we assume the formula syntax is being used."
+                    "Please rename column if this is unwanted behavior"
+                )
                 if "+" not in design_factors:
                     raise ValueError("Formula is incorrect")
                 design_factors = design_factors.replace("(:) ")
@@ -242,21 +244,25 @@ class DeseqDataSet(ad.AnnData):
                 for idx, factor in enumerate(design_factors):
                     design_factors[idx] = factor.strip()
 
-
         # Convert design_factors to list if a single string was provided.
         self.design_factors = (
             [design_factors] if isinstance(design_factors, str) else design_factors
         )
 
-
         # self.continuous_factors = continuous_factors
         self.continuous_factors = (
-            [continuous_factors] if isinstance(continuous_factors, str) else continuous_factors
+            [continuous_factors]
+            if isinstance(continuous_factors, str)
+            else continuous_factors
         )
-        self.single_design_factors = list(set(self.design_factors) & set(self.obs.columns))
+        self.single_design_factors = list(
+            set(self.design_factors) & set(self.obs.columns)
+        )
         if self.obs[self.single_design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
-        self.obs[self.single_design_factors] = self.obs[self.single_design_factors].astype(str)
+        self.obs[self.single_design_factors] = self.obs[
+            self.single_design_factors
+        ].astype(str)
 
         # Check that design factors don't contain underscores. If so, convert them to
         # hyphens.
