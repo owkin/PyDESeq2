@@ -209,7 +209,9 @@ def merge_columns(metadata, design_factor, continuous_factors):
         design_factor = design_factor.split(":")
         if not all([des_f in metadata.columns for des_f in design_factor]):
             raise ValueError(
-                f"Some of the design factors in {design_factor} are not in metadata. It is not allowed to use : in the column names as it is interpreted as an interaction."
+                f"Some of the design factors in {design_factor} are not in"
+                "metadata. It is not allowed to use : in the column names as it"
+                "is interpreted as an interaction."
             )
         # The tuples are useful to know which columns are original and which are
         # created
