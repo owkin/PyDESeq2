@@ -30,6 +30,26 @@ def test_build_single_factor():
     ]
     pd.testing.assert_frame_equal(df, result)
 
+    # 2 interacting terms with one categorical and one continuous column
+    df = copy.deepcopy(original_df)
+    build_single_interaction_factor(df, "a:b", continuous_factors=["b"])
+    # The result should be the original df
+    result = copy.deepcopy(original_df)
+    # to which we have added the column multiplexing b to the categories of a
+    zeros = [0.0, 0.0, 0.0, 0.0, 0.0]
+    result["a_1:b"] = [
+        z if idx not in [0, 1] else original_df["b"].iloc[idx]
+        for idx, z in enumerate(zeros)
+    ]
+    result["a_2:b"] = [
+        z if idx not in [2, 4] else original_df["b"].iloc[idx]
+        for idx, z in enumerate(zeros)
+    ]
+    result["a_3:b"] = [
+        z if idx != 3 else original_df["b"].iloc[idx]
+        for idx, z in enumerate(zeros)
+    ]
+    pd.testing.assert_frame_equal(df, result)
 
     # 3 interacting terms with the last column being categorical
     df = copy.deepcopy(original_df)
