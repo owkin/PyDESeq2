@@ -1,6 +1,6 @@
 import copy
 from functools import reduce
-from typing import Union
+from typing import Union, List
 
 import pandas as pd
 
@@ -38,7 +38,7 @@ def merge_two_columns(
     left_factor: str,
     right_factor: str,
     metadata: pd.DataFrame,
-    continuous_factors: Union[list[str], None] = None,
+    continuous_factors: Union[List[str], None] = None,
 ) -> None:
     """Merge two columns in the general case.
 
@@ -102,7 +102,7 @@ def multiplex_continuous_factor(
     cat_col_name: str,
     cont_col_name: str,
     is_right_categorical: bool,
-    continuous_factors: Union[list[str], None] = None,
+    continuous_factors: Union[List[str], None] = None,
 ) -> None:
     """Multiplex continuous factor into categorical levels.
 
@@ -120,7 +120,7 @@ def multiplex_continuous_factor(
     is_right_categorical : bool
         Whether or not the categorical was on the right or left. Needed
         for the creation of the new name.
-    continuous_factors : Union[list[str], None]
+    continuous_factors : Union[List[str], None]
         The list of all known continuous factors.
 
     Returns
@@ -181,7 +181,7 @@ def multiplex_continuous_factor(
 def build_single_interaction_factor(
     metadata: pd.DataFrame,
     design_factor: str,
-    continuous_factors: Union[list[str], None],
+    continuous_factors: Union[List[str], None],
 ) -> None:
     """Build interaction column into the design matrix.
 
@@ -218,8 +218,8 @@ def build_single_interaction_factor(
 def merge_columns(
     metadata: pd.DataFrame,
     design_factor: str,
-    continuous_factors: Union[list[str], None],
-) -> list[str]:
+    continuous_factors: Union[List[str], None],
+) -> List[str]:
     """Merge any combination of any number of columns interacting.
 
     Can handle any number of columns interacting. The columns can be either
