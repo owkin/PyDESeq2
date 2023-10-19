@@ -10,7 +10,6 @@ def test_build_single_factor():
         {"a": [1, 1, 2, 3, 2], "b": [4, 5, 6, 7, 8], "c": ["7", "8", "9", "10", "10"]}
     )
 
-    
     # 2 interaction terms between continuous factors
     df = copy.deepcopy(original_df)
     build_single_interaction_factor(df, "a:b", continuous_factors=["a", "b"])
@@ -19,7 +18,7 @@ def test_build_single_factor():
     # to which we have added the column multiplying both a and b coeff by coeff
     result["a:b"] = [a * b for a, b in zip(original_df["a"], original_df["b"])]
     pd.testing.assert_frame_equal(df, result)
-    
+
     # 3 interacting terms with the last column being categorical
     df = copy.deepcopy(original_df)
     build_single_interaction_factor(df, "a:b:c", continuous_factors=["a", "b"])
