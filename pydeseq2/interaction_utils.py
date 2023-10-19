@@ -1,9 +1,13 @@
 import copy
 from functools import reduce
-import pandas as pd
 from typing import Union
 
-def merge_categorical_columns_inplace(metadata: pd.DataFrame, left_factor: str, right_factor: str) -> None:
+import pandas as pd
+
+
+def merge_categorical_columns_inplace(
+    metadata: pd.DataFrame, left_factor: str, right_factor: str
+) -> None:
     """
     Merge two categorical columns in a pandas dataframe into a new column.
 
@@ -30,7 +34,12 @@ def merge_categorical_columns_inplace(metadata: pd.DataFrame, left_factor: str, 
     ].astype(str)
 
 
-def merge_two_columns(left_factor: str, right_factor: str, metadata: pd.DataFrame, continuous_factors: Union[list[str], None] = None) -> None:
+def merge_two_columns(
+    left_factor: str,
+    right_factor: str,
+    metadata: pd.DataFrame,
+    continuous_factors: Union[list[str], None] = None,
+) -> None:
     """Merge two columns in the general case.
 
     Handles all cases with both columns categorical, both numeric or one numeric
@@ -65,12 +74,12 @@ def merge_two_columns(left_factor: str, right_factor: str, metadata: pd.DataFram
         metadata[interaction_column_name] = (
             metadata[left_factor] * metadata[right_factor]
         )
-        continuous_factors.append(interaction_column_name)
-        return [interaction_column_name]
+        continuous_factors.append(interaction_column_name)  # type: ignore # noqa: F401
+        return
     else:
         if is_left_categorical and is_right_categorical:
             merge_categorical_columns_inplace(metadata, left_factor, right_factor)
-            return [interaction_column_name]
+            return
 
         elif is_left_categorical:
             cat_col_name = left_factor
@@ -89,7 +98,11 @@ def merge_two_columns(left_factor: str, right_factor: str, metadata: pd.DataFram
 
 
 def multiplex_continuous_factor(
-    metadata: pd.DataFrame, cat_col_name: str, cont_col_name: str, is_right_categorical: bool, continuous_factors: Union[list[str], None] = None,
+    metadata: pd.DataFrame,
+    cat_col_name: str,
+    cont_col_name: str,
+    is_right_categorical: bool,
+    continuous_factors: Union[list[str], None] = None,
 ) -> None:
     """Multiplex continuous factor into categorical levels.
 
@@ -107,18 +120,17 @@ def multiplex_continuous_factor(
     is_right_categorical : bool
         Whether or not the categorical was on the right or left. Needed
         for the creation of the new name.
-    continuous_factors : list
+    continuous_factors : Union[list[str], None]
         The list of all known continuous factors.
 
     Returns
     -------
-    list
-        All columns that are interacting.
+    None
+        Modifies stuff inplace.
     """
     cat_levels = metadata[cat_col_name].unique()
     # We multiplex the continuous variable to cat_levels continuous variables
     # that are cont_col_name when the level is activated and 0 otherwise
-    interaction_column_names = []
     left_factor = cont_col_name if is_right_categorical else cat_col_name
     right_factor = cat_col_name if is_right_categorical else cont_col_name
     for cat_level in cat_levels:
@@ -160,12 +172,17 @@ def multiplex_continuous_factor(
         metadata[current_col_name] = (metadata[cat_col_name] == cat_level).astype(
             "float"
         ) * metadata[cont_col_name]
-        interaction_column_names.append(current_col_name)
-        continuous_factors.append(current_col_name)
-    return interaction_column_names
+        # I allow myself to ignore mypy as continuous_factors has to be a list
+        # now because if it was None then we could not have ended up in this
+        # function
+        continuous_factors.append(current_col_name)  # type: ignore [union-attr]
 
 
-def build_single_interaction_factor(metadata: pd.DataFrame, design_factor: str, continuous_factors: Union[list[str], None])-> None:
+def build_single_interaction_factor(
+    metadata: pd.DataFrame,
+    design_factor: str,
+    continuous_factors: Union[list[str], None],
+) -> None:
     """Build interaction column into the design matrix.
 
     Will either do nothing or build interacting factors column.
@@ -198,7 +215,11 @@ def build_single_interaction_factor(metadata: pd.DataFrame, design_factor: str, 
     metadata.drop(columns=columns_to_drop, inplace=True)
 
 
-def merge_columns(metadata: pd.DataFrame, design_factor: str, continuous_factors: Union[list[str], None]) -> None:
+def merge_columns(
+    metadata: pd.DataFrame,
+    design_factor: str,
+    continuous_factors: Union[list[str], None],
+) -> list[str]:
     """Merge any combination of any number of columns interacting.
 
     Can handle any number of columns interacting. The columns can be either
@@ -224,10 +245,10 @@ def merge_columns(metadata: pd.DataFrame, design_factor: str, continuous_factors
         If the columns to interact do not exist.
     """
     if ":" in design_factor:
-        design_factor = design_factor.split(":")
-        if not all([des_f in metadata.columns for des_f in design_factor]):
+        design_factor_list = design_factor.split(":")
+        if not all([des_f in metadata.columns for des_f in design_factor_list]):
             raise ValueError(
-                f"Some of the design factors in {design_factor} are not in"
+                f"Some of the design factors in {design_factor_list} are not in"
                 "metadata. It is not allowed to use : in the column names as it"
                 "is interpreted as an interaction."
             )
@@ -236,19 +257,23 @@ def merge_columns(metadata: pd.DataFrame, design_factor: str, continuous_factors
 
     else:
         # We leave the dataframe metadata unchanged
-        return [design_factor]
+        design_factor_list = [design_factor]
+        return design_factor_list
+
     # List is at least of size 2
-    merge_two_columns(design_factor[0], design_factor[1], metadata, continuous_factors)
-    for j in range(2, len(design_factor)):
+    merge_two_columns(
+        design_factor_list[0], design_factor_list[1], metadata, continuous_factors
+    )
+    for j in range(2, len(design_factor_list)):
         # Only some columns of metadata are eligible to be merged
         metadata_cols_to_be_merged = [
             col
             for col in metadata.columns
-            if any([des_f_temp in col for des_f_temp in design_factor])
+            if any([des_f_temp in col for des_f_temp in design_factor_list])
         ]
         for col in metadata_cols_to_be_merged:
             merge_two_columns(col, design_factor[j], metadata, continuous_factors)
-    return design_factor
+    return design_factor_list
 
 
 if __name__ == "__main__":
