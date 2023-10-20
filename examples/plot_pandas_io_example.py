@@ -24,6 +24,7 @@ import pandas as pd
 
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
+from pydeseq2.default_inference import DefaultInference
 
 # Replace this with the path to directory where you would like results to be saved
 OUTPUT_PATH = "../output_files/synthetic_example/"
@@ -120,13 +121,13 @@ counts_df = counts_df[genes_to_keep]
 # We start by creating a :class:`DeseqDataSet`
 # object from the count and metadata data that were just loaded.
 #
-
+inference = DefaultInference(n_cpus=8)
 dds = DeseqDataSet(
     counts=counts_df,
     metadata=metadata,
     design_factors="condition",
     refit_cooks=True,
-    n_cpus=8,
+    inference=inference,
 )
 
 # %%
@@ -195,7 +196,7 @@ print(dds.varm["LFC"])
 # compute p-values and adjusted p-values for differential expresion. This is the role of
 # the :class:`DeseqStats <ds.DeseqStats>` class.
 
-stat_res = DeseqStats(dds, n_cpus=8)
+stat_res = DeseqStats(dds, inference=inference)
 
 # %%
 # PyDESeq2 computes p-values using Wald tests. This can be done using the
