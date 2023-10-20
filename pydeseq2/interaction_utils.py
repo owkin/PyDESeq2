@@ -4,11 +4,14 @@ from typing import List
 from typing import Union
 
 import pandas as pd
+
 # from pydeseq2.utils import build_design_matrix
 
 
 def merge_categorical_columns_inplace(
-    metadata: pd.DataFrame, left_factor: str, right_factor: str,
+    metadata: pd.DataFrame,
+    left_factor: str,
+    right_factor: str,
 ) -> None:
     """
     Merge two categorical columns in a pandas dataframe into a new column.
@@ -76,9 +79,9 @@ def merge_two_columns(
     is_any_categorical = is_left_categorical or is_right_categorical
     if not is_any_categorical:
         # All factors are continuous
-        metadata[interaction_column_name] = (
-            pd.to_numeric(metadata[left_factor]) * pd.to_numeric(metadata[right_factor])
-        )
+        metadata[interaction_column_name] = pd.to_numeric(
+            metadata[left_factor]
+        ) * pd.to_numeric(metadata[right_factor])
         continuous_factors.append(interaction_column_name)  # type: ignore # noqa: F401
         return
     else:
@@ -223,7 +226,9 @@ def build_single_interaction_factor(
         Modifies stuff inplace.
     """
     original_columns = copy.deepcopy(metadata.columns)
-    interacting_columns = merge_columns(metadata, design_factor, design_factors, continuous_factors)
+    interacting_columns = merge_columns(
+        metadata, design_factor, design_factors, continuous_factors
+    )
     # Remove all intermediate columns
     # Note this could be removed in case one wants to also know inner interacting terms
 
@@ -240,7 +245,6 @@ def build_single_interaction_factor(
         for cont_factor in copy.deepcopy(continuous_factors):
             if cont_factor in columns_to_drop:
                 continuous_factors.remove(cont_factor)
-
 
 
 def merge_columns(
@@ -293,7 +297,11 @@ def merge_columns(
 
     # List is at least of size 2
     merge_two_columns(
-        design_factor_list[0], design_factor_list[1], design_factors, metadata, continuous_factors
+        design_factor_list[0],
+        design_factor_list[1],
+        design_factors,
+        metadata,
+        continuous_factors,
     )
     for j in range(2, len(design_factor_list)):
         # Only some columns of metadata are eligible to be merged
@@ -303,11 +311,13 @@ def merge_columns(
             if any([des_f_temp in col for des_f_temp in design_factor_list])
         ]
         for col in metadata_cols_to_be_merged:
-            merge_two_columns(col, design_factor_list[j], design_factors, metadata, continuous_factors)
+            merge_two_columns(
+                col, design_factor_list[j], design_factors, metadata, continuous_factors
+            )
     return design_factor_list
 
 
 if __name__ == "__main__":
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": ["7", "8", "9"]})
-    build_single_interaction_factor(df, "a", ["a","b"], continuous_factors=["a", "b"])
+    build_single_interaction_factor(df, "a", ["a", "b"], continuous_factors=["a", "b"])
     print(df)

@@ -12,7 +12,9 @@ def test_build_single_factor():
     design_factors = []
     # 2 interaction terms between continuous factors
     df = copy.deepcopy(original_df)
-    build_single_interaction_factor(df, "a:b", design_factors, continuous_factors=["a", "b"])
+    build_single_interaction_factor(
+        df, "a:b", design_factors, continuous_factors=["a", "b"]
+    )
     # The result should be the original df
     result = copy.deepcopy(original_df)
     # to which we have added the column multiplying both a and b coeff by coeff
@@ -50,7 +52,9 @@ def test_build_single_factor():
 
     # 3 interacting terms with the last column being categorical
     df = copy.deepcopy(original_df)
-    build_single_interaction_factor(df, "a:b:c", design_factors, continuous_factors=["a", "b"])
+    build_single_interaction_factor(
+        df, "a:b:c", design_factors, continuous_factors=["a", "b"]
+    )
     # The result should be the original df
     result = copy.deepcopy(original_df)
     # to which we have added the following column multiplexe against the possible
@@ -94,7 +98,9 @@ def test_build_single_factor():
     df = copy.deepcopy(original_df)
     original_continuous_factors = ["a", "b", "c"]
     continuous_factors = copy.deepcopy(original_continuous_factors)
-    build_single_interaction_factor(df, "a:b:c", design_factors, continuous_factors=continuous_factors)
+    build_single_interaction_factor(
+        df, "a:b:c", design_factors, continuous_factors=continuous_factors
+    )
 
     # The result should be the original df
     result = copy.deepcopy(original_df)
