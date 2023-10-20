@@ -169,10 +169,10 @@ class DeseqDataSet(ad.AnnData):
         gamma-family GLM. mean - use the mean of gene-wise dispersion estimates.
         (default: ``"parametric"``).
 
-    logmeans: ndarray
+    logmeans: numpy.ndarray
         Gene-wise mean log counts, computed in preprocessing.deseq2_norm_fit().
 
-    filtered_genes: ndarray
+    filtered_genes: numpy.ndarray
         Genes which log means are different from -∞, computed in
         preprocessing.deseq2_norm_fit().
 
@@ -373,13 +373,13 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        counts : np.ndarray
+        counts : numpy.ndarray
             Counts to transform. If ``None``, use the counts from the current dataset.
             (default: ``None``).
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Variance stabilized counts.
         """
 
