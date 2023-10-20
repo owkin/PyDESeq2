@@ -8,18 +8,14 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
-from joblib import Parallel  # type: ignore
-from joblib import delayed  # type: ignore
-from joblib import parallel_backend  # type: ignore
 from scipy.optimize import root_scalar  # type: ignore
 from scipy.stats import f  # type: ignore
 from statsmodels.stats.multitest import multipletests  # type: ignore
 
 from pydeseq2.dds import DeseqDataSet
-from pydeseq2.utils import get_num_processes
+from pydeseq2.default_inference import DefaultInference
+from pydeseq2.inference import Inference
 from pydeseq2.utils import make_MA_plot
-from pydeseq2.utils import nbinomGLM
-from pydeseq2.utils import wald_test
 
 
 class DeseqStats:
@@ -58,10 +54,6 @@ class DeseqStats:
         Whether to perform independent filtering to correct p-value trends.
         (default: ``True``).
 
-    n_cpus : int
-        Number of cpus to use for multiprocessing.
-        If None, all available CPUs will be used. (default: ``None``).
-
     prior_LFC_var : ndarray
         Prior variance for LFCs, used for ridge regularization. (default: ``None``).
 
@@ -76,12 +68,9 @@ class DeseqStats:
         The alternative hypothesis corresponds to what the user wants to find rather
         than the null hypothesis. (default: ``None``).
 
-    batch_size : int
-        Number of tasks to allocate to each joblib parallel worker. (default: ``128``).
-
-    joblib_verbosity : int
-        The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported. (default: ``0``).
+    inference: Inference
+        Implementation of inference routines object instance.
+        (default: :class:`DefaultInference <pydeseq2.inference.DefaultInference>`).
 
     quiet : bool
         Suppress deseq2 status updates during fit.
@@ -149,14 +138,12 @@ class DeseqStats:
         alpha: float = 0.05,
         cooks_filter: bool = True,
         independent_filter: bool = True,
-        n_cpus: Optional[int] = None,
         prior_LFC_var: Optional[np.ndarray] = None,
         lfc_null: float = 0.0,
         alt_hypothesis: Optional[
             Literal["greaterAbs", "lessAbs", "greater", "less"]
         ] = None,
-        batch_size: int = 128,
-        joblib_verbosity: int = 0,
+        inference: Optional[Inference] = None,
         quiet: bool = False,
     ) -> None:
         assert (
@@ -192,10 +179,10 @@ class DeseqStats:
 
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
-        self.n_processes = get_num_processes(n_cpus)
-        self.batch_size = batch_size
-        self.joblib_verbosity = joblib_verbosity
         self.quiet = quiet
+
+        # Initialize the inference object.
+        self.inference = inference or DefaultInference()
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
@@ -289,7 +276,6 @@ class DeseqStats:
         Get gene-wise p-values for gene over/under-expression.`
         """
 
-        num_genes = self.dds.n_vars
         num_vars = self.design_matrix.shape[1]
 
         # Raise a warning if LFCs are shrunk.
@@ -320,29 +306,19 @@ class DeseqStats:
         if not self.quiet:
             print("Running Wald tests...", file=sys.stderr)
         start = time.time()
-        with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
-            )(
-                delayed(wald_test)(
-                    design_matrix=design_matrix,
-                    disp=self.dds.varm["dispersions"][i],
-                    lfc=LFCs[i],
-                    mu=mu[:, i],
-                    ridge_factor=ridge_factor,
-                    contrast=self.contrast_vector,
-                    lfc_null=np.log(2) * self.lfc_null,  # Convert log2 to natural log
-                    alt_hypothesis=self.alt_hypothesis,
-                )
-                for i in range(num_genes)
-            )
+        pvals, stats, se = self.inference.wald_test(
+            design_matrix=design_matrix,
+            disp=self.dds.varm["dispersions"],
+            lfc=LFCs,
+            mu=mu,
+            ridge_factor=ridge_factor,
+            contrast=self.contrast_vector,
+            lfc_null=np.log(2) * self.lfc_null,  # Convert log2 to natural log
+            alt_hypothesis=self.alt_hypothesis,
+        )
         end = time.time()
         if not self.quiet:
             print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
-
-        pvals, stats, se = zip(*res)
 
         self.p_values: pd.Series = pd.Series(pvals, index=self.dds.var_names)
         self.statistics: pd.Series = pd.Series(stats, index=self.dds.var_names)
@@ -423,29 +399,19 @@ class DeseqStats:
         if not self.quiet:
             print("Fitting MAP LFCs...", file=sys.stderr)
         start = time.time()
-        with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
-            )(
-                delayed(nbinomGLM)(
-                    design_matrix=design_matrix,
-                    counts=self.dds.X[:, i],
-                    size=size[i],
-                    offset=offset,
-                    prior_no_shrink_scale=prior_no_shrink_scale,
-                    prior_scale=prior_scale,
-                    optimizer="L-BFGS-B",
-                    shrink_index=coeff_idx,
-                )
-                for i in self.dds.non_zero_idx
-            )
+        lfcs, inv_hessians, l_bfgs_b_converged_ = self.inference.lfc_shrink_nbinom_glm(
+            design_matrix=design_matrix,
+            counts=self.dds.X[:, self.dds.non_zero_idx],
+            size=size[self.dds.non_zero_idx],
+            offset=offset,
+            prior_no_shrink_scale=prior_no_shrink_scale,
+            prior_scale=prior_scale,
+            optimizer="L-BFGS-B",
+            shrink_index=coeff_idx,
+        )
         end = time.time()
         if not self.quiet:
             print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
-
-        lfcs, inv_hessians, l_bfgs_b_converged_ = zip(*res)
 
         self.LFC.iloc[:, coeff_idx].update(
             pd.Series(
