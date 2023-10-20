@@ -19,6 +19,7 @@ import pickle as pkl
 
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
+from pydeseq2.default_inference import DefaultInference
 from pydeseq2.utils import load_example_data
 
 SAVE = False  # whether to save the outputs of this notebook
@@ -128,13 +129,13 @@ counts_df = counts_df[genes_to_keep]
 # A :class:`DeseqDataSet` fits dispersion and
 # log-fold change (LFC) parameters from the data, and stores them.
 #
-
+inference = DefaultInference(n_cpus=8)
 dds = DeseqDataSet(
     counts=counts_df,
     metadata=metadata,
     design_factors="condition",
     refit_cooks=True,
-    n_cpus=8,
+    inference=inference,
 )
 
 # %%
@@ -217,7 +218,7 @@ print(dds.varm["LFC"])
 # should be a *fitted* :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`
 # object.
 
-stat_res = DeseqStats(dds, n_cpus=8)
+stat_res = DeseqStats(dds, inference=inference)
 
 # %%
 # It also has a set of optional keyword arguments (see the :doc:`API documentation
@@ -319,7 +320,7 @@ dds = DeseqDataSet(
     metadata=metadata,
     design_factors=["group", "condition"],
     refit_cooks=True,
-    n_cpus=8,
+    inference=inference,
 )
 # %%
 # .. note::
@@ -354,7 +355,7 @@ print(dds.varm["LFC"])
 # ``contrast=["condition", "B", "A"]``.
 #
 
-stat_res_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"], n_cpus=8)
+stat_res_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"], inference=inference)
 
 # %%
 # .. note::
@@ -381,7 +382,7 @@ stat_res_B_vs_A.summary()
 # :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`
 # with ``contrast=["group", "Y", "X"]``, and run the analysis again.
 
-stat_res_Y_vs_X = DeseqStats(dds, contrast=["group", "Y", "X"], n_cpus=8)
+stat_res_Y_vs_X = DeseqStats(dds, contrast=["group", "Y", "X"], inference=inference)
 stat_res_Y_vs_X.summary()
 
 # %%
