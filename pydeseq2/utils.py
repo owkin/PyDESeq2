@@ -254,10 +254,11 @@ def build_design_matrix(
         build_single_interaction_factor(
             metadata, factor, atomic_design_factors, continuous_factors
         )
-
+    # When merging continuous and non continuous variables the names are
+    # changing so we can't use design factors
     if continuous_factors is not None:
         categorical_factors = [
-            factor for factor in design_factors if factor not in continuous_factors
+            factor for factor in metadata.columns if factor not in continuous_factors
         ]
     else:
         categorical_factors = design_factors
@@ -300,7 +301,7 @@ def build_design_matrix(
 
         if not expanded:
             # Add reference level as column name suffix
-            for factor in design_factors:
+            for factor in categorical_factors:
                 if ref_level is None or factor != ref_level[0]:
                     # The reference is the unique level that is no longer there
                     ref = next(
