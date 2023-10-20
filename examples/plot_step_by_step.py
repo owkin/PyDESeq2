@@ -24,6 +24,7 @@ import pickle as pkl
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
 from pydeseq2.utils import load_example_data
+from pydeseq2.default_inference import DefaultInference
 
 SAVE = False  # whether to save the outputs of this notebook
 
@@ -86,14 +87,14 @@ metadata = load_example_data(
 # .. note::
 #   in the case of the provided synthetic data, there won't be any Cooks
 #   outliers.
-
+inference = DefaultInference(n_cpus=8)
 dds = DeseqDataSet(
     counts=counts_df,
     metadata=metadata,
     design_factors="condition",  # compare samples based on the "condition"
     # column ("B" vs "A")
     refit_cooks=True,
-    n_cpus=8,
+    inference=inference,
 )
 
 # %%
