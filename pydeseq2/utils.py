@@ -160,13 +160,9 @@ def build_design_matrix(
         DataFrame containing metadata information.
         Must be indexed by sample barcodes.
 
-    design_factors : str or list
+    design_factors : list
         Name of the columns of metadata to be used as design variables.
         Interaction terms can also be used such as col1:...:colN.
-        Finally, if you wish to use a formula, you can write:
-        ``"~ col1 + ... + colN + colk1:...:colN1 + ... + colkni:...:colNni"``.
-        In this case, the formula will be parsed and the factors (interacting
-        and non-interacting) will be extracted automatically.
         (default: ``"condition"``).
 
     ref_level : list or None
