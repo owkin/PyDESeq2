@@ -92,7 +92,9 @@ def test_build_single_factor():
     # 3 interacting terms all continuous
     original_df["c"] = [float(el) for el in original_df["c"].tolist()]
     df = copy.deepcopy(original_df)
-    build_single_interaction_factor(df, "a:b:c", continuous_factors=["a", "b", "c"])
+    original_continuous_factors = ["a", "b", "c"]
+    continuous_factors = copy.deepcopy(original_continuous_factors)
+    build_single_interaction_factor(df, "a:b:c", continuous_factors=continuous_factors)
 
     # The result should be the original df
     result = copy.deepcopy(original_df)
@@ -103,3 +105,5 @@ def test_build_single_factor():
         for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
     ]
     pd.testing.assert_frame_equal(df, result)
+    # Make sure that we have not kept intermediate result in continuous factors
+    assert set(continuous_factors) == set(original_continuous_factors + ["a:b:c"])
