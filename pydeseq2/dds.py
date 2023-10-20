@@ -10,25 +10,16 @@ from typing import cast
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm  # type: ignore
-from joblib import Parallel  # type: ignore
-from joblib import delayed
-from joblib import parallel_backend
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
-from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
+from pydeseq2.default_inference import DefaultInference
+from pydeseq2.inference import Inference
 from pydeseq2.preprocessing import deseq2_norm
 from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
-from pydeseq2.utils import fit_alpha_mle
-from pydeseq2.utils import fit_lin_mu
-from pydeseq2.utils import fit_moments_dispersions
-from pydeseq2.utils import fit_rough_dispersions
-from pydeseq2.utils import get_num_processes
-from pydeseq2.utils import irls_solver
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import nb_nll
@@ -37,8 +28,6 @@ from pydeseq2.utils import robust_method_of_moments_disp
 from pydeseq2.utils import test_valid_counts
 from pydeseq2.utils import trimmed_mean
 
-# Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
-warnings.simplefilter("ignore", DomainWarning)
 # Ignore AnnData's FutureWarning about implicit data conversion.
 warnings.simplefilter("ignore", FutureWarning)
 
@@ -103,16 +92,9 @@ class DeseqDataSet(ad.AnnData):
 
         .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
 
-    n_cpus : int
-        Number of cpus to use. If None, all available cpus will be used.
-        (default: ``None``).
-
-    batch_size : int
-        Number of tasks to allocate to each joblib parallel worker. (default: ``128``).
-
-    joblib_verbosity : int
-        The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported. (default: ``0``).
+    inference: Inference
+        Implementation of inference routines object instance.
+        (default: :class:`DefaultInference <pydeseq2.inference.DefaultInference>`).
 
     quiet : bool
         Suppress deseq2 status updates during fit.
@@ -183,9 +165,7 @@ class DeseqDataSet(ad.AnnData):
         refit_cooks: bool = True,
         min_replicates: int = 7,
         beta_tol: float = 1e-8,
-        n_cpus: Optional[int] = None,
-        batch_size: int = 128,
-        joblib_verbosity: int = 0,
+        inference: Optional[Inference] = None,
         quiet: bool = False,
     ) -> None:
         # Initialize the AnnData part
@@ -273,10 +253,10 @@ class DeseqDataSet(ad.AnnData):
         self.ref_level = ref_level
         self.min_replicates = min_replicates
         self.beta_tol = beta_tol
-        self.n_processes = get_num_processes(n_cpus)
-        self.batch_size = batch_size
-        self.joblib_verbosity = joblib_verbosity
         self.quiet = quiet
+
+        # Initialize the inference object.
+        self.inference = inference or DefaultInference()
 
     def vst(
         self,
@@ -440,72 +420,40 @@ class DeseqDataSet(ad.AnnData):
             len(self.obsm["design_matrix"].value_counts())
             == self.obsm["design_matrix"].shape[-1]
         ):
-            with parallel_backend("loky", inner_max_num_threads=1):
-                mu_hat_ = np.array(
-                    Parallel(
-                        n_jobs=self.n_processes,
-                        verbose=self.joblib_verbosity,
-                        batch_size=self.batch_size,
-                    )(
-                        delayed(fit_lin_mu)(
-                            counts=self.X[:, i],
-                            size_factors=self.obsm["size_factors"],
-                            design_matrix=design_matrix,
-                            min_mu=self.min_mu,
-                        )
-                        for i in self.non_zero_idx
-                    )
-                )
+            mu_hat_ = self.inference.lin_reg_mu(
+                counts=self.X[:, self.non_zero_idx],
+                size_factors=self.obsm["size_factors"],
+                design_matrix=design_matrix,
+                min_mu=self.min_mu,
+            )
         else:
-            with parallel_backend("loky", inner_max_num_threads=1):
-                res = Parallel(
-                    n_jobs=self.n_processes,
-                    verbose=self.joblib_verbosity,
-                    batch_size=self.batch_size,
-                )(
-                    delayed(irls_solver)(
-                        counts=self.X[:, i],
-                        size_factors=self.obsm["size_factors"],
-                        design_matrix=design_matrix,
-                        disp=self.varm["_MoM_dispersions"][i],
-                        min_mu=self.min_mu,
-                        beta_tol=self.beta_tol,
-                    )
-                    for i in self.non_zero_idx
-                )
-
-                _, mu_hat_, _, _ = zip(*res)
-                mu_hat_ = np.array(mu_hat_)
+            _, mu_hat_, _, _ = self.inference.irls(
+                counts=self.X[:, self.non_zero_idx],
+                size_factors=self.obsm["size_factors"],
+                design_matrix=design_matrix,
+                disp=self.varm["_MoM_dispersions"][self.non_zero_idx],
+                min_mu=self.min_mu,
+                beta_tol=self.beta_tol,
+            )
 
         self.layers["_mu_hat"] = np.full((self.n_obs, self.n_vars), np.NaN)
-        self.layers["_mu_hat"][:, self.varm["non_zero"]] = mu_hat_.T
+        self.layers["_mu_hat"][:, self.varm["non_zero"]] = mu_hat_
 
         if not self.quiet:
             print("Fitting dispersions...", file=sys.stderr)
         start = time.time()
-        with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
-            )(
-                delayed(fit_alpha_mle)(
-                    counts=self.X[:, i],
-                    design_matrix=design_matrix,
-                    mu=self.layers["_mu_hat"][:, i],
-                    alpha_hat=self.varm["_MoM_dispersions"][i],
-                    min_disp=self.min_disp,
-                    max_disp=self.max_disp,
-                )
-                # for i in range(num_genes)
-                for i in self.non_zero_idx
-            )
+        dispersions_, l_bfgs_b_converged_ = self.inference.alpha_mle(
+            counts=self.X[:, self.non_zero_idx],
+            design_matrix=design_matrix,
+            mu=self.layers["_mu_hat"][:, self.non_zero_idx],
+            alpha_hat=self.varm["_MoM_dispersions"][self.non_zero_idx],
+            min_disp=self.min_disp,
+            max_disp=self.max_disp,
+        )
         end = time.time()
 
         if not self.quiet:
             print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
-
-        dispersions_, l_bfgs_b_converged_ = zip(*res)
 
         self.varm["genewise_dispersions"] = np.full(self.n_vars, np.NaN)
         self.varm["genewise_dispersions"][self.varm["non_zero"]] = np.clip(
@@ -535,11 +483,9 @@ class DeseqDataSet(ad.AnnData):
             self[:, self.non_zero_genes].varm["genewise_dispersions"].copy(),
             index=self.non_zero_genes,
         )
-        covariates = sm.add_constant(
-            pd.Series(
-                1 / self[:, self.non_zero_genes].varm["_normed_means"],
-                index=self.non_zero_genes,
-            )
+        covariates = pd.Series(
+            1 / self[:, self.non_zero_genes].varm["_normed_means"],
+            index=self.non_zero_genes,
         )
 
         for gene in self.non_zero_genes:
@@ -555,18 +501,11 @@ class DeseqDataSet(ad.AnnData):
         coeffs = pd.Series([1.0, 1.0])
 
         while (np.log(np.abs(coeffs / old_coeffs)) ** 2).sum() >= 1e-6:
-            glm_gamma = sm.GLM(
-                targets.values,
-                covariates.values,
-                family=sm.families.Gamma(link=sm.families.links.identity()),
+            old_coeffs = coeffs
+            coeffs, predictions = self.inference.dispersion_trend_gamma_glm(
+                covariates, targets
             )
-
-            res = glm_gamma.fit()
-            old_coeffs = coeffs.copy()
-            coeffs = res.params
-
             # Filter out genes that are too far away from the curve before refitting
-            predictions = covariates.values @ coeffs
             pred_ratios = (
                 self[:, covariates.index].varm["genewise_dispersions"] / predictions
             )
@@ -656,31 +595,21 @@ class DeseqDataSet(ad.AnnData):
         if not self.quiet:
             print("Fitting MAP dispersions...", file=sys.stderr)
         start = time.time()
-        with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
-            )(
-                delayed(fit_alpha_mle)(
-                    counts=self.X[:, i],
-                    design_matrix=design_matrix,
-                    mu=self.layers["_mu_hat"][:, i],
-                    alpha_hat=self.varm["fitted_dispersions"][i],
-                    min_disp=self.min_disp,
-                    max_disp=self.max_disp,
-                    prior_disp_var=self.uns["prior_disp_var"].item(),
-                    cr_reg=True,
-                    prior_reg=True,
-                )
-                for i in self.non_zero_idx
-            )
+        dispersions_, l_bfgs_b_converged_ = self.inference.alpha_mle(
+            counts=self.X[:, self.non_zero_idx],
+            design_matrix=design_matrix,
+            mu=self.layers["_mu_hat"][:, self.non_zero_idx],
+            alpha_hat=self.varm["fitted_dispersions"][self.non_zero_idx],
+            min_disp=self.min_disp,
+            max_disp=self.max_disp,
+            prior_disp_var=self.uns["prior_disp_var"].item(),
+            cr_reg=True,
+            prior_reg=True,
+        )
         end = time.time()
 
         if not self.quiet:
             print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
-
-        dispersions_, l_bfgs_b_converged_ = zip(*res)
 
         self.varm["MAP_dispersions"] = np.full(self.n_vars, np.NaN)
         self.varm["MAP_dispersions"][self.varm["non_zero"]] = np.clip(
@@ -716,30 +645,18 @@ class DeseqDataSet(ad.AnnData):
         if not self.quiet:
             print("Fitting LFCs...", file=sys.stderr)
         start = time.time()
-        with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
-            )(
-                delayed(irls_solver)(
-                    counts=self.X[:, i],
-                    size_factors=self.obsm["size_factors"],
-                    design_matrix=design_matrix,
-                    disp=self.varm["dispersions"][i],
-                    min_mu=self.min_mu,
-                    beta_tol=self.beta_tol,
-                )
-                for i in self.non_zero_idx
-            )
+        MLE_lfcs_, mu_, hat_diagonals_, converged_ = self.inference.irls(
+            counts=self.X[:, self.non_zero_idx],
+            size_factors=self.obsm["size_factors"],
+            design_matrix=design_matrix,
+            disp=self.varm["dispersions"][self.non_zero_idx],
+            min_mu=self.min_mu,
+            beta_tol=self.beta_tol,
+        )
         end = time.time()
 
         if not self.quiet:
             print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
-
-        MLE_lfcs_, mu_, hat_diagonals_, converged_ = zip(*res)
-        mu_ = np.array(mu_).T
-        hat_diagonals_ = np.array(hat_diagonals_).T
 
         self.varm["LFC"] = pd.DataFrame(
             np.NaN,
@@ -829,11 +746,11 @@ class DeseqDataSet(ad.AnnData):
         if "normed_counts" not in self.layers:
             self.fit_size_factors()
 
-        rde = fit_rough_dispersions(
+        rde = self.inference.fit_rough_dispersions(
             self.layers["normed_counts"],
-            self.obsm["design_matrix"],
+            self.obsm["design_matrix"].values,
         )
-        mde = fit_moments_dispersions(
+        mde = self.inference.fit_moments_dispersions(
             self.layers["normed_counts"], self.obsm["size_factors"]
         )
         alpha_hat = np.minimum(rde, mde)
@@ -984,8 +901,7 @@ class DeseqDataSet(ad.AnnData):
             refit_cooks=self.refit_cooks,
             min_replicates=self.min_replicates,
             beta_tol=self.beta_tol,
-            n_cpus=self.n_processes,
-            batch_size=self.batch_size,
+            inference=self.inference,
         )
 
         # Use the same size factors
