@@ -173,7 +173,7 @@ class DeseqDataSet(ad.AnnData):
         Gene-wise mean log counts, computed in preprocessing.deseq2_norm_fit().
 
     filtered_genes: ndarray
-        Genes which log means are different from -∞, computed in 
+        Genes which log means are different from -∞, computed in
         preprocessing.deseq2_norm_fit().
 
     References
@@ -341,10 +341,10 @@ class DeseqDataSet(ad.AnnData):
 
         self.fit_type = fit_type  # to re-use inside vst_transform
 
-        # Start by fitting median-of-ratio size factors if not already present, 
+        # Start by fitting median-of-ratio size factors if not already present,
         # or if it was computed iteratively
         if "size_factors" not in self.obsm or self.logmeans is None:
-            self.fit_size_factors() # by default, fit_type != "iterative"
+            self.fit_size_factors()  # by default, fit_type != "iterative"
 
         if use_design:
             # Check that the dispersion trend curve was fitted. If not, fit it.
@@ -386,7 +386,7 @@ class DeseqDataSet(ad.AnnData):
         if "size_factors" not in self.obsm:
             raise RuntimeError(
                 "The method vst_fit should be called prior to vst_transform."
-                )
+            )
 
         if counts is None:
             # the transformed counts will be the current ones
@@ -399,16 +399,14 @@ class DeseqDataSet(ad.AnnData):
                     "be re-computed with the counts to be transformed. In a train/test "
                     "fashion with a downstream task, this would result in a leak of "
                     "data.",
-                    UserWarning
+                    UserWarning,
+                    stacklevel=2,
                 )
                 logmeans, filtered_genes = deseq2_norm_fit(counts)
             else:
                 logmeans, filtered_genes = self.logmeans, self.filtered_genes
 
-
-            normed_counts, _ = deseq2_norm_transform(
-                counts, logmeans, filtered_genes
-            )
+            normed_counts, _ = deseq2_norm_transform(counts, logmeans, filtered_genes)
 
         if self.fit_type == "parametric":
             a0, a1 = self.uns["trend_coeffs"]
