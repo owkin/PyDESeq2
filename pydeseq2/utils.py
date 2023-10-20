@@ -1,4 +1,5 @@
 import multiprocessing
+import re
 import warnings
 from math import ceil
 from itertools import product
@@ -13,7 +14,6 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
-import re
 from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
@@ -251,7 +251,9 @@ def build_design_matrix(
             metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
         # Check if factor has interacting terms and if there are then build
         # interaction column into metadata
-        build_single_interaction_factor(metadata, factor, atomic_design_factors, continuous_factors)
+        build_single_interaction_factor(
+            metadata, factor, atomic_design_factors, continuous_factors
+        )
 
     if continuous_factors is not None:
         categorical_factors = [
@@ -282,7 +284,9 @@ def build_design_matrix(
                 # the matching is slightly more restrictive to avoid matching
                 # interaction columns
                 factor_cols = [
-                    col for col in design_matrix.columns if bool(re.match(f"(?<!:){ref_level[0]}_.*(?!:)", col))
+                    col
+                    for col in design_matrix.columns
+                    if bool(re.match(f"(?<!:){ref_level[0]}_.*(?!:)", col))
                 ]
                 missing_level = next(
                     level
@@ -309,7 +313,9 @@ def build_design_matrix(
                     ref = ref_level[1]
 
                 design_matrix.columns = [
-                    f"{col}_vs_{ref}" if bool(re.match(f"(?<!:){factor}_.*(?!:)", col)) else col
+                    f"{col}_vs_{ref}"
+                    if bool(re.match(f"(?<!:){factor}_.*(?!:)", col))
+                    else col
                     for col in design_matrix.columns
                 ]
     else:
