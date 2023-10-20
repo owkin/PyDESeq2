@@ -217,9 +217,9 @@ def build_single_interaction_factor(
 
     # We need to also trim the continuous_factors list
     if continuous_factors is not None:
-        for idx, cont_factor in enumerate(continuous_factors):
+        for cont_factor in copy.deepcopy(continuous_factors):
             if cont_factor in columns_to_drop:
-                continuous_factors.pop(idx)
+                continuous_factors.remove(cont_factor)
 
 
 def merge_columns(
