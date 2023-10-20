@@ -215,6 +215,11 @@ def build_single_interaction_factor(
     ]
     metadata.drop(columns=columns_to_drop, inplace=True)
 
+    # We need to also trim the continuous_factors list
+    for idx, cont_factor in enumerate(continuous_factors):
+        if cont_factor in columns_to_drop:
+            continuous_factors.pop(idx)
+
 
 def merge_columns(
     metadata: pd.DataFrame,
