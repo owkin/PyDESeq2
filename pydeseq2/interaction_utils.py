@@ -4,10 +4,11 @@ from typing import List
 from typing import Union
 
 import pandas as pd
+# from pydeseq2.utils import build_design_matrix
 
 
 def merge_categorical_columns_inplace(
-    metadata: pd.DataFrame, left_factor: str, right_factor: str
+    metadata: pd.DataFrame, left_factor: str, right_factor: str,
 ) -> None:
     """
     Merge two categorical columns in a pandas dataframe into a new column.
@@ -38,6 +39,7 @@ def merge_categorical_columns_inplace(
 def merge_two_columns(
     left_factor: str,
     right_factor: str,
+    design_factors: List[str],
     metadata: pd.DataFrame,
     continuous_factors: Union[List[str], None] = None,
 ) -> None:
@@ -52,6 +54,8 @@ def merge_two_columns(
         The name of the first column to merge.
     right_factor : str
         The name of the second column to merge.
+    design_factors : list
+        The list of all factors involved.
     metadata : pd.DataFrame
         The design matrix.
     continuous_factors : list
@@ -73,7 +77,7 @@ def merge_two_columns(
     if not is_any_categorical:
         # All factors are continuous
         metadata[interaction_column_name] = (
-            metadata[left_factor] * metadata[right_factor]
+            pd.to_numeric(metadata[left_factor]) * pd.to_numeric(metadata[right_factor])
         )
         continuous_factors.append(interaction_column_name)  # type: ignore # noqa: F401
         return
@@ -93,6 +97,7 @@ def merge_two_columns(
             metadata,
             cat_col_name,
             cont_col_name,
+            design_factors,
             is_right_categorical,
             continuous_factors,
         )
@@ -102,6 +107,7 @@ def multiplex_continuous_factor(
     metadata: pd.DataFrame,
     cat_col_name: str,
     cont_col_name: str,
+    design_factors: List[str],
     is_right_categorical: bool,
     continuous_factors: Union[List[str], None] = None,
 ) -> None:
@@ -116,8 +122,10 @@ def multiplex_continuous_factor(
         The design matrix.
     cat_col_name : str
         The name of the categorical column either left or right.
-    cont_col_name : _type_
+    cont_col_name : str
         The name of the continuous column either left or right.
+    design_factors : list
+        The list of all factors involved.
     is_right_categorical : bool
         Whether or not the categorical was on the right or left. Needed
         for the creation of the new name.
@@ -134,7 +142,16 @@ def multiplex_continuous_factor(
     # that are cont_col_name when the level is activated and 0 otherwise
     left_factor = cont_col_name if is_right_categorical else cat_col_name
     right_factor = cat_col_name if is_right_categorical else cont_col_name
-    for cat_level in cat_levels:
+
+    for idx, cat_level in enumerate(cat_levels):
+        # We now implement drop_first=True strategy as in pd.get_dummies
+        # if the continuous column is already in the design factors in order to
+        # keep the design matrix full rank.
+        # Note: unique sorts colnames by alphabetical order therefore we drop the
+        # first element by alphabetical order
+        if idx == 0 and cont_col_name in design_factors:
+            continue
+
         if is_right_categorical:
             right_col_name = right_factor + f"_{cat_level}"
             left_col_name = left_factor
@@ -172,7 +189,7 @@ def multiplex_continuous_factor(
 
         metadata[current_col_name] = (metadata[cat_col_name] == cat_level).astype(
             "float"
-        ) * metadata[cont_col_name]
+        ) * pd.to_numeric(metadata[cont_col_name])
         # I allow myself to ignore mypy as continuous_factors has to be a list
         # now because if it was None then we could not have ended up in this
         # function
@@ -182,6 +199,7 @@ def multiplex_continuous_factor(
 def build_single_interaction_factor(
     metadata: pd.DataFrame,
     design_factor: str,
+    design_factors: List[str],
     continuous_factors: Union[List[str], None],
 ) -> None:
     """Build interaction column into the design matrix.
@@ -194,6 +212,8 @@ def build_single_interaction_factor(
         The design matrix.
     design_factor : str
         The name of the column with potentially interaction terms.
+    design_factors : list
+        All factors involved.
     continuous_factors : list
         All factors known to be continuous.
 
@@ -203,7 +223,7 @@ def build_single_interaction_factor(
         Modifies stuff inplace.
     """
     original_columns = copy.deepcopy(metadata.columns)
-    interacting_columns = merge_columns(metadata, design_factor, continuous_factors)
+    interacting_columns = merge_columns(metadata, design_factor, design_factors, continuous_factors)
     # Remove all intermediate columns
     # Note this could be removed in case one wants to also know inner interacting terms
 
@@ -222,9 +242,11 @@ def build_single_interaction_factor(
                 continuous_factors.remove(cont_factor)
 
 
+
 def merge_columns(
     metadata: pd.DataFrame,
     design_factor: str,
+    design_factors: List[str],
     continuous_factors: Union[List[str], None],
 ) -> List[str]:
     """Merge any combination of any number of columns interacting.
@@ -238,6 +260,8 @@ def merge_columns(
         The design matrix.
     design_factor : str
         The column either containing interaction terms or not.
+    design_factors : list
+        All factors involved.
     continuous_factors : list
         All known continuous factors.
 
@@ -269,7 +293,7 @@ def merge_columns(
 
     # List is at least of size 2
     merge_two_columns(
-        design_factor_list[0], design_factor_list[1], metadata, continuous_factors
+        design_factor_list[0], design_factor_list[1], design_factors, metadata, continuous_factors
     )
     for j in range(2, len(design_factor_list)):
         # Only some columns of metadata are eligible to be merged
@@ -279,12 +303,11 @@ def merge_columns(
             if any([des_f_temp in col for des_f_temp in design_factor_list])
         ]
         for col in metadata_cols_to_be_merged:
-            merge_two_columns(col, design_factor_list[j], metadata, continuous_factors)
+            merge_two_columns(col, design_factor_list[j], design_factors, metadata, continuous_factors)
     return design_factor_list
 
 
 if __name__ == "__main__":
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": ["7", "8", "9"]})
-    build_single_interaction_factor(df, "a:b:c", continuous_factors=["a", "b"])
-
+    build_single_interaction_factor(df, "a", ["a","b"], continuous_factors=["a", "b"])
     print(df)

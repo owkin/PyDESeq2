@@ -9,10 +9,10 @@ def test_build_single_factor():
     original_df = pd.DataFrame.from_dict(
         {"a": [1, 1, 2, 3, 2], "b": [4, 5, 6, 7, 8], "c": ["7", "8", "9", "10", "10"]}
     )
-
+    design_factors = []
     # 2 interaction terms between continuous factors
     df = copy.deepcopy(original_df)
-    build_single_interaction_factor(df, "a:b", continuous_factors=["a", "b"])
+    build_single_interaction_factor(df, "a:b", design_factors, continuous_factors=["a", "b"])
     # The result should be the original df
     result = copy.deepcopy(original_df)
     # to which we have added the column multiplying both a and b coeff by coeff
@@ -21,7 +21,7 @@ def test_build_single_factor():
 
     # 2 interacting terms between categorical factors
     df = copy.deepcopy(original_df)
-    build_single_interaction_factor(df, "a:b", continuous_factors=None)
+    build_single_interaction_factor(df, "a:b", design_factors, continuous_factors=None)
     # The result should be the original df
     result = copy.deepcopy(original_df)
     # to which we have added the column concatenating both a and  as str
@@ -30,7 +30,7 @@ def test_build_single_factor():
 
     # 2 interacting terms with one categorical and one continuous column
     df = copy.deepcopy(original_df)
-    build_single_interaction_factor(df, "a:b", continuous_factors=["b"])
+    build_single_interaction_factor(df, "a:b", design_factors, continuous_factors=["b"])
     # The result should be the original df
     result = copy.deepcopy(original_df)
     # to which we have added the column multiplexing b to the categories of a
@@ -50,7 +50,7 @@ def test_build_single_factor():
 
     # 3 interacting terms with the last column being categorical
     df = copy.deepcopy(original_df)
-    build_single_interaction_factor(df, "a:b:c", continuous_factors=["a", "b"])
+    build_single_interaction_factor(df, "a:b:c", design_factors, continuous_factors=["a", "b"])
     # The result should be the original df
     result = copy.deepcopy(original_df)
     # to which we have added the following column multiplexe against the possible
@@ -78,7 +78,7 @@ def test_build_single_factor():
 
     # 3 interacting terms all categorical
     df = copy.deepcopy(original_df)
-    build_single_interaction_factor(df, "a:b:c", continuous_factors=None)
+    build_single_interaction_factor(df, "a:b:c", design_factors, continuous_factors=None)
     # The result should be the original df
     result = copy.deepcopy(original_df)
     # to which we have added the following column formed by concatenating
@@ -94,7 +94,7 @@ def test_build_single_factor():
     df = copy.deepcopy(original_df)
     original_continuous_factors = ["a", "b", "c"]
     continuous_factors = copy.deepcopy(original_continuous_factors)
-    build_single_interaction_factor(df, "a:b:c", continuous_factors=continuous_factors)
+    build_single_interaction_factor(df, "a:b:c", design_factors, continuous_factors=continuous_factors)
 
     # The result should be the original df
     result = copy.deepcopy(original_df)

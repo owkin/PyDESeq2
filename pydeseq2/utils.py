@@ -13,6 +13,7 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+import re
 from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
@@ -168,7 +169,7 @@ def build_design_matrix(
         and non-interacting) will be extracted automatically.
         (default: ``"condition"``).
 
-    ref_level : dict or None
+    ref_level : list or None
         An optional list of two strings of the form ``["factor", "ref_level"]``
         specifying the factor of interest and the desired reference level, e.g.
         ``["condition", "A"]``. (default: ``None``).
@@ -237,7 +238,7 @@ def build_design_matrix(
     # Loop to convert underscores to hyphens AND deal with interaction terms
     for factor in design_factors:
         if (factor in atomic_design_factors) and np.any(
-            ["_" in value for value in metadata[factor]]
+            ["_" in value for value in metadata[factor].astype("str")]
         ):
             if not warning_issued:
                 warnings.warn(
@@ -250,7 +251,7 @@ def build_design_matrix(
             metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
         # Check if factor has interacting terms and if there are then build
         # interaction column into metadata
-        build_single_interaction_factor(metadata, factor, continuous_factors)
+        build_single_interaction_factor(metadata, factor, atomic_design_factors, continuous_factors)
 
     if continuous_factors is not None:
         categorical_factors = [
@@ -278,8 +279,10 @@ def build_design_matrix(
             ref_level_name = "_".join(ref_level)
             if (not expanded) and ref_level_name in design_matrix.columns:
                 # Remove the reference level and add one
+                # the matching is slightly more restrictive to avoid matching
+                # interaction columns
                 factor_cols = [
-                    col for col in design_matrix.columns if col.startswith(ref_level[0])
+                    col for col in design_matrix.columns if bool(re.match(f"(?<!:){ref_level[0]}_.*(?!:)", col))
                 ]
                 missing_level = next(
                     level
@@ -304,8 +307,9 @@ def build_design_matrix(
                 else:
                     # The reference level is given as an argument
                     ref = ref_level[1]
+
                 design_matrix.columns = [
-                    f"{col}_vs_{ref}" if col.startswith(factor) else col
+                    f"{col}_vs_{ref}" if bool(re.match(f"(?<!:){factor}_.*(?!:)", col)) else col
                     for col in design_matrix.columns
                 ]
     else:
