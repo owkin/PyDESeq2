@@ -1012,9 +1012,6 @@ def fit_rough_dispersions(
             "dispersion. Please use a design with fewer variables."
         )
 
-    # Exclude genes with all zeroes
-    normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
-
     reg = LinearRegression(fit_intercept=False)
     reg.fit(design_matrix, normed_counts)
     y_hat = reg.predict(design_matrix)
