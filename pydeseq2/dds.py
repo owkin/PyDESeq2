@@ -747,11 +747,11 @@ class DeseqDataSet(ad.AnnData):
             self.fit_size_factors()
 
         rde = self.inference.fit_rough_dispersions(
-            self.layers["normed_counts"],
+            self.layers["normed_counts"][:, self.non_zero_idx],
             self.obsm["design_matrix"].values,
         )
         mde = self.inference.fit_moments_dispersions(
-            self.layers["normed_counts"], self.obsm["size_factors"]
+            self.layers["normed_counts"][:, self.non_zero_idx], self.obsm["size_factors"]
         )
         alpha_hat = np.minimum(rde, mde)
 
