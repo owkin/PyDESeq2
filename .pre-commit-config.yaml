@@ -18,7 +18,7 @@ repos:
     rev: v0.0.292
     hooks:
       - id: ruff
-        args: [ --fix, --exit-non-zero-on-fix, --line-length =88]
+        args: [ --fix, --exit-non-zero-on-fix, --line-length=89]
 -   repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.10.1
     hooks:
