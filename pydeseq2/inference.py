@@ -54,6 +54,10 @@ class Inference(ABC):
         disp: np.ndarray,
         min_mu: float,
         beta_tol: float,
+        min_beta: float = -30,
+        max_beta: float = 30,
+        optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
+        maxiter: int = 250,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 
@@ -129,6 +133,7 @@ class Inference(ABC):
         prior_disp_var: Optional[float] = None,
         cr_reg: bool = True,
         prior_reg: bool = False,
+        optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Estimate the dispersion parameter of a negative binomial GLM.
 
@@ -295,16 +300,16 @@ class Inference(ABC):
         Parameters
         ----------
         covariates : pd.Series
-            Covariates for the regression (num_genes,)
+            Covariates for the regression (num_genes,).
         targets : pd.Series
-            Targets for the regression (num_genes,)
+            Targets for the regression (num_genes,).
 
         Returns
         -------
         coeffs : ndarray
-            Coefficients of the regression
+            Coefficients of the regression.
         predictions : ndarray
-            Predictions of the regression
+            Predictions of the regression.
         """
         pass
 

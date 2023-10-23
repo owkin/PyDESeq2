@@ -68,7 +68,7 @@ class DeseqStats:
         The alternative hypothesis corresponds to what the user wants to find rather
         than the null hypothesis. (default: ``None``).
 
-    inference: Inference
+    inference : Inference
         Implementation of inference routines object instance.
         (default: :class:`DefaultInference <pydeseq2.inference.DefaultInference>`).
 

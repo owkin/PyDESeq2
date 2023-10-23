@@ -69,7 +69,11 @@ class DefaultInference(inference.Inference):
         disp: np.ndarray,
         min_mu: float,
         beta_tol: float,
-    ):
+        min_beta: float = -30,
+        max_beta: float = 30,
+        optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
+        maxiter: int = 250,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with parallel_backend(self.backend, inner_max_num_threads=1):
             res = Parallel(
                 n_jobs=self.n_processes,
@@ -83,6 +87,10 @@ class DefaultInference(inference.Inference):
                     disp=disp[i],
                     min_mu=min_mu,
                     beta_tol=beta_tol,
+                    min_beta=min_beta,
+                    max_beta=max_beta,
+                    optimizer=optimizer,
+                    maxiter=maxiter
                 )
                 for i in range(counts.shape[1])
             )
@@ -107,6 +115,7 @@ class DefaultInference(inference.Inference):
         prior_disp_var: Optional[float] = None,
         cr_reg: bool = True,
         prior_reg: bool = False,
+        optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
     ) -> Tuple[np.ndarray, np.ndarray]:
         with parallel_backend(self.backend, inner_max_num_threads=1):
             res = Parallel(
@@ -124,6 +133,7 @@ class DefaultInference(inference.Inference):
                     prior_disp_var=prior_disp_var,
                     cr_reg=cr_reg,
                     prior_reg=prior_reg,
+                    optimizer=optimizer
                 )
                 for i in range(counts.shape[1])
             )

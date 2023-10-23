@@ -92,7 +92,7 @@ class DeseqDataSet(ad.AnnData):
 
         .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
 
-    inference: Inference
+    inference : Inference
         Implementation of inference routines object instance.
         (default: :class:`DefaultInference <pydeseq2.inference.DefaultInference>`).
 
