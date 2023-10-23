@@ -745,13 +745,14 @@ class DeseqDataSet(ad.AnnData):
         # Check that size_factors are available. If not, compute them.
         if "normed_counts" not in self.layers:
             self.fit_size_factors()
-
+        
+        normed_counts = self.layers["normed_counts"][:, self.non_zero_idx]
         rde = self.inference.fit_rough_dispersions(
-            self.layers["normed_counts"][:, self.non_zero_idx],
+            normed_counts,
             self.obsm["design_matrix"].values,
         )
         mde = self.inference.fit_moments_dispersions(
-            self.layers["normed_counts"][:, self.non_zero_idx], self.obsm["size_factors"]
+            normed_counts, self.obsm["size_factors"]
         )
         alpha_hat = np.minimum(rde, mde)
 

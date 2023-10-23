@@ -121,6 +121,7 @@ counts_df = counts_df[genes_to_keep]
 # We start by creating a :class:`DeseqDataSet`
 # object from the count and metadata data that were just loaded.
 #
+
 inference = DefaultInference(n_cpus=8)
 dds = DeseqDataSet(
     counts=counts_df,

@@ -87,6 +87,7 @@ metadata = load_example_data(
 # .. note::
 #   in the case of the provided synthetic data, there won't be any Cooks
 #   outliers.
+
 inference = DefaultInference(n_cpus=8)
 dds = DeseqDataSet(
     counts=counts_df,
