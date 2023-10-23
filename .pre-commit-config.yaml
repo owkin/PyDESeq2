@@ -14,6 +14,11 @@ repos:
       args: # arguments to configure flake8
        - "--max-line-length=89"
        - "--extend-ignore=E203" # ensures compatibility with black w.r.t. spaces before colons
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.292
+    hooks:
+      - id: ruff
+        args: [ --fix, --exit-non-zero-on-fix, --line-length =88]
 -   repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.10.1
     hooks:
