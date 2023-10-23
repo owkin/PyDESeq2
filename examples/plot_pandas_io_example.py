@@ -1,6 +1,6 @@
 """
 Loading data and saving results with pandas and pickle
-======================================================
+======================================================.
 
 In this example, we show how load data in order to perform a DEA analysis with PyDESeq2,
 and how to solve its results, using `pandas <https://pandas.pydata.org/>`_ and

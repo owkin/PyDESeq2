@@ -7,8 +7,7 @@ from typing import Optional
 import pytest
 from anndata import AnnData
 
-from tests.discover import all_estimators
-from tests.discover import all_functions
+from tests.discover import all_estimators, all_functions
 
 numpydoc_validation = pytest.importorskip("numpydoc.validate")
 
@@ -126,7 +125,7 @@ def repr_errors(res, Klass=None, method: Optional[str] = None) -> str:
             res["docstring"],
             "# Errors",
             "\n".join(
-                " - {}: {}".format(code, message) for code, message in res["errors"]
+                f" - {code}: {message}" for code, message in res["errors"]
             ),
         ]
     )

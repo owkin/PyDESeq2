@@ -2,27 +2,22 @@ import multiprocessing
 import warnings
 from math import floor
 from pathlib import Path
-from typing import List
-from typing import Literal
-from typing import Optional
-from typing import Tuple
-from typing import Union
-from typing import cast
+from typing import List, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
-from scipy.special import gammaln  # type: ignore
-from scipy.special import polygamma  # type: ignore
+from scipy.special import (
+    gammaln,  # type: ignore
+    polygamma,  # type: ignore
+)
 from scipy.stats import norm  # type: ignore
 from sklearn.linear_model import LinearRegression  # type: ignore
 
 import pydeseq2
-from pydeseq2.grid_search import grid_fit_alpha
-from pydeseq2.grid_search import grid_fit_beta
-from pydeseq2.grid_search import grid_fit_shrink_beta
+from pydeseq2.grid_search import grid_fit_alpha, grid_fit_beta, grid_fit_shrink_beta
 
 
 def load_example_data(
@@ -59,7 +54,6 @@ def load_example_data(
     pandas.DataFrame
         Requested data modality.
     """
-
     assert modality in ["raw_counts", "metadata"], (
         "The modality argument must be one of the following: " "raw_counts, metadata"
     )
@@ -183,7 +177,6 @@ def build_design_matrix(
         A DataFrame with experiment design information (to split cohorts).
         Indexed by sample barcodes.
     """
-
     if isinstance(
         design_factors, str
     ):  # if there is a single factor, convert to singleton list
@@ -302,7 +295,6 @@ def replace_underscores(factors: List[str]):
     list
         A list of strings in which underscores were replaced by hyphens.
     """
-
     return [factor.replace("_", "-") for factor in factors]
 
 
@@ -386,7 +378,6 @@ def nb_nll(
     -----
     [1] https://en.wikipedia.org/wiki/Negative_binomial_distribution
     """
-
     n = len(counts)
     alpha_neg1 = 1 / alpha
     logbinom = gammaln(counts + alpha_neg1) - gammaln(counts + 1) - gammaln(alpha_neg1)
@@ -430,7 +421,6 @@ def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
     float
         Derivative of negative log likelihood of NB w.r.t. :math:`\\alpha`.
     """
-
     alpha_neg1 = 1 / alpha
     ll_part = (
         alpha_neg1**2
@@ -515,7 +505,6 @@ def irls_solver(
         Whether IRLS or the optimizer converged. If not and if dimension allows it,
         perform grid search.
     """
-
     assert optimizer in ["BFGS", "L-BFGS-B"]
 
     num_vars = design_matrix.shape[1]
@@ -662,7 +651,6 @@ def fit_alpha_mle(
     bool
         Whether L-BFGS-B converged. If not, dispersion is estimated using grid search.
     """
-
     assert optimizer in ["BFGS", "L-BFGS-B"]
 
     if prior_reg:
@@ -752,7 +740,6 @@ def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
     float or ndarray :
         Trimmed mean.
     """
-
     assert trim <= 0.5
     if "axis" in kwargs:
         axis = kwargs.get("axis")
@@ -787,7 +774,6 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
     pandas.Series :
         Gene-wise trimmed variance estimate.
     """
-
     # how much to trim at different n
     trimratio = (1 / 3, 1 / 4, 1 / 8)
     # returns an index for the vector above for three sample size bins
@@ -838,7 +824,6 @@ def trimmed_variance(
     float or ndarray
         Trimmed variances.
     """
-
     rm = trimmed_mean(x, trim=trim, axis=axis)
     sqerror = (x - rm) ** 2
     # scale due to trimming of large squares
@@ -874,7 +859,6 @@ def fit_lin_mu(
     ndarray
         Estimated mean.
     """
-
     reg = LinearRegression(fit_intercept=False)
     reg.fit(design_matrix, counts / size_factors)
     mu_hat = size_factors * reg.predict(design_matrix)
@@ -934,7 +918,6 @@ def wald_test(
     wald_se : float
         Standard error of the Wald statistic.
     """
-
     # Build covariance matrix estimator
     W = np.diag(mu / (1 + mu * disp))
     M = design_matrix.T @ W @ design_matrix
@@ -1001,7 +984,6 @@ def fit_rough_dispersions(
     ndarray
         Estimated dispersion parameter for each gene.
     """
-
     num_samples, num_vars = design_matrix.shape
     # This method is only possible when num_samples > num_vars.
     # If this is not the case, throw an error.
@@ -1046,7 +1028,6 @@ def fit_moments_dispersions(
     ndarray
         Estimated dispersion parameter for each gene.
     """
-
     # Exclude genes with all zeroes
     normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
     # mean inverse size factor
@@ -1080,7 +1061,6 @@ def robust_method_of_moments_disp(
         Trimmed method of moment dispersion estimates.
         Used for outlier detection based on Cook's distance.
     """
-
     # if there are 3 or more replicates in any cell
     three_or_more = design_matrix[design_matrix.columns[-1]].value_counts() >= 3
     if three_or_more.any():
@@ -1115,7 +1095,6 @@ def get_num_processes(n_cpus: Optional[int] = None) -> int:
     int
         Number of processes to spawn.
     """
-
     if n_cpus is None:
         try:
             n_processes = multiprocessing.cpu_count()
@@ -1179,7 +1158,6 @@ def nbinomGLM(
     converged: bool
         Whether L-BFGS-B converged.
     """
-
     num_vars = design_matrix.shape[-1]
 
     shrink_mask = np.zeros(num_vars)
@@ -1326,7 +1304,6 @@ def nbinomFn(
     float
         Sum of the NB negative likelihood and apeGLM prior.
     """
-
     num_vars = design_matrix.shape[-1]
 
     shrink_mask = np.zeros(num_vars)
@@ -1399,7 +1376,6 @@ def make_scatter(
     **kwargs
         Matplotlib keyword arguments for the scatter plot.
     """
-
     # Adding more colors if plotting more than 3 traces
     if len(disps) == 3:
         colors = "kbr"
@@ -1476,7 +1452,6 @@ def make_MA_plot(
     **kwargs
         Matplotlib keyword arguments for the scatter plot.
     """
-
     colors = results_df["padj"].apply(lambda x: "darkred" if x < padj_thresh else "gray")
 
     fig, ax = plt.subplots(dpi=600)

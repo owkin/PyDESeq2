@@ -1,25 +1,22 @@
 import sys
 import time
-from typing import List
-from typing import Literal
-from typing import Optional
+from typing import List, Literal, Optional
 
 # import anndata as ad
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
-from joblib import Parallel  # type: ignore
-from joblib import delayed  # type: ignore
-from joblib import parallel_backend  # type: ignore
+from joblib import (
+    Parallel,  # type: ignore
+    delayed,  # type: ignore
+    parallel_backend,  # type: ignore
+)
 from scipy.optimize import root_scalar  # type: ignore
 from scipy.stats import f  # type: ignore
 from statsmodels.stats.multitest import multipletests  # type: ignore
 
 from pydeseq2.dds import DeseqDataSet
-from pydeseq2.utils import get_num_processes
-from pydeseq2.utils import make_MA_plot
-from pydeseq2.utils import nbinomGLM
-from pydeseq2.utils import wald_test
+from pydeseq2.utils import get_num_processes, make_MA_plot, nbinomGLM, wald_test
 
 
 class DeseqStats:
@@ -220,7 +217,6 @@ class DeseqStats:
             Keyword arguments: providing new values for ``lfc_null`` or
             ``alt_hypothesis`` will override the corresponding ``DeseqStat`` attributes.
         """
-
         new_lfc_null = kwargs.get("lfc_null", "default")
         new_alt_hypothesis = kwargs.get("alt_hypothesis", "default")
 
@@ -288,7 +284,6 @@ class DeseqStats:
 
         Get gene-wise p-values for gene over/under-expression.`
         """
-
         num_genes = self.dds.n_vars
         num_vars = self.design_matrix.shape[1]
 
@@ -368,7 +363,6 @@ class DeseqStats:
             :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
             (default: ``None``).
         """
-
         if self.contrast[1] == self.contrast[2] == "":
             # The factor being tested is continuous
             contrast_level = self.contrast[0]
@@ -507,7 +501,6 @@ class DeseqStats:
 
         Parameters
         ----------
-
         log : bool
             Whether or not to log scale x and y axes (``default=True``).
 
@@ -518,7 +511,6 @@ class DeseqStats:
         **kwargs
             Matplotlib keyword arguments for the scatter plot.
         """
-
         # Raise an error if results_df are missing
         if not hasattr(self, "results_df"):
             raise AttributeError(
@@ -541,7 +533,6 @@ class DeseqStats:
 
         Corrects p-value trend (see :cite:p:`DeseqStats-love2014moderated`)
         """
-
         # Check that p-values are available. If not, compute them.
         if not hasattr(self, "p_values"):
             self.run_wald_test()
@@ -601,7 +592,6 @@ class DeseqStats:
 
     def _cooks_filtering(self) -> None:
         """Filter p-values based on Cooks outliers."""
-
         # Check that p-values are available. If not, compute them.
         if not hasattr(self, "p_values"):
             self.run_wald_test()
@@ -672,7 +662,6 @@ class DeseqStats:
         float
             Estimated prior variance.
         """
-
         keep = ~self.LFC.iloc[:, coeff_idx].isna()
         S = self.LFC[keep].iloc[:, coeff_idx] ** 2
         D = self.SE[keep] ** 2
@@ -711,7 +700,6 @@ class DeseqStats:
             ``['variable_of_interest', 'tested_level', 'reference_level']``.
             (default: ``None``).
         """
-
         if contrast is not None:  # Test contrast if provided
             if len(contrast) != 3:
                 raise ValueError("The contrast should contain three strings.")

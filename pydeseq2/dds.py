@@ -1,41 +1,43 @@
 import sys
 import time
 import warnings
-from typing import List
-from typing import Literal
-from typing import Optional
-from typing import Union
-from typing import cast
+from typing import List, Literal, Optional, Union, cast
 
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
-from joblib import Parallel  # type: ignore
-from joblib import delayed
-from joblib import parallel_backend
+from joblib import (
+    Parallel,  # type: ignore
+    delayed,
+    parallel_backend,
+)
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
-from scipy.stats import f  # type: ignore
-from scipy.stats import trim_mean  # type: ignore
+from scipy.stats import (
+    f,  # type: ignore
+    trim_mean,  # type: ignore
+)
 from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
 from pydeseq2.preprocessing import deseq2_norm
-from pydeseq2.utils import build_design_matrix
-from pydeseq2.utils import dispersion_trend
-from pydeseq2.utils import fit_alpha_mle
-from pydeseq2.utils import fit_lin_mu
-from pydeseq2.utils import fit_moments_dispersions
-from pydeseq2.utils import fit_rough_dispersions
-from pydeseq2.utils import get_num_processes
-from pydeseq2.utils import irls_solver
-from pydeseq2.utils import make_scatter
-from pydeseq2.utils import mean_absolute_deviation
-from pydeseq2.utils import nb_nll
-from pydeseq2.utils import replace_underscores
-from pydeseq2.utils import robust_method_of_moments_disp
-from pydeseq2.utils import test_valid_counts
-from pydeseq2.utils import trimmed_mean
+from pydeseq2.utils import (
+    build_design_matrix,
+    dispersion_trend,
+    fit_alpha_mle,
+    fit_lin_mu,
+    fit_moments_dispersions,
+    fit_rough_dispersions,
+    get_num_processes,
+    irls_solver,
+    make_scatter,
+    mean_absolute_deviation,
+    nb_nll,
+    replace_underscores,
+    robust_method_of_moments_disp,
+    test_valid_counts,
+    trimmed_mean,
+)
 
 # Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
 warnings.simplefilter("ignore", DomainWarning)
@@ -234,10 +236,7 @@ class DeseqDataSet(ad.AnnData):
             new_factors = replace_underscores(self.design_factors)
 
             self.obs.rename(
-                columns={
-                    old_factor: new_factor
-                    for (old_factor, new_factor) in zip(self.design_factors, new_factors)
-                },
+                columns=dict(zip(self.design_factors, new_factors)),
                 inplace=True,
             )
 
@@ -299,7 +298,6 @@ class DeseqDataSet(ad.AnnData):
             gamma-family GLM. mean - use the mean of gene-wise dispersion estimates.
             (default: ``"parametric"``).
         """
-
         # Start by fitting median-of-ratio size factors, if not already present.
         if "size_factors" not in self.obsm:
             self.fit_size_factors()
@@ -351,7 +349,6 @@ class DeseqDataSet(ad.AnnData):
 
         Wrapper for the first part of the PyDESeq2 pipeline.
         """
-
         # Compute DESeq2 normalization factors using the Median-of-ratios method
         self.fit_size_factors()
         # Fit an independent negative binomial model per gene
@@ -520,7 +517,6 @@ class DeseqDataSet(ad.AnnData):
 
         :math:`f(\mu) = \alpha_1/\mu + a_0`.
         """
-
         # Check that genewise dispersions are available. If not, compute them.
         if "genewise_dispersions" not in self.varm:
             self.fit_genewise_dispersions()
@@ -601,7 +597,6 @@ class DeseqDataSet(ad.AnnData):
         Note: when the design matrix has fewer than 3 degrees of freedom, the
         estimate of log dispersions is likely to be imprecise.
         """
-
         # Check that the dispersion trend curve was fitted. If not, fit it.
         if "fitted_dispersions" not in self.varm:
             self.fit_dispersion_trend()
@@ -645,7 +640,6 @@ class DeseqDataSet(ad.AnnData):
 
         After MAP dispersions are fit, filter genes for which we don't apply shrinkage.
         """
-
         # Check that the dispersion prior variance is available. If not, compute it.
         if "prior_disp_var" not in self.uns:
             self.fit_dispersion_prior()
@@ -705,7 +699,6 @@ class DeseqDataSet(ad.AnnData):
         In the 2-level setting, the intercept corresponds to the base mean,
         while the second is the actual LFC coefficient, in natural log scale.
         """
-
         # Check that MAP dispersions are available. If not, compute them.
         if "dispersions" not in self.varm:
             self.fit_MAP_dispersions()
@@ -769,7 +762,6 @@ class DeseqDataSet(ad.AnnData):
 
         Measures the contribution of a single entry to the output of LFC estimation.
         """
-
         # Check that MAP dispersions are available. If not, compute them.
         if "dispersions" not in self.varm:
             self.fit_MAP_dispersions()
@@ -824,7 +816,6 @@ class DeseqDataSet(ad.AnnData):
         """ "Rough method of moments" initial dispersions fit.
         Estimates are the max of "robust" and "method of moments" estimates.
         """
-
         # Check that size_factors are available. If not, compute them.
         if "normed_counts" not in self.layers:
             self.fit_size_factors()
@@ -863,7 +854,6 @@ class DeseqDataSet(ad.AnnData):
         **kwargs
             Keyword arguments for the scatter plot.
         """
-
         disps = [
             self.varm["genewise_dispersions"],
             self.varm["dispersions"],
@@ -883,7 +873,6 @@ class DeseqDataSet(ad.AnnData):
         """Replace values that are filtered out based
         on the Cooks distance with imputed values.
         """
-
         # Check that cooks distances are available. If not, compute them.
         if "cooks" not in self.layers:
             self.calculate_cooks()
@@ -1053,7 +1042,6 @@ class DeseqDataSet(ad.AnnData):
             (default: ``0.95``).
 
         """
-
         # Initialize size factors and normed counts fields
         self.obsm["size_factors"] = np.ones(self.n_obs)
         self.layers["normed_counts"] = self.X

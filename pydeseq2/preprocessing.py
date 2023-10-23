@@ -1,5 +1,4 @@
-from typing import Tuple
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -27,7 +26,6 @@ def deseq2_norm(
     size_factors : pandas.DataFrame or ndarray
         DESeq2 normalization factors.
     """
-
     # Compute gene-wise mean log counts
     with np.errstate(divide="ignore"):  # ignore division by zero warnings
         log_counts = np.log(counts)
