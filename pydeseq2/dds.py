@@ -745,7 +745,7 @@ class DeseqDataSet(ad.AnnData):
         # Check that size_factors are available. If not, compute them.
         if "normed_counts" not in self.layers:
             self.fit_size_factors()
-        
+
         normed_counts = self.layers["normed_counts"][:, self.non_zero_idx]
         rde = self.inference.fit_rough_dispersions(
             normed_counts,

@@ -23,8 +23,8 @@ import pickle as pkl
 import pandas as pd
 
 from pydeseq2.dds import DeseqDataSet
-from pydeseq2.ds import DeseqStats
 from pydeseq2.default_inference import DefaultInference
+from pydeseq2.ds import DeseqStats
 
 # Replace this with the path to directory where you would like results to be saved
 OUTPUT_PATH = "../output_files/synthetic_example/"
