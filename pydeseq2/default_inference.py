@@ -21,8 +21,8 @@ warnings.simplefilter("ignore", DomainWarning)
 class DefaultInference(inference.Inference):
     """Default DESeq2-related inference methods, using scipy/sklearn/numpy."""
 
-    fit_rough_dispersions = staticmethod(utils.fit_rough_dispersions)
-    fit_moments_dispersions = staticmethod(utils.fit_moments_dispersions)
+    fit_rough_dispersions = staticmethod(utils.fit_rough_dispersions) # type: ignore
+    fit_moments_dispersions = staticmethod(utils.fit_moments_dispersions) # type: ignore
 
     def __init__(
         self,
