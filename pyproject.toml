@@ -38,6 +38,8 @@ convention = "numpy"
 [tool.ruff.per-file-ignores]
 "docs/*" = ["I"]
 "tests/*" = ["D"]
+# Ignore errors linked to sphinx gallery syntax
+"examples/*" = ["D205", "B018"]
 # Ignore unused imports in __init__.py files
 "*/__init__.py" = ["F401"]
 
