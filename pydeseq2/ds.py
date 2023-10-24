@@ -1,22 +1,25 @@
 import sys
 import time
-from typing import List, Literal, Optional
+from typing import List
+from typing import Literal
+from typing import Optional
 
 # import anndata as ad
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
-from joblib import (
-    Parallel,  # type: ignore
-    delayed,  # type: ignore
-    parallel_backend,  # type: ignore
-)
+from joblib import Parallel  # type: ignore
+from joblib import delayed  # type: ignore
+from joblib import parallel_backend  # type: ignore
 from scipy.optimize import root_scalar  # type: ignore
 from scipy.stats import f  # type: ignore
 from statsmodels.stats.multitest import multipletests  # type: ignore
 
 from pydeseq2.dds import DeseqDataSet
-from pydeseq2.utils import get_num_processes, make_MA_plot, nbinomGLM, wald_test
+from pydeseq2.utils import get_num_processes
+from pydeseq2.utils import make_MA_plot
+from pydeseq2.utils import nbinomGLM
+from pydeseq2.utils import wald_test
 
 
 class DeseqStats:
@@ -678,10 +681,10 @@ class DeseqStats:
             return root_scalar(objective, bracket=[min_var, max_var]).root
 
     def _build_contrast(self, contrast: Optional[List[str]] = None) -> None:
-        """
-        Check the validity of the contrast (if provided). If not, build a default
-        contrast, corresponding to the last column of the design matrix.
+        """Check the validity of the contrast (if provided).
 
+        If not, build a default
+        contrast, corresponding to the last column of the design matrix.
         A contrast should be a list of three strings, in the following format:
         ``['variable_of_interest', 'tested_level', 'reference_level']``.
         Names must correspond to the metadata data passed to the DeseqDataSet.

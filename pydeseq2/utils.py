@@ -2,22 +2,27 @@ import multiprocessing
 import warnings
 from math import floor
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union, cast
+from typing import List
+from typing import Literal
+from typing import Optional
+from typing import Tuple
+from typing import Union
+from typing import cast
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
-from scipy.special import (
-    gammaln,  # type: ignore
-    polygamma,  # type: ignore
-)
+from scipy.special import gammaln  # type: ignore
+from scipy.special import polygamma  # type: ignore
 from scipy.stats import norm  # type: ignore
 from sklearn.linear_model import LinearRegression  # type: ignore
 
 import pydeseq2
-from pydeseq2.grid_search import grid_fit_alpha, grid_fit_beta, grid_fit_shrink_beta
+from pydeseq2.grid_search import grid_fit_alpha
+from pydeseq2.grid_search import grid_fit_beta
+from pydeseq2.grid_search import grid_fit_shrink_beta
 
 
 def load_example_data(
@@ -282,8 +287,8 @@ def build_design_matrix(
 def replace_underscores(factors: List[str]):
     """Replace all underscores from strings in a list by hyphens.
 
-    To be used on design factors to avoid bugs due to the reliance on `str.split("_")` in
-    parts of the code.
+    To be used on design factors to avoid bugs due to the reliance on `str.split("_")`
+    in parts of the code.
 
     Parameters
     ----------
@@ -328,7 +333,7 @@ def dispersion_trend(
 def nb_nll(
     counts: np.ndarray, mu: np.ndarray, alpha: Union[float, np.ndarray]
 ) -> Union[float, np.ndarray]:
-    """Negative log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
+    r"""Neg log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
 
     Mathematically, if ``counts`` is a vector of counting entries :math:`y_i`
     then the likelihood of each entry :math:`y_i` to be drawn from a negative
@@ -400,7 +405,7 @@ def nb_nll(
 
 
 def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
-    """Gradient of the negative log-likelihood of a negative binomial.
+    r"""Gradient of the negative log-likelihood of a negative binomial.
 
     Unvectorized.
 
@@ -965,7 +970,7 @@ def wald_test(
 def fit_rough_dispersions(
     normed_counts: np.ndarray, design_matrix: pd.DataFrame
 ) -> np.ndarray:
-    """ "Rough dispersion" estimates from linear model, as per the R code.
+    """Rough dispersion estimates from linear model, as per the R code.
 
     Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions()
     <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.

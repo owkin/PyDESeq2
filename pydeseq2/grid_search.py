@@ -7,7 +7,7 @@ import pydeseq2.utils
 
 
 def vec_nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: np.ndarray) -> np.ndarray:
-    """Return the negative log-likelihood of a negative binomial.
+    r"""Return the negative log-likelihood of a negative binomial.
 
     Vectorized version.
 

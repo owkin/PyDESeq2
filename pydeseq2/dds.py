@@ -1,43 +1,41 @@
 import sys
 import time
 import warnings
-from typing import List, Literal, Optional, Union, cast
+from typing import List
+from typing import Literal
+from typing import Optional
+from typing import Union
+from typing import cast
 
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
-from joblib import (
-    Parallel,  # type: ignore
-    delayed,
-    parallel_backend,
-)
+from joblib import Parallel  # type: ignore
+from joblib import delayed
+from joblib import parallel_backend
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
-from scipy.stats import (
-    f,  # type: ignore
-    trim_mean,  # type: ignore
-)
+from scipy.stats import f  # type: ignore
+from scipy.stats import trim_mean  # type: ignore
 from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
 from pydeseq2.preprocessing import deseq2_norm
-from pydeseq2.utils import (
-    build_design_matrix,
-    dispersion_trend,
-    fit_alpha_mle,
-    fit_lin_mu,
-    fit_moments_dispersions,
-    fit_rough_dispersions,
-    get_num_processes,
-    irls_solver,
-    make_scatter,
-    mean_absolute_deviation,
-    nb_nll,
-    replace_underscores,
-    robust_method_of_moments_disp,
-    test_valid_counts,
-    trimmed_mean,
-)
+from pydeseq2.utils import build_design_matrix
+from pydeseq2.utils import dispersion_trend
+from pydeseq2.utils import fit_alpha_mle
+from pydeseq2.utils import fit_lin_mu
+from pydeseq2.utils import fit_moments_dispersions
+from pydeseq2.utils import fit_rough_dispersions
+from pydeseq2.utils import get_num_processes
+from pydeseq2.utils import irls_solver
+from pydeseq2.utils import make_scatter
+from pydeseq2.utils import mean_absolute_deviation
+from pydeseq2.utils import nb_nll
+from pydeseq2.utils import replace_underscores
+from pydeseq2.utils import robust_method_of_moments_disp
+from pydeseq2.utils import test_valid_counts
+from pydeseq2.utils import trimmed_mean
 
 # Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
 warnings.simplefilter("ignore", DomainWarning)
@@ -813,7 +811,8 @@ class DeseqDataSet(ad.AnnData):
             self._refit_without_outliers()
 
     def _fit_MoM_dispersions(self) -> None:
-        """ "Rough method of moments" initial dispersions fit.
+        """Rough method of moments initial dispersions fit.
+
         Estimates are the max of "robust" and "method of moments" estimates.
         """
         # Check that size_factors are available. If not, compute them.
@@ -870,9 +869,7 @@ class DeseqDataSet(ad.AnnData):
         )
 
     def _replace_outliers(self) -> None:
-        """Replace values that are filtered out based
-        on the Cooks distance with imputed values.
-        """
+        """Replace values that are filtered out (based on Cooks) with imputed values."""
         # Check that cooks distances are available. If not, compute them.
         if "cooks" not in self.layers:
             self.calculate_cooks()
