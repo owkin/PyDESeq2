@@ -233,7 +233,7 @@ class DeseqDataSet(ad.AnnData):
             if design_factors.startswith("~"):
                 warnings.warn(
                     f"Design factor {design_factors} starts with ~"
-                    "therefore we assume the formula syntax is being used."
+                    "therefore we assume the formula syntax is being used. "
                     "Please rename column if this is unwanted behavior",
                     UserWarning,
                     stacklevel=2,
