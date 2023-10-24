@@ -16,10 +16,3 @@ repos:
     hooks:
     - id: mypy
       exclude: ^(tests/|docs/source/conf.py)
-- repo: https://github.com/nbQA-dev/nbQA #black and isort for Jupyter notebooks
-  rev: 1.4.0
-  hooks:
-    - id: nbqa-black
-    - id: nbqa-isort
-      args: 
-       - --profile=black
