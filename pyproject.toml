@@ -30,7 +30,7 @@ ignore = [
 ]
 
 [tool.ruff.isort]
-force_single_line = true
+force-single-line = true
 
 [tool.ruff.pydocstyle]
 convention = "numpy"
