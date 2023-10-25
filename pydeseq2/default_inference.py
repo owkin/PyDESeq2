@@ -19,7 +19,25 @@ warnings.simplefilter("ignore", DomainWarning)
 
 
 class DefaultInference(inference.Inference):
-    """Default DESeq2-related inference methods, using scipy/sklearn/numpy."""
+    """Default DESeq2-related inference methods, using scipy/sklearn/numpy.
+    
+    This object contains the interface to the default inference routines and uses
+    joblib internally for parallelization. Inherit this class or its parent to write
+    custom inference routines.
+
+    Parameters
+    ----------
+    joblib_verbosity : int 
+        The verbosity level for joblib tasks. The higher the value, the more updates
+        are reported. (default: ``0``).
+    batch_size : int
+        Number of tasks to allocate to each joblib parallel worker. (default: ``128``).
+    n_cpus : int
+        Number of cpus to use. If None, all available cpus will be used.
+        (default: ``None``).
+    backend : str
+        Joblib backend.
+    """
 
     fit_rough_dispersions = staticmethod(utils.fit_rough_dispersions)  # type: ignore
     fit_moments_dispersions = staticmethod(utils.fit_moments_dispersions)  # type: ignore
@@ -31,10 +49,10 @@ class DefaultInference(inference.Inference):
         n_cpus: Optional[int] = None,
         backend: str = "loky",
     ):
-        self.joblib_verbosity = joblib_verbosity
-        self.batch_size = batch_size
-        self.n_processes = utils.get_num_processes(n_cpus)
-        self.backend = backend
+        self._joblib_verbosity = joblib_verbosity
+        self._batch_size = batch_size
+        self._n_processes = utils.get_num_processes(n_cpus)
+        self._backend = backend
 
     def lin_reg_mu(
         self,
@@ -43,12 +61,12 @@ class DefaultInference(inference.Inference):
         design_matrix: np.ndarray,
         min_mu: float,
     ) -> np.ndarray:
-        with parallel_backend(self.backend, inner_max_num_threads=1):
+        with parallel_backend(self._backend, inner_max_num_threads=1):
             mu_hat_ = np.array(
                 Parallel(
-                    n_jobs=self.n_processes,
-                    verbose=self.joblib_verbosity,
-                    batch_size=self.batch_size,
+                    n_jobs=self._n_processes,
+                    verbose=self._joblib_verbosity,
+                    batch_size=self._batch_size,
                 )(
                     delayed(utils.fit_lin_mu)(
                         counts=counts[:, i],
@@ -74,11 +92,11 @@ class DefaultInference(inference.Inference):
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
         maxiter: int = 250,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        with parallel_backend(self.backend, inner_max_num_threads=1):
+        with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
+                n_jobs=self._n_processes,
+                verbose=self._joblib_verbosity,
+                batch_size=self._batch_size,
             )(
                 delayed(utils.irls_solver)(
                     counts=counts[:, i],
@@ -117,11 +135,11 @@ class DefaultInference(inference.Inference):
         prior_reg: bool = False,
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
     ) -> Tuple[np.ndarray, np.ndarray]:
-        with parallel_backend(self.backend, inner_max_num_threads=1):
+        with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
+                n_jobs=self._n_processes,
+                verbose=self._joblib_verbosity,
+                batch_size=self._batch_size,
             )(
                 delayed(utils.fit_alpha_mle)(
                     counts=counts[:, i],
@@ -157,9 +175,9 @@ class DefaultInference(inference.Inference):
         num_genes = mu.shape[1]
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
+                n_jobs=self._n_processes,
+                verbose=self._joblib_verbosity,
+                batch_size=self._batch_size,
             )(
                 delayed(utils.wald_test)(
                     design_matrix=design_matrix,
@@ -204,12 +222,12 @@ class DefaultInference(inference.Inference):
         optimizer: str,
         shrink_index: int,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        with parallel_backend(self.backend, inner_max_num_threads=1):
+        with parallel_backend(self._backend, inner_max_num_threads=1):
             num_genes = counts.shape[1]
             res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
+                n_jobs=self._n_processes,
+                verbose=self._joblib_verbosity,
+                batch_size=self._batch_size,
             )(
                 delayed(utils.nbinomGLM)(
                     design_matrix=design_matrix,

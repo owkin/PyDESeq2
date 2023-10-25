@@ -243,7 +243,7 @@ class Inference(ABC):
     def fit_rough_dispersions(
         self, normed_counts: np.ndarray, design_matrix: np.ndarray
     ) -> np.ndarray:
-        """ "Rough dispersion" estimates from linear model, as per the R code.
+        """'Rough dispersion' estimates from linear model, as per the R code.
 
         Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions()
         <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
