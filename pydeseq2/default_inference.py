@@ -60,7 +60,7 @@ class DefaultInference(inference.Inference):
         size_factors: np.ndarray,
         design_matrix: np.ndarray,
         min_mu: float,
-    ) -> np.ndarray: # noqa: D102
+    ) -> np.ndarray:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             mu_hat_ = np.array(
                 Parallel(
@@ -91,7 +91,7 @@ class DefaultInference(inference.Inference):
         max_beta: float = 30,
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
         maxiter: int = 250,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: # noqa: D102
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
                 n_jobs=self._n_processes,
@@ -134,7 +134,7 @@ class DefaultInference(inference.Inference):
         cr_reg: bool = True,
         prior_reg: bool = False,
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
-    ) -> Tuple[np.ndarray, np.ndarray]: # noqa: D102
+    ) -> Tuple[np.ndarray, np.ndarray]:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
                 n_jobs=self._n_processes,
@@ -171,7 +171,7 @@ class DefaultInference(inference.Inference):
         alt_hypothesis: Optional[
             Literal["greaterAbs", "lessAbs", "greater", "less"]
         ] = None,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]: # noqa: D102
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         num_genes = mu.shape[1]
         with parallel_backend("loky", inner_max_num_threads=1):
             res = Parallel(
@@ -221,7 +221,7 @@ class DefaultInference(inference.Inference):
         prior_scale: float,
         optimizer: str,
         shrink_index: int,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]: # noqa: D102
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             num_genes = counts.shape[1]
             res = Parallel(
