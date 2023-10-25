@@ -4,7 +4,8 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from pydeseq2.utils import load_example_data, nb_nll
+from pydeseq2.utils import load_example_data
+from pydeseq2.utils import nb_nll
 
 
 @pytest.mark.parametrize("mu, alpha", [(10, 0.5), (10, 0.1), (3, 0.5), (9, 0.05)])
