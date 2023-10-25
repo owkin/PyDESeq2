@@ -90,7 +90,7 @@ class DefaultInference(inference.Inference):
                     min_beta=min_beta,
                     max_beta=max_beta,
                     optimizer=optimizer,
-                    maxiter=maxiter
+                    maxiter=maxiter,
                 )
                 for i in range(counts.shape[1])
             )
@@ -133,7 +133,7 @@ class DefaultInference(inference.Inference):
                     prior_disp_var=prior_disp_var,
                     cr_reg=cr_reg,
                     prior_reg=prior_reg,
-                    optimizer=optimizer
+                    optimizer=optimizer,
                 )
                 for i in range(counts.shape[1])
             )

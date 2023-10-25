@@ -274,7 +274,6 @@ class DeseqStats:
 
         Get gene-wise p-values for gene over/under-expression.`
         """
-
         num_vars = self.design_matrix.shape[1]
 
         # Raise a warning if LFCs are shrunk.
