@@ -54,7 +54,7 @@ class DefaultInference(inference.Inference):
         self._n_processes = utils.get_num_processes(n_cpus)
         self._backend = backend
 
-    def lin_reg_mu(
+    def lin_reg_mu(  # noqa: D102
         self,
         counts: np.ndarray,
         size_factors: np.ndarray,
@@ -79,7 +79,7 @@ class DefaultInference(inference.Inference):
             )
         return mu_hat_.T
 
-    def irls(
+    def irls(  # noqa: D102
         self,
         counts: np.ndarray,
         size_factors: np.ndarray,
@@ -122,7 +122,7 @@ class DefaultInference(inference.Inference):
             converged_,
         )
 
-    def alpha_mle(
+    def alpha_mle(  # noqa: D102
         self,
         counts: np.ndarray,
         design_matrix: np.ndarray,
@@ -159,7 +159,7 @@ class DefaultInference(inference.Inference):
         dispersions_, l_bfgs_b_converged_ = (np.array(m) for m in res)
         return dispersions_, l_bfgs_b_converged_
 
-    def wald_test(
+    def wald_test(  # noqa: D102
         self,
         design_matrix: np.ndarray,
         disp: np.ndarray,
@@ -196,7 +196,7 @@ class DefaultInference(inference.Inference):
 
         return pvals, stats, se
 
-    def dispersion_trend_gamma_glm(
+    def dispersion_trend_gamma_glm(  # noqa: D102
         self, covariates: pd.Series, targets: pd.Series
     ) -> Tuple[np.ndarray, np.ndarray]:
         covariates_w_intercept = sm.add_constant(covariates)
@@ -211,7 +211,7 @@ class DefaultInference(inference.Inference):
         coeffs = res.params
         return (coeffs, covariates_fit @ coeffs)
 
-    def lfc_shrink_nbinom_glm(
+    def lfc_shrink_nbinom_glm(  # noqa: D102
         self,
         design_matrix: np.ndarray,
         counts: np.ndarray,
