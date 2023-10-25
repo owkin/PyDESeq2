@@ -1,11 +1,47 @@
 [tool.black]
 line-length = 89
 
-[tool.isort]
-filter_files = true
-force_single_line = true
-line_length = 89
-profile = "black"
+[tool.ruff]
+line-length = 89
+select = [
+    "F",  # Errors detected by Pyflakes
+    "E",  # Error detected by Pycodestyle
+    "W",  # Warning detected by Pycodestyle
+    "I",  # isort
+    "D",  # pydocstyle
+    "B",  # flake8-bugbear
+    "TID",  # flake8-tidy-imports
+    "C4",  # flake8-comprehensions
+    "BLE",  # flake8-blind-except
+    "UP",  # pyupgrade
+    "RUF100",  # Report unused noqa directives
+]
+ignore = [
+    # Missing docstring in public package
+    "D104",
+    # Missing docstring in public module
+    "D100",
+    # Missing docstring in __init__
+    "D107",
+    # We don’t want a blank line before a class docstring
+    "D203",
+    # We want docstrings to start immediately after the opening triple quote
+    "D213",
+]
+
+[tool.ruff.isort]
+force-single-line = true
+
+[tool.ruff.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.per-file-ignores]
+"docs/*" = ["I"]
+"tests/*" = ["D"]
+# Ignore errors linked to sphinx gallery syntax
+"examples/*" = ["D205", "B018", "D400"]
+# Ignore unused imports in __init__.py files
+"*/__init__.py" = ["F401"]
 
 # pyproject.toml
 [tool.pytest.ini_options]
