@@ -7,7 +7,7 @@ import pydeseq2.utils
 
 
 def vec_nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: np.ndarray) -> np.ndarray:
-    """Return the negative log-likelihood of a negative binomial.
+    r"""Return the negative log-likelihood of a negative binomial.
 
     Vectorized version.
 
@@ -29,7 +29,6 @@ def vec_nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: np.ndarray) -> np.ndar
         Negative log likelihood of the observations counts following
         :math:`NB(\\mu, \\alpha)`.
     """
-
     n = len(counts)
     alpha_neg1 = 1 / alpha
     logbinom = (
@@ -105,7 +104,6 @@ def grid_fit_alpha(
     float
         Logarithm of the fitted dispersion parameter.
     """
-
     min_log_alpha = np.log(min_disp)
     max_log_alpha = np.log(max_disp)
     grid = np.linspace(min_log_alpha, max_log_alpha, grid_length)
