@@ -20,14 +20,14 @@ warnings.simplefilter("ignore", DomainWarning)
 
 class DefaultInference(inference.Inference):
     """Default DESeq2-related inference methods, using scipy/sklearn/numpy.
-    
+
     This object contains the interface to the default inference routines and uses
     joblib internally for parallelization. Inherit this class or its parent to write
     custom inference routines.
 
     Parameters
     ----------
-    joblib_verbosity : int 
+    joblib_verbosity : int
         The verbosity level for joblib tasks. The higher the value, the more updates
         are reported. (default: ``0``).
     batch_size : int
