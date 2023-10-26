@@ -26,7 +26,6 @@ def deseq2_norm(
     size_factors : pandas.DataFrame or ndarray
         DESeq2 normalization factors.
     """
-
     logmeans, filtered_genes = deseq2_norm_fit(counts)
     deseq2_counts, size_factors = deseq2_norm_transform(counts, logmeans, filtered_genes)
     return deseq2_counts, size_factors
@@ -52,7 +51,6 @@ def deseq2_norm_fit(
     filtered_genes : ndarray
         Genes which log means are different from -∞.
     """
-
     # Compute gene-wise mean log counts
     with np.errstate(divide="ignore"):  # ignore division by zero warnings
         log_counts = np.log(counts)
@@ -93,7 +91,6 @@ def deseq2_norm_transform(
     size_factors : pandas.DataFrame or ndarray
         DESeq2 normalization factors.
     """
-
     with np.errstate(divide="ignore"):  # ignore division by zero warnings
         log_counts = np.log(counts)
     # Subtract filtered log means from log counts
