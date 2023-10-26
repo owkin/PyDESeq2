@@ -13,3 +13,4 @@ sphinx_gallery==0.11.1
 sphinx_autodoc_typehints
 sphinxcontrib-bibtex==2.5.0
 gitpython>=3.1.27
+ipython

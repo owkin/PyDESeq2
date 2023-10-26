@@ -115,8 +115,7 @@ Run `conda create -n pydeseq2 python=3.8` (or higher python version) to create t
 
 Then, run `pre-commit install`.
 
-The `pre-commit` tool will automatically run [black](https://black.readthedocs.io/en/stable/)
-and [isort](https://pycqa.github.io/isort/), and check [flake8](https://flake8.pycqa.org/en/latest/) compatibility
+The `pre-commit` tool will automatically run [ruff](https://docs.astral.sh/ruff/), [black](https://black.readthedocs.io/en/stable/), and [mypy](https://mypy.readthedocs.io/en/stable/).
 
 PyDESeq2 is a living project and any contributions are welcome! Feel free to open new PRs or issues.
 

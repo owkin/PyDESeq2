@@ -8,7 +8,6 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
-from IPython.display import display  # type: ignore
 from joblib import Parallel  # type: ignore
 from joblib import delayed  # type: ignore
 from joblib import parallel_backend  # type: ignore
@@ -281,7 +280,7 @@ class DeseqStats:
                 f"Log2 fold change & Wald test p-value: "
                 f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
             )
-        display(self.results_df)
+        print(self.results_df)
 
     def run_wald_test(self) -> None:
         """Perform a Wald test.
@@ -493,7 +492,7 @@ class DeseqStats:
                     f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}"
                 )
 
-            display(self.results_df)
+            print(self.results_df)
 
     def plot_MA(self, log: bool = True, save_path: Optional[str] = None, **kwargs):
         """
