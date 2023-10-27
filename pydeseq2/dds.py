@@ -94,7 +94,8 @@ class DeseqDataSet(ad.AnnData):
 
     inference : Inference
         Implementation of inference routines object instance.
-        (default: :class:`DefaultInference <pydeseq2.inference.DefaultInference>`).
+        (default:
+        :class:`DefaultInference <pydeseq2.default_inference.DefaultInference>`).
 
     quiet : bool
         Suppress deseq2 status updates during fit.
