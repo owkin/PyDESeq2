@@ -15,7 +15,7 @@ As PyDESeq2 is a re-implementation of `DESeq2 <https://bioconductor.org/packages
 from scratch, you may experience some differences in terms of retrieved values or available features.
 
 Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor and
-paired multi-factor analysis (with n-level categorical factors), with an
+multi-factor analysis (with categorical or continuous factors) using Wald tests, with an
 optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage step
 :cite:p:`zhu2019heavy`. We plan to implement more in the near future. In case there is a feature you would particularly
 like to be implemented, feel free to open an issue on GitHub.
@@ -26,12 +26,12 @@ Citing this work
 
 ::
 
-   @article{muzellec2022pydeseq2,
+   @article{muzellec2023pydeseq2,
    title={PyDESeq2: a python package for bulk RNA-seq differential expression analysis},
    author={Muzellec, Boris and Telenczuk, Maria and Cabeli, Vincent and Andreux, Mathieu},
-   year={2022},
-   doi = {10.1101/2022.12.14.520412},
-   journal={bioRxiv},
+   year={2023},
+   doi = {10.1093/bioinformatics/btad547},
+   journal={Bioinformatics},
    }
 
 License
