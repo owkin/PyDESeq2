@@ -976,6 +976,9 @@ class DeseqDataSet(ad.AnnData):
 
         # Use the same size factors
         sub_dds.obsm["size_factors"] = self.counts_to_refit.obsm["size_factors"]
+        sub_dds.layers["normed_counts"] = (
+            sub_dds.X / sub_dds.obsm["size_factors"][:, None]
+        )
 
         # Estimate gene-wise dispersions.
         sub_dds.fit_genewise_dispersions()
@@ -983,9 +986,7 @@ class DeseqDataSet(ad.AnnData):
         # Compute trend dispersions.
         # Note: the trend curve is not refitted.
         sub_dds.uns["trend_coeffs"] = self.uns["trend_coeffs"]
-        sub_dds.varm["_normed_means"] = (
-            self.counts_to_refit.X / self.counts_to_refit.obsm["size_factors"][:, None]
-        ).mean(0)
+        sub_dds.varm["_normed_means"] = sub_dds.layers["normed_counts"].mean(0)
         sub_dds.varm["fitted_dispersions"] = dispersion_trend(
             sub_dds.varm["_normed_means"],
             sub_dds.uns["trend_coeffs"],
