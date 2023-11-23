@@ -217,7 +217,7 @@ print(dds.varm["LFC"])
 # should be a *fitted* :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`
 # object.
 
-stat_res = DeseqStats(dds, n_cpus=8)
+stat_res = DeseqStats(dds, test="LRT", n_cpus=8)
 
 # %%
 # It also has a set of optional keyword arguments (see the :doc:`API documentation
