@@ -360,7 +360,7 @@ class DeseqDataSet(ad.AnnData):
         """
         if "size_factors" not in self.obsm:
             raise RuntimeError(
-                "The method vst_fit should be called prior to vst_transform."
+                "The vst_fit method should be called prior to vst_transform."
             )
 
         if counts is None:

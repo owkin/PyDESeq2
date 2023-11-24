@@ -36,7 +36,7 @@ def deseq2_norm_fit(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Return ``logmeans`` and ``filtered_genes``, needed in the median of ratios method.
 
-    Logmeans and filtered_genes can then be used to normalize external datasets.
+    ``Logmeans`` and ``filtered_genes`` can then be used to normalize external datasets.
 
     Parameters
     ----------
