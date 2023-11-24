@@ -11,6 +11,8 @@ PyDESeq2
 
     ~dds.DeseqDataSet
     ~ds.DeseqStats
+    ~inference.Inference
+    ~default_inference.DefaultInference
     ~utils
     ~grid_search
     ~preprocessing
