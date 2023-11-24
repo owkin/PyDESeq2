@@ -113,6 +113,9 @@ napoleon_preprocess_types = True  # generate hyperlinks for parameter types
 
 napoleon_type_aliases = {
     "DeseqDataSet": ":class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`",
+    "Inference": ":class:`Inference <pydeseq2.inference.Inference>`",
+    "DefaultInference": ":class:`DefaultInference "
+    "<pydeseq2.default_inference.DefaultInference>`",
 }
 
 # Add any paths that contain templates here, relative to this directory.

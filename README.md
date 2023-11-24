@@ -136,12 +136,12 @@ Here are some of the features and improvements we plan to implement in the futur
 ## Citing this work
 
 ```
-@article{muzellec2022pydeseq2,
+@article{muzellec2023pydeseq2,
   title={PyDESeq2: a python package for bulk RNA-seq differential expression analysis},
   author={Muzellec, Boris and Telenczuk, Maria and Cabeli, Vincent and Andreux, Mathieu},
-  year={2022},
-  doi = {10.1101/2022.12.14.520412},
-  journal={bioRxiv},
+  year={2023},
+  doi = {10.1093/bioinformatics/btad547},
+  journal={Bioinformatics},
 }
 ```
 
