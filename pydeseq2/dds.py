@@ -637,7 +637,7 @@ class DeseqDataSet(ad.AnnData):
         if not self.quiet:
             print("Fitting LFCs...", file=sys.stderr)
         start = time.time()
-        MLE_lfcs_, mu_, hat_diagonals_, converged_ = self.inference.irls(
+        mle_lfcs_, mu_, hat_diagonals_, converged_ = self.inference.irls(
             counts=self.X[:, self.non_zero_idx],
             size_factors=self.obsm["size_factors"],
             design_matrix=design_matrix,
@@ -658,7 +658,7 @@ class DeseqDataSet(ad.AnnData):
 
         self.varm["LFC"].update(
             pd.DataFrame(
-                MLE_lfcs_,
+                mle_lfcs_,
                 index=self.non_zero_genes,
                 columns=self.obsm["design_matrix"].columns,
             )
