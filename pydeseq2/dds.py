@@ -15,10 +15,10 @@ from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
 
-from pydeseq2.preprocessing import deseq2_norm_fit
-from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
+from pydeseq2.preprocessing import deseq2_norm_fit
+from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
 from pydeseq2.utils import make_scatter
