@@ -34,7 +34,7 @@ def deseq2_norm(
 def deseq2_norm_fit(
     counts: Union[pd.DataFrame, np.ndarray]
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Return logmeans and filtered_genes, needed in the median of ratios method.
+    """Return ``logmeans`` and ``filtered_genes``, needed in the median of ratios method.
 
     Logmeans and filtered_genes can then be used to normalize external datasets.
 
@@ -49,7 +49,7 @@ def deseq2_norm_fit(
         Gene-wise mean log counts.
 
     filtered_genes : ndarray
-        Genes which log means are different from -∞.
+        Genes whose log means are different from -∞.
     """
     # Compute gene-wise mean log counts
     with np.errstate(divide="ignore"):  # ignore division by zero warnings
@@ -66,10 +66,10 @@ def deseq2_norm_transform(
     logmeans: np.ndarray,
     filtered_genes: np.ndarray,
 ) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
-    """Return normalized counts and size_factors from the median of ratios method.
+    """Return normalized counts and size factors from the median of ratios method.
 
-    Can be applied on external dataset, using the logmeans and filtered_genes previously
-    computed in the fit function.
+    Can be applied on external dataset, using the ``logmeans`` and ``filtered_genes``
+    previously computed in the ``fit`` function.
 
     Parameters
     ----------
@@ -80,7 +80,7 @@ def deseq2_norm_transform(
         Gene-wise mean log counts.
 
     filtered_genes : ndarray
-        Genes which log means are different from -∞.
+        Genes whose log means are different from -∞.
 
     Returns
     -------

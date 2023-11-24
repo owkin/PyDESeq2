@@ -148,15 +148,15 @@ class DeseqDataSet(ad.AnnData):
 
     fit_type: str
         Either "parametric" or "mean" for the type of fitting of dispersions to the
-        mean intensity. parametric - fit a dispersion-mean relation via a robust
-        gamma-family GLM. mean - use the mean of gene-wise dispersion estimates.
+        mean intensity. "parametric": fit a dispersion-mean relation via a robust
+        gamma-family GLM. "mean": use the mean of gene-wise dispersion estimates.
         (default: ``"parametric"``).
 
     logmeans: numpy.ndarray
-        Gene-wise mean log counts, computed in preprocessing.deseq2_norm_fit().
+        Gene-wise mean log counts, computed in ``preprocessing.deseq2_norm_fit()``.
 
     filtered_genes: numpy.ndarray
-        Genes which log means are different from -∞, computed in
+        Genes whose log means are different from -∞, computed in
         preprocessing.deseq2_norm_fit().
 
     References
@@ -286,10 +286,10 @@ class DeseqDataSet(ad.AnnData):
         use_design : bool
             Whether to use the full design matrix to fit dispersions and the trend curve.
             If False, only an intercept is used. (default: ``False``).
-        fit_type : str
+        fit_type: str
             Either "parametric" or "mean" for the type of fitting of dispersions to the
-            mean intensity. parametric - fit a dispersion-mean relation via a robust
-            gamma-family GLM. mean - use the mean of gene-wise dispersion estimates.
+            mean intensity. "parametric": fit a dispersion-mean relation via a robust
+            gamma-family GLM. "mean": use the mean of gene-wise dispersion estimates.
             (default: ``"parametric"``).
         """
         self.vst_fit(use_design=use_design, fit_type=fit_type)
@@ -318,7 +318,7 @@ class DeseqDataSet(ad.AnnData):
         self.fit_type = fit_type  # to re-use inside vst_transform
 
         # Start by fitting median-of-ratio size factors if not already present,
-        # or if it was computed iteratively
+        # or if they were computed iteratively
         if "size_factors" not in self.obsm or self.logmeans is None:
             self.fit_size_factors()  # by default, fit_type != "iterative"
 
@@ -345,7 +345,7 @@ class DeseqDataSet(ad.AnnData):
     def vst_transform(self, counts: Optional[np.ndarray] = None) -> np.ndarray:
         """Apply the variance stabilizing transformation.
 
-        Uses the results from vst_fit method.
+        Uses the results from the ``vst_fit`` method.
 
         Parameters
         ----------
@@ -370,10 +370,10 @@ class DeseqDataSet(ad.AnnData):
             if self.logmeans is None:
                 # the size factors were still computed iteratively
                 warnings.warn(
-                    "The size factors were fitted iteratively. The size factors will "
+                    "The size factors were fitted iteratively. They will "
                     "be re-computed with the counts to be transformed. In a train/test "
-                    "fashion with a downstream task, this would result in a leak of "
-                    "data.",
+                    "setting with a downstream task, this would result in a leak of "
+                    "data from test to train set.",
                     UserWarning,
                     stacklevel=2,
                 )
