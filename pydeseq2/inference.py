@@ -9,7 +9,7 @@ import pandas as pd
 
 
 class Inference(ABC):
-    """Abstrast class with DESeq2-related inference methods."""
+    """Abstract class with DESeq2-related inference methods."""
 
     @abstractmethod
     def lin_reg_mu(
@@ -43,7 +43,6 @@ class Inference(ABC):
         ndarray
             Estimated mean.
         """
-        pass
 
     @abstractmethod
     def irls(
@@ -119,7 +118,6 @@ class Inference(ABC):
             Whether IRLS or the optimizer converged. If not and if dimension allows it,
             perform grid search.
         """
-        pass
 
     @abstractmethod
     def alpha_mle(
@@ -179,7 +177,6 @@ class Inference(ABC):
             Whether L-BFGS-B converged. If not, dispersion is estimated
             using grid search.
         """
-        pass
 
     @abstractmethod
     def wald_test(
@@ -237,7 +234,6 @@ class Inference(ABC):
         wald_se : ndarray
             Standard error of the Wald statistic.
         """
-        pass
 
     @abstractmethod
     def fit_rough_dispersions(
@@ -262,7 +258,6 @@ class Inference(ABC):
         ndarray
             Estimated dispersion parameter for each gene.
         """
-        pass
 
     @abstractmethod
     def fit_moments_dispersions(
@@ -286,7 +281,6 @@ class Inference(ABC):
         ndarray
             Estimated dispersion parameter for each gene.
         """
-        pass
 
     @abstractmethod
     def dispersion_trend_gamma_glm(
@@ -311,7 +305,6 @@ class Inference(ABC):
         predictions : ndarray
             Predictions of the regression.
         """
-        pass
 
     @abstractmethod
     def lfc_shrink_nbinom_glm(
@@ -367,4 +360,3 @@ class Inference(ABC):
         converged: ndarray
             Whether L-BFGS-B converged for each optimization problem.
         """
-        pass
