@@ -17,7 +17,8 @@ from scipy.stats import trim_mean  # type: ignore
 
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
-from pydeseq2.preprocessing import deseq2_norm
+from pydeseq2.preprocessing import deseq2_norm_fit
+from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
 from pydeseq2.utils import make_scatter
@@ -145,6 +146,19 @@ class DeseqDataSet(ad.AnnData):
     quiet : bool
         Suppress deseq2 status updates during fit.
 
+    fit_type: str
+        Either "parametric" or "mean" for the type of fitting of dispersions to the
+        mean intensity. "parametric": fit a dispersion-mean relation via a robust
+        gamma-family GLM. "mean": use the mean of gene-wise dispersion estimates.
+        (default: ``"parametric"``).
+
+    logmeans: numpy.ndarray
+        Gene-wise mean log counts, computed in ``preprocessing.deseq2_norm_fit()``.
+
+    filtered_genes: numpy.ndarray
+        Genes whose log means are different from -∞, computed in
+        preprocessing.deseq2_norm_fit().
+
     References
     ----------
     .. bibliography::
@@ -252,6 +266,8 @@ class DeseqDataSet(ad.AnnData):
         self.min_replicates = min_replicates
         self.beta_tol = beta_tol
         self.quiet = quiet
+        self.logmeans = None
+        self.filtered_genes = None
 
         # Initialize the inference object.
         self.inference = inference or DefaultInference()
@@ -261,8 +277,30 @@ class DeseqDataSet(ad.AnnData):
         use_design: bool = False,
         fit_type: Literal["parametric", "mean"] = "parametric",
     ) -> None:
+        """Fit a variance stabilizing transformation, and apply it to normalized counts.
+
+        Results are stored in ``dds.layers["vst_counts"]``.
+
+        Parameters
+        ----------
+        use_design : bool
+            Whether to use the full design matrix to fit dispersions and the trend curve.
+            If False, only an intercept is used. (default: ``False``).
+        fit_type: str
+            Either "parametric" or "mean" for the type of fitting of dispersions to the
+            mean intensity. "parametric": fit a dispersion-mean relation via a robust
+            gamma-family GLM. "mean": use the mean of gene-wise dispersion estimates.
+            (default: ``"parametric"``).
         """
-        Fit a variance stabilizing transformation, and apply it to normalized counts.
+        self.vst_fit(use_design=use_design, fit_type=fit_type)
+        self.layers["vst_counts"] = self.vst_transform()
+
+    def vst_fit(
+        self,
+        use_design: bool = False,
+        fit_type: Literal["parametric", "mean"] = "parametric",
+    ) -> None:
+        """Fit a variance stabilizing transformation.
 
         Results are stored in ``dds.layers["vst_counts"]``.
 
@@ -277,9 +315,12 @@ class DeseqDataSet(ad.AnnData):
             gamma-family GLM. mean - use the mean of gene-wise dispersion estimates.
             (default: ``"parametric"``).
         """
-        # Start by fitting median-of-ratio size factors, if not already present.
-        if "size_factors" not in self.obsm:
-            self.fit_size_factors()
+        self.fit_type = fit_type  # to re-use inside vst_transform
+
+        # Start by fitting median-of-ratio size factors if not already present,
+        # or if they were computed iteratively
+        if "size_factors" not in self.obsm or self.logmeans is None:
+            self.fit_size_factors()  # by default, fit_type != "iterative"
 
         if use_design:
             # Check that the dispersion trend curve was fitted. If not, fit it.
@@ -294,33 +335,77 @@ class DeseqDataSet(ad.AnnData):
             )
             # Fit the trend curve with an intercept design
             self.fit_genewise_dispersions()
-            if fit_type == "parametric":
+            if self.fit_type == "parametric":
                 self.fit_dispersion_trend()
 
             # Restore the design matrix and free buffer
             self.obsm["design_matrix"] = self.obsm["design_matrix_buffer"].copy()
             del self.obsm["design_matrix_buffer"]
 
-        # Apply VST
-        if fit_type == "parametric":
+    def vst_transform(self, counts: Optional[np.ndarray] = None) -> np.ndarray:
+        """Apply the variance stabilizing transformation.
+
+        Uses the results from the ``vst_fit`` method.
+
+        Parameters
+        ----------
+        counts : numpy.ndarray
+            Counts to transform. If ``None``, use the counts from the current dataset.
+            (default: ``None``).
+
+        Returns
+        -------
+        numpy.ndarray
+            Variance stabilized counts.
+        """
+        if "size_factors" not in self.obsm:
+            raise RuntimeError(
+                "The vst_fit method should be called prior to vst_transform."
+            )
+
+        if counts is None:
+            # the transformed counts will be the current ones
+            normed_counts = self.layers["normed_counts"]
+        else:
+            if self.logmeans is None:
+                # the size factors were still computed iteratively
+                warnings.warn(
+                    "The size factors were fitted iteratively. They will "
+                    "be re-computed with the counts to be transformed. In a train/test "
+                    "setting with a downstream task, this would result in a leak of "
+                    "data from test to train set.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                logmeans, filtered_genes = deseq2_norm_fit(counts)
+            else:
+                logmeans, filtered_genes = self.logmeans, self.filtered_genes
+
+            normed_counts, _ = deseq2_norm_transform(counts, logmeans, filtered_genes)
+
+        if self.fit_type == "parametric":
             a0, a1 = self.uns["trend_coeffs"]
-            cts = self.layers["normed_counts"]
-            self.layers["vst_counts"] = np.log2(
-                (1 + a1 + 2 * a0 * cts + 2 * np.sqrt(a0 * cts * (1 + a1 + a0 * cts)))
+            return np.log2(
+                (
+                    1
+                    + a1
+                    + 2 * a0 * normed_counts
+                    + 2 * np.sqrt(a0 * normed_counts * (1 + a1 + a0 * normed_counts))
+                )
                 / (4 * a0)
             )
-        elif fit_type == "mean":
+        elif self.fit_type == "mean":
             gene_dispersions = self.varm["genewise_dispersions"]
             use_for_mean = gene_dispersions > 10 * self.min_disp
             mean_disp = trim_mean(gene_dispersions[use_for_mean], proportiontocut=0.001)
-            self.layers["vst_counts"] = (
-                2 * np.arcsinh(np.sqrt(mean_disp * self.layers["normed_counts"]))
+            return (
+                2 * np.arcsinh(np.sqrt(mean_disp * normed_counts))
                 - np.log(mean_disp)
                 - np.log(4)
             ) / np.log(2)
         else:
             raise NotImplementedError(
-                f"Found fit_type '{fit_type}'. Expected 'parametric' or 'mean'."
+                f"Found fit_type '{self.fit_type}'. Expected 'parametric' or 'mean'."
             )
 
     def deseq2(self) -> None:
@@ -379,7 +464,11 @@ class DeseqDataSet(ad.AnnData):
             )
             self._fit_iterate_size_factors()
         else:
-            self.layers["normed_counts"], self.obsm["size_factors"] = deseq2_norm(self.X)
+            self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X)
+            (
+                self.layers["normed_counts"],
+                self.obsm["size_factors"],
+            ) = deseq2_norm_transform(self.X, self.logmeans, self.filtered_genes)
         end = time.time()
 
         if not self.quiet:

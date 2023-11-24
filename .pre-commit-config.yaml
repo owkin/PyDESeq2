@@ -16,4 +16,3 @@ repos:
     hooks:
     - id: mypy
       exclude: ^(tests/|docs/source/conf.py)
-

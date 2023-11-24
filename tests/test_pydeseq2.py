@@ -10,29 +10,37 @@ import tests
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
 from pydeseq2.preprocessing import deseq2_norm
+from pydeseq2.preprocessing import deseq2_norm_fit
+from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.utils import load_example_data
 
 # Single-factor tests
 
 
-def test_deseq(tol=0.02):
-    """Test that the outputs of the DESeq2 function match those of the original R
-    package, up to a tolerance in relative error.
-    """
-
-    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
-
-    counts_df = load_example_data(
+@pytest.fixture
+def counts_df():
+    return load_example_data(
         modality="raw_counts",
         dataset="synthetic",
         debug=False,
     )
 
-    metadata = load_example_data(
+
+@pytest.fixture
+def metadata():
+    return load_example_data(
         modality="metadata",
         dataset="synthetic",
         debug=False,
     )
+
+
+def test_deseq(counts_df, metadata, tol=0.02):
+    """Test that the outputs of the DESeq2 function match those of the original R
+    package, up to a tolerance in relative error.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
     r_res = pd.read_csv(
         os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
@@ -58,24 +66,12 @@ def test_deseq(tol=0.02):
 
 
 @pytest.mark.parametrize("alt_hypothesis", ["lessAbs", "greaterAbs", "less", "greater"])
-def test_alt_hypothesis(alt_hypothesis, tol=0.02):
+def test_alt_hypothesis(alt_hypothesis, counts_df, metadata, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error, with the alternative hypothesis test.
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
-
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
 
     r_res = pd.read_csv(
         os.path.join(test_path, f"data/single_factor/r_test_res_{alt_hypothesis}.csv"),
@@ -120,7 +116,7 @@ def test_alt_hypothesis(alt_hypothesis, tol=0.02):
     # ).max() < tol
 
 
-def test_deseq_no_refit_cooks(tol=0.02):
+def test_deseq_no_refit_cooks(counts_df, metadata, tol=0.02):
     """Test that the outputs of the DESeq2 function *without cooks refit*
     match those of the original R package, up to a tolerance in relative error.
     Note: this is just to check that the workflow runs bug-free, as we expect no outliers
@@ -128,18 +124,6 @@ def test_deseq_no_refit_cooks(tol=0.02):
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
-
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
 
     r_res = pd.read_csv(
         os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
@@ -169,7 +153,7 @@ def test_deseq_no_refit_cooks(tol=0.02):
     assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
 
 
-def test_lfc_shrinkage(tol=0.02):
+def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
     """Test that the outputs of the lfc_shrink function match those of the original
     R package (starting from the same inputs), up to a tolerance in relative error.
     """
@@ -181,18 +165,6 @@ def test_lfc_shrinkage(tol=0.02):
     r_shrunk_res = pd.read_csv(
         os.path.join(test_path, "data/single_factor/r_test_lfc_shrink_res.csv"),
         index_col=0,
-    )
-
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
     )
 
     r_size_factors = pd.read_csv(
@@ -223,24 +195,13 @@ def test_lfc_shrinkage(tol=0.02):
     ).max() < tol
 
 
-def test_iterative_size_factors(tol=0.02):
+def test_iterative_size_factors(counts_df, metadata, tol=0.02):
     """Test that the outputs of the iterative size factor method match those of the
     original R package (starting from the same inputs), up to a tolerance in relative
     error.
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
 
     r_size_factors = pd.read_csv(
         os.path.join(test_path, "data/single_factor/r_iterative_size_factors.csv"),
@@ -257,24 +218,12 @@ def test_iterative_size_factors(tol=0.02):
 
 
 # Multi-factor tests
-def test_multifactor_deseq(tol=0.02):
+def test_multifactor_deseq(counts_df, metadata, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
-
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
 
     r_res = pd.read_csv(
         os.path.join(test_path, "data/multi_factor/r_test_res.csv"), index_col=0
@@ -301,7 +250,7 @@ def test_multifactor_deseq(tol=0.02):
     assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
 
 
-def test_multifactor_lfc_shrinkage(tol=0.02):
+def test_multifactor_lfc_shrinkage(counts_df, metadata, tol=0.02):
     """Test that the outputs of the lfc_shrink function match those of the original
     R package (starting from the same inputs), up to a tolerance in relative error.
     """
@@ -313,18 +262,6 @@ def test_multifactor_lfc_shrinkage(tol=0.02):
     r_shrunk_res = pd.read_csv(
         os.path.join(test_path, "data/multi_factor/r_test_lfc_shrink_res.csv"),
         index_col=0,
-    )
-
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
     )
 
     r_size_factors = pd.read_csv(
@@ -458,23 +395,11 @@ def test_continuous_lfc_shrinkage(tol=0.02):
     ).max() < tol
 
 
-def test_contrast():
+def test_contrast(counts_df, metadata):
     """
     Check that the contrasts ['condition', 'B', 'A'] and ['condition', 'A', 'B'] give
     coherent results (change of sign in LFCs and Wald stats, same (adjusted p-values).
     """
-
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
 
     dds = DeseqDataSet(
         counts=counts_df, metadata=metadata, design_factors=["group", "condition"]
@@ -505,25 +430,12 @@ def test_contrast():
     )
 
 
-def test_anndata_init(tol=0.02):
+def test_anndata_init(counts_df, metadata, tol=0.02):
     """
     Test initializing dds with an AnnData object that already has filled in fields,
     including with the same names as those used by pydeseq2.
     """
     np.random.seed(42)
-
-    # Load data
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
 
     # Make an anndata object
     adata = ad.AnnData(X=counts_df.astype(int), obs=metadata)
@@ -562,24 +474,10 @@ def test_anndata_init(tol=0.02):
     assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
 
 
-def test_vst(tol=0.02):
+def test_vst(counts_df, metadata, tol=0.02):
     """
     Test the output of VST compared with DESeq2.
     """
-
-    # Load data
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
-
     # Load R data
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -604,24 +502,10 @@ def test_vst(tol=0.02):
     ).max().max() < tol
 
 
-def test_mean_vst(tol=0.02):
+def test_mean_vst(counts_df, metadata, tol=0.02):
     """
     Test the output of VST with ``fitType="mean"`` compared with DESeq2.
     """
-
-    # Load data
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
-
     # Load R data
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -635,22 +519,10 @@ def test_mean_vst(tol=0.02):
     assert (np.abs(r_vst - dds.layers["vst_counts"]) / r_vst).max().max() < tol
 
 
-def test_ref_level():
+def test_ref_level(counts_df, metadata):
     """Test that DeseqDataSet columns are created according to the passed reference
     level, if any.
     """
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
-
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
@@ -669,22 +541,10 @@ def test_ref_level():
     ).all()
 
 
-def test_deseq2_norm():
+def test_deseq2_norm(counts_df, metadata):
     """Test that deseq2_norm() called on a pandas dataframe outputs the same results as
     DeseqDataSet.fit_size_factors()
     """
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
-
     # Fit size factors from DeseqDataSet
     dds = DeseqDataSet(counts=counts_df, metadata=metadata)
     dds.fit_size_factors()
@@ -698,3 +558,67 @@ def test_deseq2_norm():
         s2,
         decimal=8,
     )
+
+
+@pytest.fixture
+def train_counts(counts_df):
+    return counts_df[25:75]
+
+
+@pytest.fixture
+def test_counts(counts_df):
+    return counts_df[0:25]
+
+
+@pytest.fixture
+def train_metadata(metadata):
+    return metadata[25:75]
+
+
+@pytest.fixture
+def train_dds(train_counts, train_metadata):
+    return DeseqDataSet(
+        counts=train_counts, metadata=train_metadata, design_factors="condition"
+    )
+
+
+def test_deseq2_norm_fit(train_counts):
+    # patient from 25 to 75
+    logmeans, filtered_genes = deseq2_norm_fit(train_counts)
+
+    # 10 genes
+    assert logmeans.shape == (10,)
+    assert filtered_genes.shape == (10,)
+
+
+def test_deseq2_norm_transform(train_counts, test_counts):
+    # First fit with some indices
+    logmeans, filtered_genes = deseq2_norm_fit(train_counts)
+
+    normed_counts, size_factors = deseq2_norm_transform(
+        test_counts, logmeans, filtered_genes
+    )
+    assert isinstance(normed_counts, pd.DataFrame)
+    # 25 samples, 10 genes
+    assert normed_counts.shape == (25, 10)
+    assert size_factors.shape == (25,)
+
+
+def test_vst_fit(train_dds):
+    # patient from 25 to 75
+    train_dds.vst_fit()
+
+    # the correct attributes are fit
+    assert "trend_coeffs" in train_dds.uns
+    assert "normed_counts" in train_dds.layers
+    assert "size_factors" in train_dds.obsm
+
+
+def test_vst_transform(train_dds, test_counts):
+    # First fit with some indices
+    train_dds.vst_fit()
+
+    result = train_dds.vst_transform(test_counts.to_numpy())
+    assert isinstance(result, np.ndarray)
+    # 25 samples, 10 genes
+    assert result.shape == (25, 10)
