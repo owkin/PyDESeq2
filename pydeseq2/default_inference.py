@@ -173,7 +173,7 @@ class DefaultInference(inference.Inference):
         ] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         num_genes = mu.shape[1]
-        with parallel_backend("loky", inner_max_num_threads=1):
+        with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
                 n_jobs=self._n_processes,
                 verbose=self._joblib_verbosity,
