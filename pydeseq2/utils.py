@@ -1041,6 +1041,32 @@ def fit_moments_dispersions(
     return np.nan_to_num((sigma - s_mean_inv * mu) / mu**2)
 
 
+def n_or_more_replicates(design_matrix: pd.DataFrame, min_replicates: int) -> pd.Series:
+    """
+    Return a  series indicating whether samples have a minimum number of replicates.
+
+    Checks whether each sample has at least ``min_replicates`` replicates, based on its
+    combination of design factors.
+
+    Parameters
+    ----------
+    design_matrix : pandas.DataFrame
+        A DataFrame with experiment design information (to split cohorts).
+    min_replicates : int
+        The minimum number of replicates to have to pass the threshold.
+
+    Returns
+    -------
+    pandas.Series
+        A boolean series indicating whether each sample has at least ``min_replicates``
+        replicates.
+    """
+    n_or_more = design_matrix.value_counts() >= min_replicates
+    replaceable = n_or_more[pd.MultiIndex.from_frame(design_matrix)]
+    replaceable.index = design_matrix.index
+    return replaceable
+
+
 def robust_method_of_moments_disp(
     normed_counts: pd.DataFrame, design_matrix: pd.DataFrame
 ) -> pd.Series:

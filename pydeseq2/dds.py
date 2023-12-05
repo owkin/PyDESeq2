@@ -23,6 +23,7 @@ from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
+from pydeseq2.utils import n_or_more_replicates
 from pydeseq2.utils import nb_nll
 from pydeseq2.utils import replace_underscores
 from pydeseq2.utils import robust_method_of_moments_disp
@@ -886,15 +887,14 @@ class DeseqDataSet(ad.AnnData):
         num_vars = self.obsm["design_matrix"].shape[1]
 
         # Check whether cohorts have enough samples to allow refitting
-        n_or_more = self.obsm["design_matrix"].value_counts() >= self.min_replicates
+        self.obsm["replaceable"] = n_or_more_replicates(
+            self.obsm["design_matrix"], self.min_replicates
+        ).values
 
-        if n_or_more.sum() == 0:
+        if self.obsm["replaceable"].sum() == 0:
             # No sample can be replaced. Set self.replaced to False and exit.
             self.varm["replaced"] = pd.Series(False, index=self.var_names)
             return
-
-        replaceable = n_or_more[pd.MultiIndex.from_frame(self.obsm["design_matrix"])]
-        self.obsm["replaceable"] = replaceable.values
 
         # Get positions of counts with cooks above threshold
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
