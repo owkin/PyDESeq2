@@ -886,22 +886,14 @@ class DeseqDataSet(ad.AnnData):
         num_vars = self.obsm["design_matrix"].shape[1]
 
         # Check whether cohorts have enough samples to allow refitting
-        n_or_more = (
-            self.obsm["design_matrix"][
-                self.obsm["design_matrix"].columns[-1]
-            ].value_counts()
-            >= self.min_replicates
-        )
+        n_or_more = self.obsm["design_matrix"].value_counts() >= self.min_replicates
 
         if n_or_more.sum() == 0:
             # No sample can be replaced. Set self.replaced to False and exit.
             self.varm["replaced"] = pd.Series(False, index=self.var_names)
             return
 
-        replaceable = n_or_more[
-            self.obsm["design_matrix"][self.obsm["design_matrix"].columns[-1]]
-        ]
-
+        replaceable = n_or_more[pd.MultiIndex.from_frame(self.obsm["design_matrix"])]
         self.obsm["replaceable"] = replaceable.values
 
         # Get positions of counts with cooks above threshold
