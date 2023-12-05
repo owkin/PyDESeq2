@@ -1090,10 +1090,20 @@ def robust_method_of_moments_disp(
         Used for outlier detection based on Cook's distance.
     """
     # if there are 3 or more replicates in any cell
-    three_or_more = design_matrix[design_matrix.columns[-1]].value_counts() >= 3
+    three_or_more = n_or_more_replicates(design_matrix, 3)
     if three_or_more.any():
-        v = trimmed_cell_variance(normed_counts, design_matrix.iloc[:, -1].astype(int))
-        # last argument is non-intercept.
+        # 1 - group rows by unique combinations of design factors
+        # 2 - keep only groups with 3 or more replicates
+        # 3 - filter the counts matrix to only keep rows in those groups
+        filtered_counts = normed_counts.loc[three_or_more, :]
+        filtered_design = design_matrix.loc[three_or_more, :]
+        cell_id = pd.Series(
+            filtered_design.groupby(
+                filtered_design.columns.values.tolist()
+            ).grouper.group_info[0],
+            index=filtered_design.index,
+        )
+        v = trimmed_cell_variance(filtered_counts, cell_id)
     else:
         v = pd.Series(
             trimmed_variance(normed_counts.values), index=normed_counts.columns
