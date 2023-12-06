@@ -16,6 +16,8 @@ from pydeseq2.utils import load_example_data
 
 # Single-factor tests
 
+# TODO: add a few_replicates test. This implies running the DESeq2 pipeline as well.
+
 
 @pytest.fixture
 def counts_df():
@@ -218,23 +220,37 @@ def test_iterative_size_factors(counts_df, metadata, tol=0.02):
 
 
 # Multi-factor tests
-def test_multifactor_deseq(counts_df, metadata, tol=0.02):
+@pytest.mark.parametrize("with_outliers", [True, False])
+def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
-    r_res = pd.read_csv(
-        os.path.join(test_path, "data/multi_factor/r_test_res.csv"), index_col=0
-    )
+    if with_outliers:
+        r_res = pd.read_csv(
+            os.path.join(test_path, "data/multi_factor/r_test_res_outliers.csv"),
+            index_col=0,
+        )
+    else:
+        r_res = pd.read_csv(
+            os.path.join(test_path, "data/multi_factor/r_test_res.csv"),
+            index_col=0,
+        )
+
+    if with_outliers:
+        # Introduce outlier counts and a condition level with a single replicate
+        counts_df.loc["sample1", "gene1"] = 2000
+        counts_df.loc["sample11", "gene7"] = 1000
+        metadata.loc["sample1", "condition"] = "C"
 
     dds = DeseqDataSet(
         counts=counts_df, metadata=metadata, design_factors=["group", "condition"]
     )
     dds.deseq2()
 
-    res = DeseqStats(dds)
+    res = DeseqStats(dds, contrast=["condition", "B", "A"])
     res.summary()
     res_df = res.results_df
 
@@ -295,7 +311,11 @@ def test_multifactor_lfc_shrinkage(counts_df, metadata, tol=0.02):
 
 
 # Continuous tests
-def test_continuous_deseq(tol=0.02):
+@pytest.mark.parametrize("with_outliers", [True, False])
+def test_continuous_deseq(
+    with_outliers,
+    tol=0.02,
+):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error, with a continuous factor.
     """
@@ -310,9 +330,22 @@ def test_continuous_deseq(tol=0.02):
         os.path.join(test_path, "data/continuous/test_metadata.csv"), index_col=0
     )
 
-    r_res = pd.read_csv(
-        os.path.join(test_path, "data/continuous/r_test_res.csv"), index_col=0
-    )
+    # Load R results
+    if with_outliers:
+        r_res = pd.read_csv(
+            os.path.join(test_path, "data/continuous/r_test_res_outliers.csv"),
+            index_col=0,
+        )
+    else:
+        r_res = pd.read_csv(
+            os.path.join(test_path, "data/continuous/r_test_res.csv"), index_col=0
+        )
+
+    if with_outliers:
+        # Introduce outlier counts and a condition level with a single replicate
+        counts_df.loc["sample1", "gene1"] = 2000
+        counts_df.loc["sample11", "gene7"] = 1000
+        metadata.loc["sample1", "condition"] = "C"
 
     dds = DeseqDataSet(
         counts=counts_df,
