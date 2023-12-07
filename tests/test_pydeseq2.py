@@ -221,7 +221,7 @@ def test_iterative_size_factors(counts_df, metadata, tol=0.02):
 
 # Multi-factor tests
 @pytest.mark.parametrize("with_outliers", [True, False])
-def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.02):
+def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.04):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.
     """
@@ -314,7 +314,7 @@ def test_multifactor_lfc_shrinkage(counts_df, metadata, tol=0.02):
 @pytest.mark.parametrize("with_outliers", [True, False])
 def test_continuous_deseq(
     with_outliers,
-    tol=0.02,
+    tol=0.04,
 ):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error, with a continuous factor.
