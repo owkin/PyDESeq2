@@ -16,8 +16,6 @@ from pydeseq2.utils import load_example_data
 
 # Single-factor tests
 
-# TODO: add a few_replicates test. This implies running the DESeq2 pipeline as well.
-
 
 @pytest.fixture
 def counts_df():
