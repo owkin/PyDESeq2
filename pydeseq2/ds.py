@@ -16,6 +16,7 @@ from pydeseq2.dds import DeseqDataSet
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.utils import make_MA_plot
+from pydeseq2.utils import n_or_more_replicates
 
 
 class DeseqStats:
@@ -570,20 +571,12 @@ class DeseqStats:
         num_vars = self.design_matrix.shape[-1]
         cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
 
+        # As in DESeq2, only take samples with 3 or more replicates when looking for
+        # max cooks.
+        use_for_max = n_or_more_replicates(self.design_matrix, 3)
+
         # If for a gene there are 3 samples or more that have more counts than the
         # maximum cooks sample, don't count this gene as an outlier.
-        # Do this only if there are 2 cohorts.
-        if num_vars == 2:
-            # Check whether cohorts have enough samples to allow refitting
-            # Only consider conditions with 3 or more samples (same as in R)
-            n_or_more = self.design_matrix.iloc[:, self.contrast_idx].value_counts() >= 3
-            use_for_max = pd.Series(
-                n_or_more[self.design_matrix.iloc[:, self.contrast_idx]]
-            )
-            use_for_max.index = self.dds.obs_names
-
-        else:
-            use_for_max = pd.Series(True, index=self.dds.obs_names)
 
         # Take into account whether we already replaced outliers
         if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
