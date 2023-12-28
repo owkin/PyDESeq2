@@ -48,5 +48,6 @@ convention = "numpy"
 filterwarnings = [
     "error",
     "ignore::statsmodels.tools.sm_exceptions.DomainWarning", # due to fitting the dipersion curve with the identity link
-    "ignore::FutureWarning" # Ignore AnnData FutureWarning about implicit conversion
+    "ignore::FutureWarning", # Ignore AnnData FutureWarning about implicit conversion
+    "ignore::DeprecationWarning:statsmodels[.*]"
 ]
