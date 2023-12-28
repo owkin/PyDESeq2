@@ -47,7 +47,7 @@ convention = "numpy"
 [tool.pytest.ini_options]
 filterwarnings = [
     "error",
-    "ignore::DeprecationWarning:statsmodels[.*]",
+    "ignore::DeprecationWarning:patsy[.*]",
     "ignore::statsmodels.tools.sm_exceptions.DomainWarning", # due to fitting the dipersion curve with the identity link
     "ignore::FutureWarning", # Ignore AnnData FutureWarning about implicit conversion
 ]
