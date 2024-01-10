@@ -21,6 +21,7 @@ from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
+from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import n_or_more_replicates
@@ -93,6 +94,12 @@ class DeseqDataSet(ad.AnnData):
         Stopping criterion for IRWLS. (default: ``1e-8``).
 
         .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
+
+    n_cpus : int
+        Number of cpus to use.  If ``None`` and if ``inference`` is not provided, all
+        available cpus will be used by the ``DefaultInference``. If both are specified,
+        it will try to override the ``n_cpus`` attribute of the ``inference`` object.
+        (default: ``None``).
 
     inference : Inference
         Implementation of inference routines object instance.
@@ -181,6 +188,7 @@ class DeseqDataSet(ad.AnnData):
         refit_cooks: bool = True,
         min_replicates: int = 7,
         beta_tol: float = 1e-8,
+        n_cpus: Optional[int] = None,
         inference: Optional[Inference] = None,
         quiet: bool = False,
     ) -> None:
@@ -270,8 +278,20 @@ class DeseqDataSet(ad.AnnData):
         self.logmeans = None
         self.filtered_genes = None
 
+        if n_cpus:
+            n_cpus = get_num_processes(n_cpus)
+            if inference:
+                try:
+                    inference.n_cpus = n_cpus
+                except AttributeError:
+                    warnings.warn(
+                        "The provided inference object does not have an n_cpus "
+                        "attribute, cannot override `n_cpus`.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
         # Initialize the inference object.
-        self.inference = inference or DefaultInference()
+        self.inference = inference or DefaultInference(n_cpus=n_cpus)
 
     def vst(
         self,
