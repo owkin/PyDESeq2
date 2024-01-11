@@ -282,11 +282,11 @@ class DeseqDataSet(ad.AnnData):
             n_cpus = get_num_processes(n_cpus)
             if inference:
                 try:
-                    inference.n_cpus = n_cpus
+                    inference.n_cpus = n_cpus  # type: ignore[attr-defined]
                 except AttributeError:
                     warnings.warn(
                         "The provided inference object does not have an n_cpus "
-                        "attribute, cannot override `n_cpus`.",
+                        "setter, cannot override `n_cpus`.",
                         UserWarning,
                         stacklevel=2,
                     )

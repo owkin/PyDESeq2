@@ -11,16 +11,6 @@ import pandas as pd
 class Inference(ABC):
     """Abstract class with DESeq2-related inference methods."""
 
-    @property
-    @abstractmethod
-    def n_cpus(self):
-        """Return the number of cpus to use during inference."""
-
-    @n_cpus.setter
-    @abstractmethod
-    def n_cpus(self, val):
-        """Set the number of cpus to use during inference."""
-
     @abstractmethod
     def lin_reg_mu(
         self,
