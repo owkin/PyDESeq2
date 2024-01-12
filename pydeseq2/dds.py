@@ -1,3 +1,4 @@
+import math
 import sys
 import time
 import warnings
@@ -11,6 +12,7 @@ import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm  # type: ignore
+from jax import jit
 from joblib import Parallel  # type: ignore
 from joblib import delayed
 from joblib import parallel_backend
@@ -20,6 +22,8 @@ from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
 from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
 
+from pydeseq2.jax_utils import fit_alpha_mle_all_genes_jax
+from pydeseq2.jax_utils import fit_lin_mu_for_all_genes_jax
 from pydeseq2.preprocessing import deseq2_norm
 from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
@@ -187,6 +191,7 @@ class DeseqDataSet(ad.AnnData):
         batch_size: int = 128,
         joblib_verbosity: int = 0,
         quiet: bool = False,
+        use_jax: bool = False,
     ) -> None:
         # Initialize the AnnData part
         if adata is not None:
@@ -277,6 +282,7 @@ class DeseqDataSet(ad.AnnData):
         self.batch_size = batch_size
         self.joblib_verbosity = joblib_verbosity
         self.quiet = quiet
+        self.use_jax = use_jax
 
     def vst(
         self,
@@ -440,23 +446,34 @@ class DeseqDataSet(ad.AnnData):
             len(self.obsm["design_matrix"].value_counts())
             == self.obsm["design_matrix"].shape[-1]
         ):
-            print("fit_lin_mu")
-            with parallel_backend("loky", inner_max_num_threads=1):
-                mu_hat_ = np.array(
-                    Parallel(
-                        n_jobs=self.n_processes,
-                        verbose=self.joblib_verbosity,
-                        batch_size=self.batch_size,
-                    )(
-                        delayed(fit_lin_mu)(
-                            counts=self.X[:, i],
-                            size_factors=self.obsm["size_factors"],
-                            design_matrix=design_matrix,
-                            min_mu=self.min_mu,
+            if self.use_jax:
+                counts = self.X[:, self.non_zero_idx]
+                size_factors = self.obsm["size_factors"].flatten()
+
+                mu_hat_ = jit(fit_lin_mu_for_all_genes_jax)(
+                    counts,
+                    size_factors,
+                    design_matrix,
+                    min_mu=self.min_mu,
+                ).T
+
+            else:
+                with parallel_backend("loky", inner_max_num_threads=1):
+                    mu_hat_ = np.array(
+                        Parallel(
+                            n_jobs=self.n_processes,
+                            verbose=self.joblib_verbosity,
+                            batch_size=self.batch_size,
+                        )(
+                            delayed(fit_lin_mu)(
+                                counts=self.X[:, i],
+                                size_factors=self.obsm["size_factors"],
+                                design_matrix=design_matrix,
+                                min_mu=self.min_mu,
+                            )
+                            for i in self.non_zero_idx
                         )
-                        for i in self.non_zero_idx
                     )
-                )
         else:
             print("irls solver")
             with parallel_backend("loky", inner_max_num_threads=1):
@@ -485,23 +502,38 @@ class DeseqDataSet(ad.AnnData):
         if not self.quiet:
             print("Fitting dispersions...", file=sys.stderr)
         start = time.time()
-        with parallel_backend("loky", inner_max_num_threads=1):
-            res = Parallel(
-                n_jobs=self.n_processes,
-                verbose=self.joblib_verbosity,
-                batch_size=self.batch_size,
-            )(
-                delayed(fit_alpha_mle)(
-                    counts=self.X[:, i],
-                    design_matrix=design_matrix,
-                    mu=self.layers["_mu_hat"][:, i],
-                    alpha_hat=self.varm["_MoM_dispersions"][i],
-                    min_disp=self.min_disp,
-                    max_disp=self.max_disp,
-                )
-                # for i in range(num_genes)
-                for i in self.non_zero_idx
+        if self.use_jax:
+            counts = self.X[:, self.non_zero_idx]
+            mu = self.layers["_mu_hat"][:, self.non_zero_idx]
+            alpha_hat = self.varm["_MoM_dispersions"][self.non_zero_idx]
+            n_samples = len(counts)
+            res = jit(fit_alpha_mle_all_genes_jax)(
+                counts,
+                design_matrix,
+                mu,
+                n_samples,
+                alpha_hat,
+                self.min_disp,
+                self.max_disp,
             )
+        else:
+            with parallel_backend("loky", inner_max_num_threads=1):
+                res = Parallel(
+                    n_jobs=self.n_processes,
+                    verbose=self.joblib_verbosity,
+                    batch_size=self.batch_size,
+                )(
+                    delayed(fit_alpha_mle)(
+                        counts=self.X[:, i],
+                        design_matrix=design_matrix,
+                        mu=self.layers["_mu_hat"][:, i],
+                        alpha_hat=self.varm["_MoM_dispersions"][i],
+                        min_disp=self.min_disp,
+                        max_disp=self.max_disp,
+                    )
+                    # for i in range(num_genes)
+                    for i in self.non_zero_idx
+                )
         end = time.time()
 
         if not self.quiet:
