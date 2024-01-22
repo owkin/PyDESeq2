@@ -21,7 +21,6 @@ from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
-from pydeseq2.utils import get_num_processes
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import n_or_more_replicates
@@ -278,18 +277,16 @@ class DeseqDataSet(ad.AnnData):
         self.logmeans = None
         self.filtered_genes = None
 
-        if n_cpus:
-            n_cpus = get_num_processes(n_cpus)
-            if inference:
-                try:
-                    inference.n_cpus = n_cpus  # type: ignore[attr-defined]
-                except AttributeError:
-                    warnings.warn(
-                        "The provided inference object does not have an n_cpus "
-                        "setter, cannot override `n_cpus`.",
-                        UserWarning,
-                        stacklevel=2,
-                    )
+        if inference:
+            if hasattr(inference, "n_cpus"):
+                inference.n_cpus = n_cpus
+            else:
+                warnings.warn(
+                    "The provided inference object does not have an n_cpus "
+                    "attribute, cannot override `n_cpus`.",
+                    UserWarning,
+                    stacklevel=2,
+                )
         # Initialize the inference object.
         self.inference = inference or DefaultInference(n_cpus=n_cpus)
 
