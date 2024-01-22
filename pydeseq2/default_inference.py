@@ -51,8 +51,16 @@ class DefaultInference(inference.Inference):
     ):
         self._joblib_verbosity = joblib_verbosity
         self._batch_size = batch_size
-        self._n_processes = utils.get_num_processes(n_cpus)
+        self._n_cpus = utils.get_num_processes(n_cpus)
         self._backend = backend
+
+    @property
+    def n_cpus(self) -> int:  # noqa: D102
+        return self._n_cpus
+
+    @n_cpus.setter
+    def n_cpus(self, n_cpus: int) -> None:
+        self._n_cpus = utils.get_num_processes(n_cpus)
 
     def lin_reg_mu(  # noqa: D102
         self,
@@ -64,7 +72,7 @@ class DefaultInference(inference.Inference):
         with parallel_backend(self._backend, inner_max_num_threads=1):
             mu_hat_ = np.array(
                 Parallel(
-                    n_jobs=self._n_processes,
+                    n_jobs=self.n_cpus,
                     verbose=self._joblib_verbosity,
                     batch_size=self._batch_size,
                 )(
@@ -94,7 +102,7 @@ class DefaultInference(inference.Inference):
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
-                n_jobs=self._n_processes,
+                n_jobs=self.n_cpus,
                 verbose=self._joblib_verbosity,
                 batch_size=self._batch_size,
             )(
@@ -137,7 +145,7 @@ class DefaultInference(inference.Inference):
     ) -> Tuple[np.ndarray, np.ndarray]:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
-                n_jobs=self._n_processes,
+                n_jobs=self.n_cpus,
                 verbose=self._joblib_verbosity,
                 batch_size=self._batch_size,
             )(
@@ -175,7 +183,7 @@ class DefaultInference(inference.Inference):
         num_genes = mu.shape[1]
         with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
-                n_jobs=self._n_processes,
+                n_jobs=self.n_cpus,
                 verbose=self._joblib_verbosity,
                 batch_size=self._batch_size,
             )(
@@ -225,7 +233,7 @@ class DefaultInference(inference.Inference):
         with parallel_backend(self._backend, inner_max_num_threads=1):
             num_genes = counts.shape[1]
             res = Parallel(
-                n_jobs=self._n_processes,
+                n_jobs=self.n_cpus,
                 verbose=self._joblib_verbosity,
                 batch_size=self._batch_size,
             )(

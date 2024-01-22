@@ -94,6 +94,12 @@ class DeseqDataSet(ad.AnnData):
 
         .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
 
+    n_cpus : int
+        Number of cpus to use.  If ``None`` and if ``inference`` is not provided, all
+        available cpus will be used by the ``DefaultInference``. If both are specified,
+        it will try to override the ``n_cpus`` attribute of the ``inference`` object.
+        (default: ``None``).
+
     inference : Inference
         Implementation of inference routines object instance.
         (default:
@@ -181,6 +187,7 @@ class DeseqDataSet(ad.AnnData):
         refit_cooks: bool = True,
         min_replicates: int = 7,
         beta_tol: float = 1e-8,
+        n_cpus: Optional[int] = None,
         inference: Optional[Inference] = None,
         quiet: bool = False,
     ) -> None:
@@ -270,8 +277,18 @@ class DeseqDataSet(ad.AnnData):
         self.logmeans = None
         self.filtered_genes = None
 
+        if inference:
+            if hasattr(inference, "n_cpus"):
+                inference.n_cpus = n_cpus
+            else:
+                warnings.warn(
+                    "The provided inference object does not have an n_cpus "
+                    "attribute, cannot override `n_cpus`.",
+                    UserWarning,
+                    stacklevel=2,
+                )
         # Initialize the inference object.
-        self.inference = inference or DefaultInference()
+        self.inference = inference or DefaultInference(n_cpus=n_cpus)
 
     def vst(
         self,

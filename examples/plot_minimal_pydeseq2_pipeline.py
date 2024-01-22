@@ -137,6 +137,7 @@ dds = DeseqDataSet(
     design_factors="condition",
     refit_cooks=True,
     inference=inference,
+    # n_cpus=8, # n_cpus can be specified here or in the inference object
 )
 
 # %%
