@@ -49,6 +49,7 @@ filterwarnings = [
     "error",
     "ignore::DeprecationWarning:patsy[.*]", # due to patsy being a dependency of statsmodels and
     # calling pandas.core.dtypes.common.is_categorical_dtype.
+    "ignore::DeprecationWarning:pandas[.*]", # ignore Pyarrow deprecation warnings
     "ignore::statsmodels.tools.sm_exceptions.DomainWarning", # due to fitting the dipersion curve with the identity link
     "ignore::FutureWarning", # Ignore AnnData FutureWarning about implicit conversion
 ]
