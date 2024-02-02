@@ -14,7 +14,6 @@ from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
-
 from skmisc.loess import loess
 
 from pydeseq2.default_inference import DefaultInference
@@ -579,7 +578,6 @@ class DeseqDataSet(ad.AnnData):
         r"""Fit the dispersion trend coefficients.
         TODO
         """
-
         if self.trend_fit_type == "parametric":
             self._fit_parametric_trend()
 
@@ -684,11 +682,9 @@ class DeseqDataSet(ad.AnnData):
 
         # Filter outlier genes for which we won't apply shrinkage
         self.varm["dispersions"] = self.varm["MAP_dispersions"].copy()
-        self.varm["_outlier_genes"] = np.log(
-            self.varm["genewise_dispersions"]
-        ) > np.log(self.varm["fitted_dispersions"]) + 2 * np.sqrt(
-            self.uns["_squared_logres"]
-        )
+        self.varm["_outlier_genes"] = np.log(self.varm["genewise_dispersions"]) > np.log(
+            self.varm["fitted_dispersions"]
+        ) + 2 * np.sqrt(self.uns["_squared_logres"])
         self.varm["dispersions"][self.varm["_outlier_genes"]] = self.varm[
             "genewise_dispersions"
         ][self.varm["_outlier_genes"]]
@@ -1198,9 +1194,7 @@ class DeseqDataSet(ad.AnnData):
             ) < 1e-4:
                 break
             elif i == niter - 1:
-                print(
-                    "Iterative size factor fitting did not converge.", file=sys.stderr
-                )
+                print("Iterative size factor fitting did not converge.", file=sys.stderr)
 
         # Restore the design matrix and free buffer
         self.obsm["design_matrix"] = self.obsm["design_matrix_buffer"].copy()
