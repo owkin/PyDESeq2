@@ -604,6 +604,12 @@ class DeseqDataSet(ad.AnnData):
         if self.trend_fit_type == "mean":
             self._fit_mean_trend()
 
+        else:
+            raise NotImplementedError(
+                f"Unknown trend_fit_type: {self.trend_fit_type}. "
+                "Expected 'parametric', 'local' or 'mean'."
+            )
+
     def fit_dispersion_prior(self) -> None:
         """Fit dispersion variance priors and standard deviation of log-residuals.
 
