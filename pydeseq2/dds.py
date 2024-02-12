@@ -1,3 +1,4 @@
+import multiprocessing as mp
 import sys
 import time
 import warnings
@@ -14,7 +15,6 @@ from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
-from skmisc.loess import loess
 
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
@@ -22,6 +22,7 @@ from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
+from pydeseq2.utils import local_trend_fit
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import n_or_more_replicates
@@ -909,6 +910,12 @@ class DeseqDataSet(ad.AnnData):
     def _fit_local_trend(self) -> None:
         r"""Fit the dispersion trend curve using local regression."""
         # Check that genewise dispersions are available. If not, compute them.
+        warnings.warn(
+            "Running local trend fit will make the DeseqDataSet object unpicklable.",
+            UserWarning,
+            stacklevel=2,
+        )
+
         if "genewise_dispersions" not in self.varm:
             self.fit_genewise_dispersions()
 
@@ -924,14 +931,23 @@ class DeseqDataSet(ad.AnnData):
         if len(genes_to_fit) == 0:
             raise ValueError("No genes to fit: all dispersions are below 10 * min_disp")
 
-        lo = loess(
-            x=np.log(self.varm["_normed_means"][genes_to_fit]),
-            y=np.log(self.varm["genewise_dispersions"][genes_to_fit]),
-            weights=self.varm["_normed_means"][genes_to_fit],
-            surface="direct",  # to allow extrapolation
-        )
+        means = self.varm["_normed_means"][genes_to_fit]
+        dispersions = self.varm["genewise_dispersions"][genes_to_fit]
 
-        lo.fit()
+        # Run local trend fit in a separate process to avoid segmentation faults
+        q = mp.Manager().Queue()
+        p = mp.Process(target=local_trend_fit, args=(means, dispersions, q))
+        p.start()
+        p.join()
+
+        if p.exitcode != 0:
+            raise RuntimeError
+        else:
+            # The code rand without fault, so we can now run it locally.
+            # Returning the loess object in the first step would be more straightforward,
+            # But it is unfortunately unpicklable.
+
+            lo = local_trend_fit(means, dispersions)
 
         end = time.time()
 
