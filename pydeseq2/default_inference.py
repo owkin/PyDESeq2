@@ -17,6 +17,7 @@ from pydeseq2 import utils
 
 # Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
 warnings.simplefilter("ignore", DomainWarning)
+warnings.simplefilter("ignore", PerfectSeparationWarning)
 
 
 class DefaultInference(inference.Inference):
