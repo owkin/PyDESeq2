@@ -15,7 +15,6 @@ from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
-from statsmodels.tools.sm_exceptions import PerfectSeparationWarning
 
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
@@ -585,7 +584,7 @@ class DeseqDataSet(ad.AnnData):
         if self.trend_fit_type == "parametric":
             try:
                 self._fit_parametric_trend()
-            except PerfectSeparationWarning:
+            except RuntimeError:
                 warnings.warn(
                     "Perfect separation detected, switching to local regression.",
                     UserWarning,

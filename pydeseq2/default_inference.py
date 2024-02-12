@@ -10,6 +10,7 @@ from joblib import Parallel  # type: ignore
 from joblib import delayed
 from joblib import parallel_backend
 from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
+from statsmodels.tools.sm_exceptions import PerfectSeparationWarning
 
 from pydeseq2 import inference
 from pydeseq2 import utils
@@ -210,12 +211,17 @@ class DefaultInference(inference.Inference):
         covariates_w_intercept = sm.add_constant(covariates)
         targets_fit = targets.values
         covariates_fit = covariates_w_intercept.values
-        glm_gamma = sm.GLM(
-            targets_fit,
-            covariates_fit,
-            family=sm.families.Gamma(link=sm.families.links.identity()),
-        )
-        res = glm_gamma.fit()
+        try:
+            glm_gamma = sm.GLM(
+                targets_fit,
+                covariates_fit,
+                family=sm.families.Gamma(link=sm.families.links.identity()),
+            )
+            res = glm_gamma.fit()
+        except PerfectSeparationWarning:
+            raise RuntimeError(
+                "Perfect separation detected in dispersion trend model."
+            ) from None
         coeffs = res.params
         return (coeffs, covariates_fit @ coeffs)
 
