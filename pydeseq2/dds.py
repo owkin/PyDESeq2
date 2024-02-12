@@ -597,14 +597,14 @@ class DeseqDataSet(ad.AnnData):
         if self.trend_fit_type == "local":
             try:
                 self._fit_local_trend()
-            except ValueError:
-                print("Local trend, fit did not converge, switching to mean fit.")
+            except (ValueError, RuntimeError):
+                print("Local trend fit did not converge, switching to mean fit.")
                 self.trend_fit_type = "mean"
 
         if self.trend_fit_type == "mean":
             self._fit_mean_trend()
 
-        else:
+        if self.trend_fit_type not in ["parametric", "local", "mean"]:
             raise NotImplementedError(
                 f"Unknown trend_fit_type: {self.trend_fit_type}. "
                 "Expected 'parametric', 'local' or 'mean'."
