@@ -10,12 +10,14 @@ from joblib import Parallel  # type: ignore
 from joblib import delayed
 from joblib import parallel_backend
 from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
+from statsmodels.tools.sm_exceptions import PerfectSeparationWarning  # type: ignore
 
 from pydeseq2 import inference
 from pydeseq2 import utils
 
 # Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
 warnings.simplefilter("ignore", DomainWarning)
+warnings.simplefilter("ignore", PerfectSeparationWarning)
 
 
 class DefaultInference(inference.Inference):
