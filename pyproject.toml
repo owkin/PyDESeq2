@@ -47,5 +47,6 @@ convention = "numpy"
 [tool.pytest.ini_options]
 filterwarnings = [
     "error",
+    "ignore::DeprecationWarning:pandas", # ignore Pyarrow deprecation warnings
     "ignore::FutureWarning", # Ignore AnnData FutureWarning about implicit conversion
 ]
