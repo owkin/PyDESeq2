@@ -226,7 +226,7 @@ class DefaultInference(inference.Inference):
         )
 
         if not res.success:
-            raise ValueError("Gamma GLM optimization failed.")
+            raise RuntimeError("Gamma GLM optimization failed.")
 
         coeffs = res.x
         return coeffs, covariates_fit @ coeffs
