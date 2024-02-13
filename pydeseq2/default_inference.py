@@ -203,7 +203,7 @@ class DefaultInference(inference.Inference):
         self, covariates: pd.Series, targets: pd.Series
     ) -> Tuple[np.ndarray, np.ndarray]:
         covariates_w_intercept = covariates.to_frame()
-        covariates_w_intercept["intercept"] = 1
+        covariates_w_intercept.insert(0, "intercept", 1)
         covariates_fit = covariates_w_intercept.values
         targets_fit = targets.values
 
