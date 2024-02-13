@@ -352,7 +352,7 @@ class DeseqDataSet(ad.AnnData):
         if use_design:
             # Check that the dispersion trend curve was fitted. If not, fit it.
             # This will call previous functions in a cascade.
-            if "trend_coeffs" not in self.uns:
+            if "disp_function" not in self.uns:
                 self.fit_dispersion_trend()
         else:
             # Reduce the design matrix to an intercept and reconstruct at the end
@@ -586,13 +586,14 @@ class DeseqDataSet(ad.AnnData):
                 self._fit_parametric_trend()
             except RuntimeError:
                 warnings.warn(
-                    "Perfect separation detected, switching to local regression.",
+                    "The dispersion trend curve fitting did not converge. "
+                    "Switching to a mean-based dispersion trend.",
                     UserWarning,
                     stacklevel=2,
                 )
                 self.trend_fit_type = "local"
 
-            if (self.uns["trend_coeffs"] <= 0).any():
+            if (self.uns["trend_coeffs"] == 0).any():
                 warnings.warn(
                     f"self.trend_fit_type={self.trend_fit_type}, but the "
                     f"dispersion trend was not well captured by the function: "
@@ -618,6 +619,15 @@ class DeseqDataSet(ad.AnnData):
                 f"Unknown trend_fit_type: {self.trend_fit_type}. "
                 "Expected 'parametric', 'local' or 'mean'."
             )
+
+    def disp_function(self, x):
+        """Return the dispersion trend function at x."""
+        if self.uns["disp_function_type"] == "parametric":
+            return dispersion_trend(x, self.uns["trend_coeffs"])
+        elif self.uns["disp_function_type"] == "local":
+            return np.exp(self.uns["loess"].predict(np.log(x)).values)
+        elif self.uns["disp_function_type"] == "mean":
+            return self.uns["mean_disp"]
 
     def fit_dispersion_prior(self) -> None:
         """Fit dispersion variance priors and standard deviation of log-residuals.
@@ -906,14 +916,10 @@ class DeseqDataSet(ad.AnnData):
 
         self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
 
-        self.uns["disp_function"] = lambda x: dispersion_trend(
-            x, self.uns["trend_coeffs"]
-        )
-
         self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
-        self.varm["fitted_dispersions"][self.varm["non_zero"]] = self.uns[
-            "disp_function"
-        ](self.varm["_normed_means"][self.varm["non_zero"]])
+        self.varm["fitted_dispersions"][self.varm["non_zero"]] = self.disp_function(
+            self.varm["_normed_means"][self.varm["non_zero"]]
+        )
 
     def _fit_local_trend(self) -> None:
         r"""Fit the dispersion trend curve using local regression."""
@@ -962,11 +968,11 @@ class DeseqDataSet(ad.AnnData):
         if not self.quiet:
             print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
-        self.uns["disp_function"] = lambda x: np.exp(lo.predict(np.log(x)).values)
+        self.uns["loess"] = lo
         self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
-        self.varm["fitted_dispersions"][self.varm["non_zero"]] = self.uns[
-            "disp_function"
-        ](self.varm["_normed_means"][self.varm["non_zero"]])
+        self.varm["fitted_dispersions"][self.varm["non_zero"]] = self.disp_function(
+            self.varm["_normed_means"][self.varm["non_zero"]]
+        )
 
     def _fit_mean_trend(self):
         """Fit the dispersion trend curve using the mean of gene-wise dispersions."""
@@ -977,7 +983,6 @@ class DeseqDataSet(ad.AnnData):
             proportiontocut=0.001,
         )
 
-        self.uns["disp_function"] = lambda x: mean_disp
         self.varm["fitted_dispersions"] = np.full(self.n_vars, mean_disp)
 
     def plot_dispersions(
