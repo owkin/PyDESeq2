@@ -71,7 +71,6 @@ For reference, the code is being tested in a github workflow (CI) with python
 - pandas 1.4.3
 - scikit-learn 1.1.1
 - scipy 1.8.1
-- statsmodels 0.13.2
 ```
 
 Please don't hesitate to open an issue in case you encounter any issue due to possible deprecations.
