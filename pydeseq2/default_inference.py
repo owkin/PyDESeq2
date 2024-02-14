@@ -209,13 +209,13 @@ class DefaultInference(inference.Inference):
 
         def loss(coeffs):
             mu = covariates_fit @ coeffs
-            return (targets_fit / mu + np.log(mu)).mean()
+            return np.nanmean(targets_fit / mu + np.log(mu), axis=0)
 
         def grad(coeffs):
             mu = covariates_fit @ coeffs
-            return -(
-                ((targets_fit / mu - 1)[:, None] * covariates_fit) / mu[:, None]
-            ).mean(0)
+            return -np.nanmean(
+                ((targets_fit / mu - 1)[:, None] * covariates_fit) / mu[:, None], axis=0
+            )
 
         res = minimize(
             loss,
