@@ -1,5 +1,6 @@
 import multiprocessing
 import warnings
+from math import ceil
 from math import floor
 from pathlib import Path
 from typing import List
@@ -49,7 +50,8 @@ def load_example_data(
 
     debug : bool
         If true, subsample 10 samples and 100 genes at random.
-        (Note that the "synthetic" dataset is already 10 x 100.) (default: ``False``).
+        (Note that the "synthetic" dataset is already 10 features 100.)
+        (default: ``False``).
 
     debug_seed : int
         Seed for the debug mode. (default: ``42``).
@@ -731,7 +733,7 @@ def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
 
     Parameters
     ----------
-    x : ndarray
+    features : ndarray
         Data whose mean to compute.
 
     trim : float
@@ -815,7 +817,7 @@ def trimmed_variance(
 
     Parameters
     ----------
-    x : ndarray
+    features : ndarray
         Data whose trimmed variance to compute.
 
     trim : float
@@ -1368,7 +1370,7 @@ def mean_absolute_deviation(x: np.ndarray) -> float:
 
     Parameters
     ----------
-    x : ndarray
+    features : ndarray
         1D array whose MAD to compute.
 
     Returns
@@ -1399,13 +1401,13 @@ def make_scatter(
         List of ndarrays to plot.
 
     legend_labels : list
-        List of strings that correspond to plotted y values for legend.
+        List of strings that correspond to plotted targets values for legend.
 
     x_val : ndarray
         1D array to plot (example: ``dds.varm['_normed_means']``).
 
     log : bool
-        Whether or not to log scale x and y axes (``default=True``).
+        Whether or not to log scale features and targets axes (``default=True``).
 
     save_path : str or None
         The path where to save the plot. If left None, the plot won't be saved
@@ -1475,7 +1477,7 @@ def make_MA_plot(
         P-value threshold to subset scatterplot colors on.
 
     log : bool
-        Whether or not to log scale x and y axes (``default=True``).
+        Whether or not to log scale features and targets axes (``default=True``).
 
     save_path : str or None
         The path where to save the plot. If left None, the plot won't be saved
@@ -1520,3 +1522,73 @@ def make_MA_plot(
 
     if save_path is not None:
         plt.savefig(save_path, bbox_inches="tight")
+
+
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#
+# License: BSD (3-clause)
+
+# Adapted from https://gist.github.com/agramfort/850437
+
+
+def lowess(
+    features: np.ndarray, targets: np.ndarray, frac: float = 2.0 / 3.0, iter: int = 3
+):
+    """Run lowess smoothing: Robust locally weighted regression.
+
+    The lowess function fits a nonparametric regression curve to a scatterplot.
+    The arrays features and targets contain an equal number of elements; each pair
+    (features[i], targets[i]) defines a data point in the scatterplot. The function
+    returns the estimated (smooth) values of targets.
+    The smoothing span is given by f. A larger value for f will result in a
+    smoother curve. The number of robustifying iterations is given by iter. The
+    function will run faster with a smaller number of iterations.
+
+    Parameters
+    ----------
+    features : ndarray
+        Data points.
+    targets : ndarray
+        Target values.
+    frac : float
+        The fraction of the data used when estimating each y-value. (default: ``2/3``).
+    iter : int
+        The number of robustifying iterations. (default: ``3``).
+
+    Returns
+    -------
+    ndarray
+        Estimated (smooth) values of targets.
+    """
+    n = len(features)
+    r = int(ceil(frac * n))
+    h = np.maximum(
+        np.array([np.sort(np.abs(features - features[i]))[r] for i in range(n)]), 1e-12
+    )
+    w = np.clip(
+        np.abs(np.nan_to_num((features[:, None] - features[None, :]) / h)), 0.0, 1.0
+    )
+    w = (1 - w**3) ** 3
+    yest = np.zeros(n)
+    delta = np.ones(n)
+    for _ in range(iter):
+        for i in range(n):
+            weights = delta * w[:, i]
+            b = np.array(
+                [np.sum(weights * targets), np.sum(weights * targets * features)]
+            )
+            A = np.array(
+                [
+                    [np.sum(weights), np.sum(weights * features)],
+                    [np.sum(weights * features), np.sum(weights * features * features)],
+                ]
+            )
+            beta = np.linalg.lstsq(A, b)[0]
+            yest[i] = beta[0] + beta[1] * features[i]
+
+        residuals = targets - yest
+        s = np.median(np.abs(residuals))
+        delta = np.clip(residuals / (6.0 * s), -1, 1)
+        delta = (1 - delta**2) ** 2
+
+    return yest

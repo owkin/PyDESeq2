@@ -602,7 +602,9 @@ class DeseqDataSet(ad.AnnData):
         old_coeffs = pd.Series([0.1, 0.1])
         coeffs = pd.Series([1.0, 1.0])
         try:
-            while (np.log(np.abs(coeffs / old_coeffs)) ** 2).sum() >= 1e-6:
+            while (coeffs > 0).all() and (
+                np.log(np.abs(coeffs / old_coeffs)) ** 2
+            ).sum() >= 1e-6:
                 old_coeffs = coeffs
                 coeffs, predictions = self.inference.dispersion_trend_gamma_glm(
                     covariates, targets

@@ -7,14 +7,14 @@ from typing import Optional
 # import anndata as ad
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm  # type: ignore
 from scipy.optimize import root_scalar  # type: ignore
 from scipy.stats import f  # type: ignore
-from statsmodels.stats.multitest import multipletests  # type: ignore
+from scipy.stats import false_discovery_control  # type: ignore
 
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
+from pydeseq2.utils import lowess
 from pydeseq2.utils import make_MA_plot
 from pydeseq2.utils import n_or_more_replicates
 
@@ -526,18 +526,15 @@ class DeseqStats:
             use = (self.base_mean >= cutoff) & (~self.p_values.isna())
             U2 = self.p_values[use]
             if not U2.empty:
-                result.loc[use, i] = multipletests(
-                    U2, alpha=self.alpha, method="fdr_bh"
-                )[1]
-
-        num_rej = (result < self.alpha).sum(0)
-        lowess = sm.nonparametric.lowess(num_rej, theta, frac=1 / 5)
+                result.loc[use, i] = false_discovery_control(U2, method="bh")
+        num_rej = (result < self.alpha).sum(0).values
+        lowess_res = lowess(num_rej, theta, frac=1 / 5)
 
         if num_rej.max() <= 10:
             j = 0
         else:
-            residual = num_rej[num_rej > 0] - lowess[num_rej > 0, 1]
-            thresh = lowess[:, 1].max() - np.sqrt(np.mean(residual**2))
+            residual = num_rej[num_rej > 0] - lowess_res[num_rej > 0, 1]
+            thresh = lowess_res[:, 1].max() - np.sqrt(np.mean(residual**2))
 
             if np.any(num_rej > thresh):
                 j = np.where(num_rej > thresh)[0][0]
@@ -557,8 +554,8 @@ class DeseqStats:
             self.run_wald_test()
 
         self.padj = pd.Series(np.nan, index=self.dds.var_names)
-        self.padj.loc[~self.p_values.isna()] = multipletests(
-            self.p_values.dropna(), alpha=self.alpha, method="fdr_bh"
+        self.padj.loc[~self.p_values.isna()] = false_discovery_control(
+            self.p_values.dropna(), method="bh"
         )[1]
 
     def _cooks_filtering(self) -> None:
