@@ -477,7 +477,7 @@ class DeseqDataSet(ad.AnnData):
             warnings.warn(
                 "Every gene contains at least one zero, "
                 "cannot compute log geometric means. Switching to iterative mode.",
-                RuntimeWarning,
+                UserWarning,
                 stacklevel=2,
             )
             self._fit_iterate_size_factors()
