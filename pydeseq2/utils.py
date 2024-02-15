@@ -1547,9 +1547,9 @@ def lowess(
     Parameters
     ----------
     features : ndarray
-        Data points.
+        A 1D array of data points.
     targets : ndarray
-        Target values.
+        A 1D array of target values (with the same shape as features).
     frac : float
         The fraction of the data used when estimating each y-value. (default: ``2/3``).
     iter : int
