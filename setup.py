@@ -18,7 +18,7 @@ with open(os.path.join(here, "pydeseq2", "__version__.py"), "r", "utf-8") as fp:
 setup(
     name="pydeseq2",
     version=about["__version__"],
-    python_requires=">=3.8.0",
+    python_requires=">=3.9.0",
     license="MIT",
     description="A python implementation of DESeq2.",
     long_description=readme,
@@ -31,6 +31,7 @@ setup(
         "numpy>=1.23.0",
         "pandas>=1.4.0",
         "scikit-learn>=1.1.0",
+        "scikit-misc>=0.3.1",
         "scipy>=1.8.0",
         "statsmodels",
         "matplotlib>=3.6.2",  # not sure why sphinx_gallery does not work without it

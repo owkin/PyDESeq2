@@ -1,6 +1,7 @@
 import multiprocessing
 import warnings
 from math import floor
+from multiprocessing import Queue
 from pathlib import Path
 from typing import List
 from typing import Literal
@@ -18,6 +19,7 @@ from scipy.special import gammaln  # type: ignore
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import norm  # type: ignore
 from sklearn.linear_model import LinearRegression  # type: ignore
+from skmisc.loess import loess
 
 import pydeseq2
 from pydeseq2.grid_search import grid_fit_alpha
@@ -722,6 +724,20 @@ def fit_alpha_mle(
             ),
             res.success,
         )
+
+
+def local_trend_fit(means, dispersions, q: Optional[Queue] = None):
+    """Run a wrapper for local trend fit to catch segfaults from scikit-misc."""
+    lo = loess(
+        x=np.log(means),
+        y=np.log(dispersions),
+        weights=means,
+        surface="direct",  # to allow extrapolation
+    )
+
+    lo.fit()
+
+    return lo
 
 
 def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
