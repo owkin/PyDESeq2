@@ -285,7 +285,7 @@ class Inference(ABC):
     @abstractmethod
     def dispersion_trend_gamma_glm(
         self, covariates: pd.Series, targets: pd.Series
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, bool]:
         """Fit a gamma glm on gene dispersions.
 
         The intercept should be concatenated in this method
@@ -304,6 +304,8 @@ class Inference(ABC):
             Coefficients of the regression.
         predictions : ndarray
             Predictions of the regression.
+        converged : bool
+            Whether the optimization converged.
         """
 
     @abstractmethod

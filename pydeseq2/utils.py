@@ -1540,7 +1540,7 @@ def lowess(
     The arrays features and targets contain an equal number of elements; each pair
     (features[i], targets[i]) defines a data point in the scatterplot. The function
     returns the estimated (smooth) values of targets.
-    The smoothing span is given by f. A larger value for f will result in a
+    The smoothing span is given by frac. A larger value for frac will result in a
     smoother curve. The number of robustifying iterations is given by iter. The
     function will run faster with a smaller number of iterations.
 

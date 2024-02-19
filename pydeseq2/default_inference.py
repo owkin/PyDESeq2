@@ -201,7 +201,7 @@ class DefaultInference(inference.Inference):
 
     def dispersion_trend_gamma_glm(  # noqa: D102
         self, covariates: pd.Series, targets: pd.Series
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, bool]:
         covariates_w_intercept = covariates.to_frame()
         covariates_w_intercept.insert(0, "intercept", 1)
         covariates_fit = covariates_w_intercept.values
@@ -225,11 +225,8 @@ class DefaultInference(inference.Inference):
             bounds=[(0, np.inf)],
         )
 
-        if not res.success:
-            raise RuntimeError("Gamma GLM optimization failed.")
-
         coeffs = res.x
-        return coeffs, covariates_fit @ coeffs
+        return coeffs, covariates_fit @ coeffs, res.success
 
     def lfc_shrink_nbinom_glm(  # noqa: D102
         self,

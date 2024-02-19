@@ -601,51 +601,55 @@ class DeseqDataSet(ad.AnnData):
         # Initialize coefficients
         old_coeffs = pd.Series([0.1, 0.1])
         coeffs = pd.Series([1.0, 1.0])
-        try:
-            while (coeffs > 0).all() and (
-                np.log(np.abs(coeffs / old_coeffs)) ** 2
-            ).sum() >= 1e-6:
-                old_coeffs = coeffs
-                coeffs, predictions = self.inference.dispersion_trend_gamma_glm(
-                    covariates, targets
-                )
-                # Filter out genes that are too far away from the curve before refitting
-                pred_ratios = (
-                    self[:, covariates.index].varm["genewise_dispersions"] / predictions
-                )
-
-                targets.drop(
-                    targets[(pred_ratios < 1e-4) | (pred_ratios >= 15)].index,
-                    inplace=True,
-                )
-                covariates.drop(
-                    covariates[(pred_ratios < 1e-4) | (pred_ratios >= 15)].index,
-                    inplace=True,
-                )
-            self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
-
-            self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
-            self.uns["disp_function_type"] = "parametric"
-            self.varm["fitted_dispersions"][self.varm["non_zero"]] = self.disp_function(
-                self.varm["_normed_means"][self.varm["non_zero"]]
+        while (coeffs > 0).all() and (
+            np.log(np.abs(coeffs / old_coeffs)) ** 2
+        ).sum() >= 1e-6:
+            old_coeffs = coeffs
+            coeffs, predictions, converged = self.inference.dispersion_trend_gamma_glm(
+                covariates, targets
             )
 
-        except RuntimeError:
-            warnings.warn(
-                "The dispersion trend curve fitting did not converge. "
-                "Switching to a mean-based dispersion trend.",
-                UserWarning,
-                stacklevel=2,
-            )
-            self.uns["mean_disp"] = trim_mean(
-                self.varm["genewise_dispersions"][
-                    self.varm["genewise_dispersions"] > 10 * self.min_disp
-                ],
-                proportiontocut=0.001,
+            if not converged:
+                warnings.warn(
+                    "The dispersion trend curve fitting did not converge. "
+                    "Switching to a mean-based dispersion trend.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                self.uns["mean_disp"] = trim_mean(
+                    self.varm["genewise_dispersions"][
+                        self.varm["genewise_dispersions"] > 10 * self.min_disp
+                    ],
+                    proportiontocut=0.001,
+                )
+
+                self.uns["disp_function_type"] = "mean"
+                self.varm["fitted_dispersions"] = np.full(
+                    self.n_vars, self.uns["mean_disp"]
+                )
+
+                break
+
+            # Filter out genes that are too far away from the curve before refitting
+            pred_ratios = (
+                self[:, covariates.index].varm["genewise_dispersions"] / predictions
             )
 
-            self.uns["disp_function_type"] = "mean"
-            self.varm["fitted_dispersions"] = np.full(self.n_vars, self.uns["mean_disp"])
+            targets.drop(
+                targets[(pred_ratios < 1e-4) | (pred_ratios >= 15)].index,
+                inplace=True,
+            )
+            covariates.drop(
+                covariates[(pred_ratios < 1e-4) | (pred_ratios >= 15)].index,
+                inplace=True,
+            )
+        self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
+
+        self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.uns["disp_function_type"] = "parametric"
+        self.varm["fitted_dispersions"][self.varm["non_zero"]] = self.disp_function(
+            self.varm["_normed_means"][self.varm["non_zero"]]
+        )
 
         end = time.time()
 
