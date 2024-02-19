@@ -343,7 +343,7 @@ class DeseqDataSet(ad.AnnData):
         if use_design:
             # Check that the dispersion trend curve was fitted. If not, fit it.
             # This will call previous functions in a cascade.
-            if "trend_coeffs" not in self.uns:
+            if "disp_function" not in self.uns:
                 self.fit_dispersion_trend()
         else:
             # Reduce the design matrix to an intercept and reconstruct at the end
@@ -477,7 +477,7 @@ class DeseqDataSet(ad.AnnData):
             warnings.warn(
                 "Every gene contains at least one zero, "
                 "cannot compute log geometric means. Switching to iterative mode.",
-                RuntimeWarning,
+                UserWarning,
                 stacklevel=2,
             )
             self._fit_iterate_size_factors()
@@ -601,12 +601,35 @@ class DeseqDataSet(ad.AnnData):
         # Initialize coefficients
         old_coeffs = pd.Series([0.1, 0.1])
         coeffs = pd.Series([1.0, 1.0])
-
-        while (np.log(np.abs(coeffs / old_coeffs)) ** 2).sum() >= 1e-6:
+        while (coeffs > 0).all() and (
+            np.log(np.abs(coeffs / old_coeffs)) ** 2
+        ).sum() >= 1e-6:
             old_coeffs = coeffs
-            coeffs, predictions = self.inference.dispersion_trend_gamma_glm(
+            coeffs, predictions, converged = self.inference.dispersion_trend_gamma_glm(
                 covariates, targets
             )
+
+            if not converged:
+                warnings.warn(
+                    "The dispersion trend curve fitting did not converge. "
+                    "Switching to a mean-based dispersion trend.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                self.uns["mean_disp"] = trim_mean(
+                    self.varm["genewise_dispersions"][
+                        self.varm["genewise_dispersions"] > 10 * self.min_disp
+                    ],
+                    proportiontocut=0.001,
+                )
+
+                self.uns["disp_function_type"] = "mean"
+                self.varm["fitted_dispersions"] = np.full(
+                    self.n_vars, self.uns["mean_disp"]
+                )
+
+                break
+
             # Filter out genes that are too far away from the curve before refitting
             pred_ratios = (
                 self[:, covariates.index].varm["genewise_dispersions"] / predictions
@@ -620,19 +643,25 @@ class DeseqDataSet(ad.AnnData):
                 covariates[(pred_ratios < 1e-4) | (pred_ratios >= 15)].index,
                 inplace=True,
             )
+        self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
+
+        self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.uns["disp_function_type"] = "parametric"
+        self.varm["fitted_dispersions"][self.varm["non_zero"]] = self.disp_function(
+            self.varm["_normed_means"][self.varm["non_zero"]]
+        )
 
         end = time.time()
 
         if not self.quiet:
             print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
-        self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
-
-        self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
-        self.varm["fitted_dispersions"][self.varm["non_zero"]] = dispersion_trend(
-            self.varm["_normed_means"][self.varm["non_zero"]],
-            self.uns["trend_coeffs"],
-        )
+    def disp_function(self, x):
+        """Return the dispersion trend function at x."""
+        if self.uns["disp_function_type"] == "parametric":
+            return dispersion_trend(x, self.uns["trend_coeffs"])
+        elif self.uns["disp_function_type"] == "mean":
+            return self.uns["mean_disp"]
 
     def fit_dispersion_prior(self) -> None:
         """Fit dispersion variance priors and standard deviation of log-residuals.
@@ -1020,11 +1049,14 @@ class DeseqDataSet(ad.AnnData):
 
         # Compute trend dispersions.
         # Note: the trend curve is not refitted.
-        sub_dds.uns["trend_coeffs"] = self.uns["trend_coeffs"]
+        sub_dds.uns["disp_function_type"] = self.uns["disp_function_type"]
+        if sub_dds.uns["disp_function_type"] == "parametric":
+            sub_dds.uns["trend_coeffs"] = self.uns["trend_coeffs"]
+        elif sub_dds.uns["disp_function_type"] == "mean":
+            sub_dds.uns["mean_disp"] = self.uns["mean_disp"]
         sub_dds.varm["_normed_means"] = sub_dds.layers["normed_counts"].mean(0)
-        sub_dds.varm["fitted_dispersions"] = dispersion_trend(
-            sub_dds.varm["_normed_means"],
-            sub_dds.uns["trend_coeffs"],
+        sub_dds.varm["fitted_dispersions"] = sub_dds.disp_function(
+            sub_dds.varm["_normed_means"]
         )
 
         # Estimate MAP dispersions.
@@ -1096,9 +1128,18 @@ class DeseqDataSet(ad.AnnData):
                 & self.varm["non_zero"]
             ]
 
-            mean_disp = trimmed_mean(
-                self[:, use_for_mean_genes].varm["genewise_dispersions"], trim=0.001
+            if len(use_for_mean_genes) == 0:
+                print(
+                    "No genes have a dispersion above 10 * min_disp in "
+                    "_fit_iterate_size_factors."
+                )
+                break
+
+            mean_disp = trim_mean(
+                self[:, use_for_mean_genes].varm["genewise_dispersions"],
+                proportiontocut=0.001,
             )
+
             self.varm["fitted_dispersions"] = np.ones(self.n_vars) * mean_disp
             self.fit_dispersion_prior()
             self.fit_MAP_dispersions()
