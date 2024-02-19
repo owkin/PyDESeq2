@@ -828,12 +828,19 @@ class DeseqDataSet(ad.AnnData):
         self._replace_outliers()
         if not self.quiet:
             print(
-                f"Refitting {sum(self.varm['replaced']) } outliers.\n", file=sys.stderr
+                f"Replacing {sum(self.varm['replaced']) } outlier genes.\n",
+                file=sys.stderr,
             )
 
         if sum(self.varm["replaced"]) > 0:
             # Refit dispersions and LFCs for genes that had outliers replaced
             self._refit_without_outliers()
+        else:
+            # Store the fact that no sample was refitted
+            self.varm["refitted"] = np.full(
+                self.n_vars,
+                False,
+            )
 
     def _fit_MoM_dispersions(self) -> None:
         """Rough method of moments initial dispersions fit.
