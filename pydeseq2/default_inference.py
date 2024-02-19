@@ -1,21 +1,16 @@
-import warnings
 from typing import Literal
 from typing import Optional
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm  # type: ignore
 from joblib import Parallel  # type: ignore
 from joblib import delayed
 from joblib import parallel_backend
-from statsmodels.tools.sm_exceptions import DomainWarning  # type: ignore
+from scipy.optimize import minimize  # type: ignore
 
 from pydeseq2 import inference
 from pydeseq2 import utils
-
-# Ignore DomainWarning raised by statsmodels when fitting a Gamma GLM with identity link.
-warnings.simplefilter("ignore", DomainWarning)
 
 
 class DefaultInference(inference.Inference):
@@ -206,18 +201,32 @@ class DefaultInference(inference.Inference):
 
     def dispersion_trend_gamma_glm(  # noqa: D102
         self, covariates: pd.Series, targets: pd.Series
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        covariates_w_intercept = sm.add_constant(covariates)
-        targets_fit = targets.values
+    ) -> Tuple[np.ndarray, np.ndarray, bool]:
+        covariates_w_intercept = covariates.to_frame()
+        covariates_w_intercept.insert(0, "intercept", 1)
         covariates_fit = covariates_w_intercept.values
-        glm_gamma = sm.GLM(
-            targets_fit,
-            covariates_fit,
-            family=sm.families.Gamma(link=sm.families.links.identity()),
+        targets_fit = targets.values
+
+        def loss(coeffs):
+            mu = covariates_fit @ coeffs
+            return np.nanmean(targets_fit / mu + np.log(mu), axis=0)
+
+        def grad(coeffs):
+            mu = covariates_fit @ coeffs
+            return -np.nanmean(
+                ((targets_fit / mu - 1)[:, None] * covariates_fit) / mu[:, None], axis=0
+            )
+
+        res = minimize(
+            loss,
+            x0=np.array([1.0, 1.0]),
+            jac=grad,
+            method="L-BFGS-B",
+            bounds=[(0, np.inf)],
         )
-        res = glm_gamma.fit()
-        coeffs = res.params
-        return (coeffs, covariates_fit @ coeffs)
+
+        coeffs = res.x
+        return coeffs, covariates_fit @ coeffs, res.success
 
     def lfc_shrink_nbinom_glm(  # noqa: D102
         self,

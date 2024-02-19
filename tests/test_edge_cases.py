@@ -468,7 +468,9 @@ def test_zero_inflated():
     counts_df.iloc[idx, :] = 0
 
     dds = DeseqDataSet(counts=counts_df, metadata=metadata)
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(UserWarning):
+        # Will warn that each gene contains a zero
+        # and that the parametric curve is not a good fit
         dds.deseq2()
 
 
