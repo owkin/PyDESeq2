@@ -601,7 +601,7 @@ class DeseqDataSet(ad.AnnData):
         # Initialize coefficients
         old_coeffs = pd.Series([0.1, 0.1])
         coeffs = pd.Series([1.0, 1.0])
-        while (coeffs > 0).all() and (
+        while (coeffs > 1e-10).all() and (
             np.log(np.abs(coeffs / old_coeffs)) ** 2
         ).sum() >= 1e-6:
             old_coeffs = coeffs
@@ -609,7 +609,7 @@ class DeseqDataSet(ad.AnnData):
                 covariates, targets
             )
 
-            if not converged:
+            if not converged or (coeffs <= 1e-10).any():
                 warnings.warn(
                     "The dispersion trend curve fitting did not converge. "
                     "Switching to a mean-based dispersion trend.",
@@ -628,7 +628,12 @@ class DeseqDataSet(ad.AnnData):
                     self.n_vars, self.uns["mean_disp"]
                 )
 
-                break
+                end = time.time()
+
+                if not self.quiet:
+                    print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
+
+                return
 
             # Filter out genes that are too far away from the curve before refitting
             pred_ratios = (
