@@ -1,4 +1,5 @@
 """Packaging settings."""
+
 import os
 from codecs import open
 

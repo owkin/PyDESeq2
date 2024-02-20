@@ -562,9 +562,11 @@ def irls_solver(
                 beta_init,
                 jac=df,
                 method=optimizer,
-                bounds=[(min_beta, max_beta)] * num_vars
-                if optimizer == "L-BFGS-B"
-                else None,
+                bounds=(
+                    [(min_beta, max_beta)] * num_vars
+                    if optimizer == "L-BFGS-B"
+                    else None
+                ),
             )
 
             beta = res.x
@@ -710,9 +712,9 @@ def fit_alpha_mle(
         x0=np.log(alpha_hat),
         jac=lambda x: dloss(x[0]),
         method=optimizer,
-        bounds=[(np.log(min_disp), np.log(max_disp))]
-        if optimizer == "L-BFGS-B"
-        else None,
+        bounds=(
+            [(np.log(min_disp), np.log(max_disp))] if optimizer == "L-BFGS-B" else None
+        ),
     )
 
     if res.success:
