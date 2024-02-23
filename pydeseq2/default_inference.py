@@ -217,13 +217,16 @@ class DefaultInference(inference.Inference):
                 ((targets_fit / mu - 1)[:, None] * covariates_fit) / mu[:, None], axis=0
             )
 
-        res = minimize(
-            loss,
-            x0=np.array([1.0, 1.0]),
-            jac=grad,
-            method="L-BFGS-B",
-            bounds=[(0, np.inf)],
-        )
+        try:
+            res = minimize(
+                loss,
+                x0=np.array([1.0, 1.0]),
+                jac=grad,
+                method="L-BFGS-B",
+                bounds=[(1e-12, np.inf)],
+            )
+        except RuntimeWarning:  # Could happen if the coefficients fall to zero
+            return np.array([np.nan, np.nan]), np.array([np.nan, np.nan]), False
 
         coeffs = res.x
         return coeffs, covariates_fit @ coeffs, res.success

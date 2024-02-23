@@ -601,7 +601,7 @@ class DeseqDataSet(ad.AnnData):
         # Initialize coefficients
         old_coeffs = pd.Series([0.1, 0.1])
         coeffs = pd.Series([1.0, 1.0])
-        while (coeffs > 0).all() and (
+        while (coeffs > 1e-10).all() and (
             np.log(np.abs(coeffs / old_coeffs)) ** 2
         ).sum() >= 1e-6:
             old_coeffs = coeffs
@@ -609,7 +609,7 @@ class DeseqDataSet(ad.AnnData):
                 covariates, targets
             )
 
-            if not converged:
+            if not converged or (coeffs <= 1e-10).any():
                 warnings.warn(
                     "The dispersion trend curve fitting did not converge. "
                     "Switching to a mean-based dispersion trend.",
@@ -628,7 +628,12 @@ class DeseqDataSet(ad.AnnData):
                     self.n_vars, self.uns["mean_disp"]
                 )
 
-                break
+                end = time.time()
+
+                if not self.quiet:
+                    print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
+
+                return
 
             # Filter out genes that are too far away from the curve before refitting
             pred_ratios = (
@@ -857,12 +862,19 @@ class DeseqDataSet(ad.AnnData):
         self._replace_outliers()
         if not self.quiet:
             print(
-                f"Refitting {sum(self.varm['replaced']) } outliers.\n", file=sys.stderr
+                f"Replacing {sum(self.varm['replaced']) } outlier genes.\n",
+                file=sys.stderr,
             )
 
         if sum(self.varm["replaced"]) > 0:
             # Refit dispersions and LFCs for genes that had outliers replaced
             self._refit_without_outliers()
+        else:
+            # Store the fact that no sample was refitted
+            self.varm["refitted"] = np.full(
+                self.n_vars,
+                False,
+            )
 
     def _fit_MoM_dispersions(self) -> None:
         """Rough method of moments initial dispersions fit.
@@ -994,7 +1006,19 @@ class DeseqDataSet(ad.AnnData):
         # Only refit genes for which replacing outliers hasn't resulted in all zeroes
         new_all_zeroes = (self.counts_to_refit.X == 0).all(axis=0)
         self.new_all_zeroes_genes = self.counts_to_refit.var_names[new_all_zeroes]
-        if (~new_all_zeroes).sum() == 0:  # if no gene can be refit, we can skip
+
+        self.varm["refitted"] = self.varm["replaced"].copy()
+        # Only replace if genes are not all zeroes after outlier replacement
+        self.varm["refitted"][self.varm["refitted"]] = ~new_all_zeroes
+
+        # Take into account new all-zero genes
+        if new_all_zeroes.sum() > 0:
+            self.varm["_normed_means"][
+                self.var_names.get_indexer(self.new_all_zeroes_genes)
+            ] = 0
+            self.varm["LFC"].loc[self.new_all_zeroes_genes, :] = 0
+
+        if self.varm["refitted"].sum() == 0:  # if no gene can be refitted, we can skip
             return
 
         self.counts_to_refit = self.counts_to_refit[:, ~new_all_zeroes].copy()
@@ -1051,26 +1075,14 @@ class DeseqDataSet(ad.AnnData):
         sub_dds.fit_LFC()
 
         # Replace values in main object
-        to_replace = self.varm["replaced"].copy()
-        # Only replace if genes are not all zeroes after outlier replacement
-        to_replace[to_replace] = ~new_all_zeroes
-
-        self.varm["_normed_means"][to_replace] = sub_dds.varm["_normed_means"]
-        self.varm["LFC"][to_replace] = sub_dds.varm["LFC"]
-        self.varm["dispersions"][to_replace] = sub_dds.varm["dispersions"]
+        self.varm["_normed_means"][self.varm["refitted"]] = sub_dds.varm["_normed_means"]
+        self.varm["LFC"][self.varm["refitted"]] = sub_dds.varm["LFC"]
+        self.varm["dispersions"][self.varm["refitted"]] = sub_dds.varm["dispersions"]
 
         replace_cooks = pd.DataFrame(self.layers["cooks"].copy())
-        replace_cooks.loc[self.obsm["replaceable"], to_replace] = 0.0
+        replace_cooks.loc[self.obsm["replaceable"], self.varm["refitted"]] = 0.0
 
         self.layers["replace_cooks"] = replace_cooks
-        # Take into account new all-zero genes
-        if (new_all_zeroes).sum() > 0:
-            self[:, self.new_all_zeroes_genes].varm["_normed_means"] = np.zeros(
-                new_all_zeroes.sum()
-            )
-            self[:, self.new_all_zeroes_genes].varm["LFC"] = np.zeros(
-                new_all_zeroes.sum()
-            )
 
     def _fit_iterate_size_factors(self, niter: int = 10, quant: float = 0.95) -> None:
         """

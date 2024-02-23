@@ -444,6 +444,52 @@ def test_few_samples_and_outlier():
     res.summary()
 
 
+def test_new_all_zero_gene():
+    """Test that a gene with only 0 counts after replacement is correctly handled."""
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    metadata = load_example_data(
+        modality="metadata",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    # Subset samples for speed
+    metadata = metadata.loc[[f"sample{i}" for i in [*range(1, 11), *range(91, 101)]]]
+    counts_df = counts_df.loc[metadata.index]
+
+    # Add a gene with a single outlier value and zeros elsewhere
+    counts_df.loc[:, "geneX"] = 0
+    counts_df.loc["sample100", "geneX"] = 100
+
+    dds = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors="condition",
+        refit_cooks=True,
+    )
+    with pytest.warns(UserWarning):
+        # Will warn that parametric trend fit failed
+        dds.deseq2()
+
+    stat_res = DeseqStats(dds)
+    stat_res.summary()
+
+    # Check that the outlier gene leads to only zeros and that it is correctly handled
+    # in DeseqStats
+    assert dds.new_all_zeroes_genes.equals(pd.Index(["geneX"]))
+    assert stat_res.results_df.loc["geneX", "baseMean"] == 0
+    assert stat_res.results_df.loc["geneX", "log2FoldChange"] == 0
+    assert stat_res.results_df.loc["geneX", "lfcSE"] == 0
+    assert stat_res.results_df.loc["geneX", "stat"] == 0
+    assert np.isnan(stat_res.results_df.loc["geneX", "pvalue"])
+    assert np.isnan(stat_res.results_df.loc["geneX", "padj"])
+
+
 def test_zero_inflated():
     """
     Test the pydeseq2 throws a RuntimeWarning when there is at least one zero per gene.

@@ -576,7 +576,7 @@ class DeseqStats:
         # maximum cooks sample, don't count this gene as an outlier.
 
         # Take into account whether we already replaced outliers
-        if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
+        if self.dds.refit_cooks and self.dds.varm["refitted"].sum() > 0:
             cooks_outlier = (
                 (self.dds[use_for_max, :].layers["replace_cooks"] > cooks_cutoff)
                 .any(axis=0)
