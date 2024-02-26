@@ -427,34 +427,31 @@ def test_continuous_lfc_shrinkage(tol=0.02):
     ).max() < tol
 
 
-def test_large_deseq(
-    tol=0.04,
+def test_wide_deseq(
+    tol=0.02,
 ):
     """Test that the outputs of the DESeq2 function match those of the original R
-    package, up to a tolerance in relative error, on a larger dataset.
+    package, up to a tolerance in relative error, on a dataset with more genes than
+    samples.
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
     counts_df = pd.read_csv(
-        os.path.join(test_path, "data/large/test_counts.csv"), index_col=0
+        os.path.join(test_path, "data/wide/test_counts.csv"), index_col=0
     ).T
 
     metadata = pd.read_csv(
-        os.path.join(test_path, "data/large/test_metadata.csv"), index_col=0
+        os.path.join(test_path, "data/wide/test_metadata.csv"), index_col=0
     )
 
     # Load R results
-
-    r_res = pd.read_csv(
-        os.path.join(test_path, "data/continuous/r_test_res.csv"), index_col=0
-    )
+    r_res = pd.read_csv(os.path.join(test_path, "data/wide/r_test_res.csv"), index_col=0)
 
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors=["group", "condition", "measurement"],
-        continuous_factors=["measurement"],
+        design_factors=["group", "condition"],
     )
     dds.deseq2()
 
