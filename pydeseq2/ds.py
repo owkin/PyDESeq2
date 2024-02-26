@@ -535,7 +535,6 @@ class DeseqStats:
         else:
             residual = num_rej[num_rej > 0] - lowess_res[num_rej > 0]
             thresh = lowess_res.max() - np.sqrt(np.mean(residual**2))
-            print(thresh)
             if np.any(num_rej > thresh):
                 j = np.where(num_rej > thresh)[0][0]
             else:
