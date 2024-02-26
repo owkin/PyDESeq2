@@ -173,7 +173,8 @@ def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
     ).squeeze()
 
     r_dispersions = pd.read_csv(
-        os.path.join(test_path, "data/single_factor/r_test_dispersions.csv"), index_col=0
+        os.path.join(test_path, "data/single_factor/r_test_dispersions.csv"),
+        index_col=0,
     ).squeeze()
 
     dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
@@ -424,6 +425,53 @@ def test_continuous_lfc_shrinkage(tol=0.02):
         abs(r_shrunk_res.log2FoldChange - shrunk_res.log2FoldChange)
         / abs(r_shrunk_res.log2FoldChange)
     ).max() < tol
+
+
+def test_large_deseq(
+    tol=0.04,
+):
+    """Test that the outputs of the DESeq2 function match those of the original R
+    package, up to a tolerance in relative error, on a larger dataset.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    counts_df = pd.read_csv(
+        os.path.join(test_path, "data/large/test_counts.csv"), index_col=0
+    ).T
+
+    metadata = pd.read_csv(
+        os.path.join(test_path, "data/large/test_metadata.csv"), index_col=0
+    )
+
+    # Load R results
+
+    r_res = pd.read_csv(
+        os.path.join(test_path, "data/continuous/r_test_res.csv"), index_col=0
+    )
+
+    dds = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors=["group", "condition", "measurement"],
+        continuous_factors=["measurement"],
+    )
+    dds.deseq2()
+
+    res = DeseqStats(dds)
+    res.summary()
+    res_df = res.results_df
+
+    # check that the same p-values are NaN
+    assert (res_df.pvalue.isna() == r_res.pvalue.isna()).all()
+    assert (res_df.padj.isna() == r_res.padj.isna()).all()
+
+    # Check that the same LFC, p-values and adjusted p-values are found (up to tol)
+    assert (
+        abs(r_res.log2FoldChange - res_df.log2FoldChange) / abs(r_res.log2FoldChange)
+    ).max() < tol
+    assert (abs(r_res.pvalue - res_df.pvalue) / r_res.pvalue).max() < tol
+    assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
 
 
 def test_contrast(counts_df, metadata):
