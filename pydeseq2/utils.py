@@ -1590,7 +1590,10 @@ def lowess(
 
         residuals = targets - yest
         s = np.median(np.abs(residuals))
-        delta = np.clip(residuals / (6.0 * s), -1, 1)
+        if s == 0:
+            delta = (np.abs(residuals) > 0).astype(float)
+        else:
+            delta = np.clip(residuals / (6.0 * s), -1, 1)
         delta = (1 - delta**2) ** 2
 
     return yest

@@ -528,14 +528,13 @@ class DeseqStats:
             if not U2.empty:
                 result.loc[use, i] = false_discovery_control(U2, method="bh")
         num_rej = (result < self.alpha).sum(0).values
-        lowess_res = lowess(num_rej, theta, frac=1 / 5)
+        lowess_res = lowess(theta, num_rej, frac=1 / 5)
 
         if num_rej.max() <= 10:
             j = 0
         else:
-            residual = num_rej[num_rej > 0] - lowess_res[num_rej > 0, 1]
-            thresh = lowess_res[:, 1].max() - np.sqrt(np.mean(residual**2))
-
+            residual = num_rej[num_rej > 0] - lowess_res[num_rej > 0]
+            thresh = lowess_res.max() - np.sqrt(np.mean(residual**2))
             if np.any(num_rej > thresh):
                 j = np.where(num_rej > thresh)[0][0]
             else:
