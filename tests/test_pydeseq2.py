@@ -35,21 +35,30 @@ def metadata():
     )
 
 
-def test_deseq(counts_df, metadata, tol=0.02):
+@pytest.mark.parametrize("independendent_filtering", [True, False])
+def test_deseq(counts_df, metadata, independendent_filtering, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
-    r_res = pd.read_csv(
-        os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
-    )
+    if independendent_filtering:
+        r_res = pd.read_csv(
+            os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
+        )
+    else:
+        r_res = pd.read_csv(
+            os.path.join(
+                test_path, "data/single_factor/r_test_res_no_independent_filtering.csv"
+            ),
+            index_col=0,
+        )
 
     dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
     dds.deseq2()
 
-    res = DeseqStats(dds)
+    res = DeseqStats(dds, independent_filter=independendent_filtering)
     res.summary()
     res_df = res.results_df
 
@@ -109,11 +118,6 @@ def test_alt_hypothesis(alt_hypothesis, counts_df, metadata, tol=0.02):
         abs(r_res.pvalue[r_res.stat != 0] - res_df.pvalue[res_df.stat != 0])
         / r_res.pvalue[r_res.stat != 0]
     ).max() < tol
-    # Not passing
-    # assert (
-    #     abs(r_res.padj[r_res.stat != 0] - res_df.padj[res_df.stat != 0])
-    #     / r_res.padj[r_res.stat != 0]
-    # ).max() < tol
 
 
 def test_deseq_no_refit_cooks(counts_df, metadata, tol=0.02):
