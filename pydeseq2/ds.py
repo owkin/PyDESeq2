@@ -555,7 +555,7 @@ class DeseqStats:
         self.padj = pd.Series(np.nan, index=self.dds.var_names)
         self.padj.loc[~self.p_values.isna()] = false_discovery_control(
             self.p_values.dropna(), method="bh"
-        )[1]
+        )
 
     def _cooks_filtering(self) -> None:
         """Filter p-values based on Cooks outliers."""
