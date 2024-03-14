@@ -35,18 +35,28 @@ def metadata():
     )
 
 
-@pytest.mark.parametrize("independendent_filtering", [True, False])
-def test_deseq(counts_df, metadata, independendent_filtering, tol=0.02):
+@pytest.mark.parametrize(
+    "independent_filtering, trend_fit_type",
+    [(True, "parametric"), (True, "mean"), (False, "parametric")],
+)
+def test_deseq(counts_df, metadata, independent_filtering, trend_fit_type, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
-    if independendent_filtering:
-        r_res = pd.read_csv(
-            os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
-        )
+    if independent_filtering:
+        if trend_fit_type == "parametric":
+            r_res = pd.read_csv(
+                os.path.join(test_path, "data/single_factor/r_test_res.csv"),
+                index_col=0,
+            )
+        elif trend_fit_type == "mean":
+            r_res = pd.read_csv(
+                os.path.join(test_path, "data/single_factor/r_test_res_mean_curve.csv"),
+                index_col=0,
+            )
     else:
         r_res = pd.read_csv(
             os.path.join(
@@ -55,10 +65,15 @@ def test_deseq(counts_df, metadata, independendent_filtering, tol=0.02):
             index_col=0,
         )
 
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors="condition",
+        trend_fit_type=trend_fit_type,
+    )
     dds.deseq2()
 
-    res = DeseqStats(dds, independent_filter=independendent_filtering)
+    res = DeseqStats(dds, independent_filter=independent_filtering)
     res.summary()
     res_df = res.results_df
 
