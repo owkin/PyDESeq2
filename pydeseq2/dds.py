@@ -666,7 +666,7 @@ class DeseqDataSet(ad.AnnData):
         if self.uns["disp_function_type"] == "parametric":
             return dispersion_trend(x, self.uns["trend_coeffs"])
         elif self.uns["disp_function_type"] == "mean":
-            return self.uns["mean_disp"]
+            return np.full_like(x, self.uns["mean_disp"])
 
     def fit_dispersion_prior(self) -> None:
         """Fit dispersion variance priors and standard deviation of log-residuals.
@@ -1060,6 +1060,7 @@ class DeseqDataSet(ad.AnnData):
         elif sub_dds.uns["disp_function_type"] == "mean":
             sub_dds.uns["mean_disp"] = self.uns["mean_disp"]
         sub_dds.varm["_normed_means"] = sub_dds.layers["normed_counts"].mean(0)
+        # Reshape in case there's a single gene to refit
         sub_dds.varm["fitted_dispersions"] = sub_dds.disp_function(
             sub_dds.varm["_normed_means"]
         )
