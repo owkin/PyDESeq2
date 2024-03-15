@@ -12,8 +12,6 @@ from typing import cast
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
-from formulaic import Formula
-from formulaic.errors import FormulaInvalidError
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
@@ -245,14 +243,28 @@ class DeseqDataSet(ad.AnnData):
         if isinstance(self.design_factors, str):
             self.continuous_factors = continuous_factors
             if self.design_factors not in self.obs.columns:
-                # TODO make check stricter as formulaic grammar is too complex
-                # for now
-                try:
-                    Formula(self.design_factors)
-                except FormulaInvalidError as err:
-                    raise (
-                        f"Design factor {self.design_factors} is not a valid formula"
-                    ) from err
+                # TODO uncomment when we support all of formulaic grammar
+                # try:
+                #     Formula(self.design_factors)
+                # except FormulaInvalidError as err:
+                #     raise (
+                #         f"Design factor {self.design_factors} is not a valid formula"
+                #     ) from err
+                # Remove potential spaces around + signs
+                self.design_factors = re.sub(" +|+ ", "+", self.design_factors)
+                # Check that we have something like ~a + b + a:b:c:d
+                assert self.design_factors.startswith("~")
+                assert all(
+                    [
+                        factor in self.obs.columns
+                        for factor in itertools.chain(
+                            *[
+                                term.split(":")
+                                for term in self.design_factors[1:].split("+")
+                            ]
+                        )
+                    ]
+                )
                 self.single_design_factors = list(
                     {col for col in self.obs.columns if col in self.design_factors}
                     & set(self.obs.columns)
