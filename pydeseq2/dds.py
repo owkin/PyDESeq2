@@ -262,11 +262,15 @@ class DeseqDataSet(ad.AnnData):
                 self.design_factors = [self.design_factors]
                 self.single_design_factors = self.design_factors
 
+        elif isinstance(self.design_factors, list):
+            # TODO add case where one passes a list of interacting columns
+            # by converting it into a formula
+            self.single_design_factors = self.design_factors
         else:
             raise ValueError("Design factors should be a string or a list of strings")
 
         # We modify only obs object
-        if np.any(["_" in factor for factor in self.design_factors]):
+        if np.any(["_" in factor for factor in self.single_design_factors]):
             warnings.warn(
                 """Same factor names in the design contain underscores ('_').
                 They will be converted to hyphens ('-').""",
@@ -274,14 +278,14 @@ class DeseqDataSet(ad.AnnData):
                 stacklevel=2,
             )
 
-            new_factors = replace_underscores(self.design_factors)
+            new_factors = replace_underscores(self.single_design_factors)
 
             self.obs.rename(
-                columns=dict(zip(self.design_factors, new_factors)),
+                columns=dict(zip(self.single_design_factors, new_factors)),
                 inplace=True,
             )
 
-            self.design_factors = new_factors
+            self.single_design_factors = new_factors
 
             # Also check continuous factors
             if continuous_factors is not None:
@@ -295,6 +299,9 @@ class DeseqDataSet(ad.AnnData):
         self.single_design_factors = list(
             set(self.design_factors) & set(self.obs.columns)
         )
+        # Remark it works if self.design_factors is a string as well by iterating
+        # on chars
+        self.design_factors = replace_underscores(self.design_factors)
 
         self.continuous_factors = continuous_factors
 
@@ -339,8 +346,6 @@ class DeseqDataSet(ad.AnnData):
             )
             # With some luck here design_matrix is valid all the time
             self.obsm["design_matrix"] = design_matrix
-
-            # TODO check columns respect naming convention of pydeseq2
             # TODO set other attributes to values derived from given design_matrix
 
         # Check that the design matrix has full rank

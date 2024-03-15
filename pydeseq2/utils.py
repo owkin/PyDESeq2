@@ -328,7 +328,7 @@ def build_design_matrix(
     return design_matrix
 
 
-def replace_underscores(factors: List[str]):
+def replace_underscores(factors: Union[str, List[str]]):
     """Replace all underscores from strings in a list by hyphens.
 
     To be used on design factors to avoid bugs due to the reliance on
@@ -336,15 +336,18 @@ def replace_underscores(factors: List[str]):
 
     Parameters
     ----------
-    factors : list
+    factors : Union[str, List[str]]
         A list of strings which may contain underscores.
 
     Returns
     -------
-    list
-        A list of strings in which underscores were replaced by hyphens.
+    Union[list, str]
+        A list of strings or a string in which underscores were replaced by hyphens.
     """
-    return [factor.replace("_", "-") for factor in factors]
+    res = [factor.replace("_", "-") for factor in factors]
+    if isinstance(factors, str):
+        return "".join(res)
+    return res
 
 
 def dispersion_trend(
