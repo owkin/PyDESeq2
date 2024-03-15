@@ -184,8 +184,8 @@ def test_rank_deficient_design():
     [
         ["condition"],
         ["condition", "group"],
-        ["condition:group"],
-        ["condition", "condition:group"],
+        "~condition:group",
+        "~condition+condition:group",
     ],
 )
 def test_full_rank_design(design_factors):
