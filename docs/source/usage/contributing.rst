@@ -68,7 +68,7 @@ We recommend using conda environment, run:
 
 .. code-block:: bash
 
-    conda env create -n pydeseq2-dev python=3.8
+    conda env create -n pydeseq2-dev python=3.9
     conda activate pydeseq2-dev
 
 and then install ``pydeseq2`` in the development mode. This will also install all
