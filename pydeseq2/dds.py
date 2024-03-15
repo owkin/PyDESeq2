@@ -240,8 +240,8 @@ class DeseqDataSet(ad.AnnData):
         if isinstance(self.design_factors, list):
             if np.any(["_" in factor for factor in self.design_factors]):
                 warnings.warn(
-                    """Same factor names in the design contain underscores ('_'). They will
-                    be converted to hyphens ('-').""",
+                    """Same factor names in the design contain underscores ('_').
+                    They will be converted to hyphens ('-').""",
                     UserWarning,
                     stacklevel=2,
                 )
@@ -256,10 +256,8 @@ class DeseqDataSet(ad.AnnData):
                 self.design_factors = new_factors
 
                 # Also check continuous factors
-                if self.continuous_factors is not None:
-                    self.continuous_factors = replace_underscores(
-                        self.continuous_factors
-                    )
+                if continuous_factors is not None:
+                    self.continuous_factors = replace_underscores(continuous_factors)
 
             # If ref_level has underscores, covert them to hyphens
             # Don't raise a warning: it will be raised by build_design_matrix()
@@ -273,6 +271,7 @@ class DeseqDataSet(ad.AnnData):
         # Following lines handle the case where the user provides a formula
         # of the type formulaic can recognize or a column
         elif isinstance(self.design_factors, str):
+            self.continuous_factors = continuous_factors
             if self.design_factors not in self.obs.columns:
                 try:
                     Formula(self.design_factors)
@@ -281,12 +280,13 @@ class DeseqDataSet(ad.AnnData):
                         f"Design factor {self.design_factors} is not a valid formula"
                     ) from err
                 self.single_design_factors = list(
-                    set([col for col in self.obs.columns if col in self.design_factors])
+                    {col for col in self.obs.columns if col in self.design_factors}
                     & set(self.obs.columns)
                 )
             else:
                 # Only one factor
                 self.design_factors = [self.design_factors]
+                self.single_design_factors = self.design_factors
 
         else:
             raise ValueError("Design factors should be a string or a list of strings")
