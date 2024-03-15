@@ -1,4 +1,3 @@
-import copy
 import multiprocessing
 import warnings
 from math import ceil
@@ -206,7 +205,9 @@ def build_design_matrix(
             design_factors = [design_factors]
         else:
             # TODO make sure it respects pydeseq2 naming convention
-            return model_matrix(design_factors, metadata)
+            design_matrix = model_matrix(design_factors, metadata)
+            design_matrix.rename(columns=lambda x: x.replace(":", "_vs_"), inplace=True)
+            return design_matrix
 
     for factor in design_factors:
         # Check that each factor has at least 2 levels
@@ -302,6 +303,7 @@ def build_design_matrix(
         for factor in continuous_factors:
             # This factor should be numeric
             design_matrix[factor] = pd.to_numeric(metadata[factor])
+    breakpoint()
     return design_matrix
 
 
