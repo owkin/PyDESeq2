@@ -10,6 +10,8 @@ from typing import cast
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
+from formulaic import Formula
+from formulaic.errors import FormulaInvalidError
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
@@ -64,7 +66,8 @@ class DeseqDataSet(ad.AnnData):
         Finally, if you wish to use a formula, you can write:
         ``"~ col1 + ... + colN + colk1:...:colN1 + ... + colkni:...:colNni"``.
         In this case, the formula will be parsed and the factors (interacting
-        and non-interacting) will be extracted automatically.
+        and non-interacting) will be extracted automatically from adata or counts
+        and metadata relying on the wonderful formulaic package.
         (default: ``"condition"``).
 
     continuous_factors : list or None
@@ -79,6 +82,10 @@ class DeseqDataSet(ad.AnnData):
     trend_fit_type : str
         Either "parametric" or "mean" for the type of fitting of the dispersions
         trend curve. (default: ``"parametric"``).
+    design_matrix: pd.DataFrame or None
+        If given will take precedence over all previous arguments adata, counts,
+        metadata, design_factors and ref_level.
+        (default: ``None``).
 
     min_mu : float
         Threshold for mean estimates. (default: ``0.5``).
@@ -191,6 +198,7 @@ class DeseqDataSet(ad.AnnData):
         continuous_factors: Optional[List[str]] = None,
         ref_level: Optional[List[str]] = None,
         trend_fit_type: Literal["parametric", "mean"] = "parametric",
+        design_matrix: Optional[pd.DataFrame] = None,
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
         max_disp: float = 10.0,
@@ -225,80 +233,95 @@ class DeseqDataSet(ad.AnnData):
             )
         if any([col.strip() != col for col in self.obs.columns]):
             raise ValueError("Columns cannot contain leading or trailing spaces")
-        # Following lines handle the case where the user provides a formula
-        # of the type ~ fc1 + fc2 + fc3 + fc1:fc2 + fc1:fc2:fc3
-        # in its design factors
 
-        if isinstance(design_factors, str):
-            if design_factors.startswith("~"):
+        # Check that design factors don't contain underscores. If so, convert them to
+        # hyphens.
+        self.design_factors = design_factors
+        if isinstance(self.design_factors, list):
+            if np.any(["_" in factor for factor in self.design_factors]):
                 warnings.warn(
-                    f"Design factor {design_factors} starts with ~"
-                    "therefore we assume the formula syntax is being used. "
-                    "Please rename column if this is unwanted behavior",
+                    """Same factor names in the design contain underscores ('_'). They will
+                    be converted to hyphens ('-').""",
                     UserWarning,
                     stacklevel=2,
                 )
-                if "+" not in design_factors:
-                    raise ValueError("Formula is incorrect")
-                design_factors = design_factors[1:].split("+")
-                # Removing trailing and leading space in formula
-                for idx, factor in enumerate(design_factors):
-                    design_factors[idx] = factor.strip()
 
-        # Convert design_factors to list if a single string was provided.
-        self.design_factors = (
-            [design_factors] if isinstance(design_factors, str) else design_factors
-        )
+                new_factors = replace_underscores(self.design_factors)
+
+                self.obs.rename(
+                    columns=dict(zip(self.design_factors, new_factors)),
+                    inplace=True,
+                )
+
+                self.design_factors = new_factors
+
+                # Also check continuous factors
+                if self.continuous_factors is not None:
+                    self.continuous_factors = replace_underscores(
+                        self.continuous_factors
+                    )
+
+            # If ref_level has underscores, covert them to hyphens
+            # Don't raise a warning: it will be raised by build_design_matrix()
+            if ref_level is not None:
+                ref_level = replace_underscores(ref_level)
+
+            self.single_design_factors = list(
+                set(self.design_factors) & set(self.obs.columns)
+            )
+
+        # Following lines handle the case where the user provides a formula
+        # of the type formulaic can recognize or a column
+        elif isinstance(self.design_factors, str):
+            if self.design_factors not in self.obs.columns:
+                try:
+                    Formula(self.design_factors)
+                except FormulaInvalidError as err:
+                    raise (
+                        f"Design factor {self.design_factors} is not a valid formula"
+                    ) from err
+                self.single_design_factors = list(
+                    set([col for col in self.obs.columns if col in self.design_factors])
+                    & set(self.obs.columns)
+                )
+            else:
+                # Only one factor
+                self.design_factors = [self.design_factors]
+
+        else:
+            raise ValueError("Design factors should be a string or a list of strings")
 
         self.continuous_factors = continuous_factors
 
-        self.single_design_factors = list(
-            set(self.design_factors) & set(self.obs.columns)
-        )
         if self.obs[self.single_design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
         self.obs[self.single_design_factors] = self.obs[
             self.single_design_factors
         ].astype(str)
 
-        # Check that design factors don't contain underscores. If so, convert them to
-        # hyphens.
-        if np.any(["_" in factor for factor in self.design_factors]):
+        # Build the design matrix or use given one
+        # Stored in the obsm attribute of the dataset
+        if design_matrix is None:
+            self.obsm["design_matrix"] = build_design_matrix(
+                metadata=self.obs,
+                design_factors=self.design_factors,
+                continuous_factors=self.continuous_factors,
+                ref_level=ref_level,
+                expanded=False,
+                intercept=True,
+            )
+        else:
             warnings.warn(
-                """Same factor names in the design contain underscores ('_'). They will
-                be converted to hyphens ('-').""",
+                """Design matrix was given; ignoring counts, metadata,
+                design_factors, ref_level""",
                 UserWarning,
                 stacklevel=2,
             )
-
-            new_factors = replace_underscores(self.design_factors)
-
-            self.obs.rename(
-                columns=dict(zip(self.design_factors, new_factors)),
-                inplace=True,
-            )
-
-            self.design_factors = new_factors
-
-            # Also check continuous factors
-            if self.continuous_factors is not None:
-                self.continuous_factors = replace_underscores(self.continuous_factors)
-
-        # If ref_level has underscores, covert them to hyphens
-        # Don't raise a warning: it will be raised by build_design_matrix()
-        if ref_level is not None:
-            ref_level = replace_underscores(ref_level)
-
-        # Build the design matrix
-        # Stored in the obsm attribute of the dataset
-        self.obsm["design_matrix"] = build_design_matrix(
-            metadata=self.obs,
-            design_factors=self.design_factors,
-            continuous_factors=self.continuous_factors,
-            ref_level=ref_level,
-            expanded=False,
-            intercept=True,
-        )
+            # TODO check that design_matrix is valid (not full rank it is done
+            # afterwards)
+            self.obsm["design_matrix"] = design_matrix
+            # TODO check columns respect naming convention of pydeseq2
+            # TODO set other attributes to values derived from given design_matrix
 
         # Check that the design matrix has full rank
         self._check_full_rank_design()

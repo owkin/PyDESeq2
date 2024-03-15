@@ -3,7 +3,7 @@ line-length = 89
 
 [tool.ruff]
 line-length = 89
-select = [
+lint.select = [
     "F",  # Errors detected by Pyflakes
     "E",  # Error detected by Pycodestyle
     "W",  # Warning detected by Pycodestyle
@@ -16,7 +16,7 @@ select = [
     "UP",  # pyupgrade
     "RUF100",  # Report unused noqa directives
 ]
-ignore = [
+lint.ignore = [
     # Missing docstring in public package
     "D104",
     # Missing docstring in public module
@@ -29,13 +29,13 @@ ignore = [
     "D213",
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 force-single-line = true
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "docs/*" = ["I"]
 "tests/*" = ["D"]
 # Ignore errors linked to sphinx gallery syntax

@@ -1,8 +1,7 @@
+import copy
 import multiprocessing
-import re
 import warnings
 from math import ceil
-from itertools import product
 from math import floor
 from pathlib import Path
 from typing import List
@@ -14,6 +13,7 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+from formulaic import model_matrix
 from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
@@ -26,7 +26,6 @@ import pydeseq2
 from pydeseq2.grid_search import grid_fit_alpha
 from pydeseq2.grid_search import grid_fit_beta
 from pydeseq2.grid_search import grid_fit_shrink_beta
-from pydeseq2.interaction_utils import build_single_interaction_factor
 
 
 def load_example_data(
@@ -200,14 +199,14 @@ def build_design_matrix(
     KeyError
         If the reference level is not in the metadata.
     """
-    if isinstance(
-        design_factors, str
-    ):  # if there is a single factor, convert to singleton list
-        new_design_factor = build_single_interaction_factor(metadata, design_factors, continuous_factors)
-        design_factors = [new_design_factor]
-
+    # Making function idempotent
+    metadata = copy.deepcopy(metadata)
     if isinstance(design_factors, str):
-        raise ValueError(f"Design factors: {design_factors} should be a list")
+        if design_factors in metadata.columns:
+            design_factors = [design_factors]
+        else:
+            # TODO make sure it respects pydeseq2 naming convention
+            return model_matrix(design_factors, metadata)
 
     atomic_design_factors = [factor for factor in design_factors if ":" not in factor]
     if any(
@@ -231,7 +230,7 @@ def build_design_matrix(
     # them to hyphens
     warning_issued = False
 
-    # Loop to convert underscores to hyphens AND deal with interaction terms
+    # Loop to convert underscores to hyphens
     for factor in design_factors:
         if (factor in atomic_design_factors) and np.any(
             ["_" in value for value in metadata[factor].astype("str")]
@@ -245,93 +244,38 @@ def build_design_matrix(
                 )
                 warning_issued = True
             metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
-        # Check if factor has interacting terms and if there are then build
-        # interaction column into metadata
-        build_single_interaction_factor(
-            metadata, factor, atomic_design_factors, continuous_factors
-        )
-    # When merging continuous and non continuous variables the names are
-    # changing so we can't use design factors
-    if continuous_factors is not None:
-        categorical_factors = [
-            factor for factor in metadata.columns if factor not in continuous_factors
-        ]
-    else:
-        categorical_factors = design_factors
-
-    # Check that there is at least one categorical factor
-    if len(categorical_factors) > 0:
-        design_matrix = pd.get_dummies(
-            metadata[categorical_factors], drop_first=not expanded
-        )
-
-        if ref_level is not None:
-            if len(ref_level) != 2:
-                raise KeyError("The reference level should contain 2 strings.")
-            if ref_level[1] not in metadata[ref_level[0]].values:
-                raise KeyError(
-                    f"The metadata data should contain a '{ref_level[0]}' column"
-                    f" with a '{ref_level[1]}' level."
-                )
-
-            # Check that the reference level is not in the matrix (if unexpanded design)
-            ref_level_name = "_".join(ref_level)
-            if (not expanded) and ref_level_name in design_matrix.columns:
-                # Remove the reference level and add one
-                # the matching is slightly more restrictive to avoid matching
-                # interaction columns
-                factor_cols = [
-                    col
-                    for col in design_matrix.columns
-                    if bool(re.match(f"(?<!:){ref_level[0]}_.*(?!:)", col))
-                ]
-                missing_level = next(
-                    level
-                    for level in np.unique(metadata[ref_level[0]])
-                    if f"{ref_level[0]}_{level}" not in design_matrix.columns
-                )
-                design_matrix[f"{ref_level[0]}_{missing_level}"] = 1 - design_matrix[
-                    factor_cols
-                ].sum(1)
-                design_matrix.drop(ref_level_name, axis="columns", inplace=True)
 
         if not expanded:
             # Add reference level as column name suffix
-            for factor in categorical_factors:
+            for factor in design_factors:
                 if ref_level is None or factor != ref_level[0]:
                     # The reference is the unique level that is no longer there
                     ref = next(
                         level
                         for level in np.unique(metadata[factor])
-                        if f"{factor}_{level}" not in design_matrix.columns
+                        if f"{factor}_{level}" not in metadata.columns
                     )
                 else:
                     # The reference level is given as an argument
                     ref = ref_level[1]
-
-                design_matrix.columns = [
-                    f"{col}_vs_{ref}"
-                    if bool(re.match(f"(?<!:){factor}_.*(?!:)", col))
-                    else col
-                    for col in design_matrix.columns
+                metadata.columns = [
+                    f"{col}_vs_{ref}" if col.startswith(factor) else col
+                    for col in metadata.columns
                 ]
     else:
         # There is no categorical factor in the design
-        design_matrix = pd.DataFrame(index=metadata.index)
+        metadata = pd.DataFrame(index=metadata.index)
 
     if intercept:
-        design_matrix.insert(0, "intercept", 1)
-
+        metadata.insert(0, "intercept", 1)
     # Convert categorical factors one-hot encodings to int
-    design_matrix = design_matrix.astype("int")
-
+    metadata = metadata.astype("int")
     # Add continuous factors
     if continuous_factors is not None:
         for factor in continuous_factors:
             # This factor should be numeric
-            design_matrix[factor] = pd.to_numeric(metadata[factor])
-
-    return design_matrix
+            metadata[factor] = pd.to_numeric(metadata[factor])
+    return metadata
 
 
 def replace_underscores(factors: List[str]):
@@ -1645,104 +1589,3 @@ def lowess(
         delta = (1 - delta**2) ** 2
 
     return yest
-def convert_categorical_to_continuous_column(metadata, col):
-    metadata[col] = metadata[col].astype("category").cat.codes.astype(float)
-    
-
-
-def merge_categorical_columns_inplace(metadata, left_factor, right_factor):
-    """
-    Merge two categorical columns in a pandas dataframe into a new column.
-
-    Parameters
-    ----------
-    metadata : pandas.DataFrame
-        The dataframe to modify.
-    left_factor : str
-        The name of the first column.
-    right_factor : str
-        The name of the second column.
-
-    Returns
-    -------
-    None
-        Modifies the dataframe in place.
-    """
-
-    unique_left_categories = list(set(metadata[left_factor]))
-    unique_right_categories = list(set(metadata[right_factor]))
-    new_categories = [str(left) + str(right) for left, right in product(unique_left_categories, unique_right_categories)]
-    new_categories_dict = {cat: i for i, cat in enumerate(new_categories)}
-
-    def map_to_new_categories(element):
-        return new_categories_dict[element]
-    new_col_name = left_factor + ":" + right_factor
-    metadata[new_col_name] = list(map(map_to_new_categories, (metadata[left_factor].astype(str) + metadata[right_factor].astype(str)).tolist()))
-
-
-def build_single_interaction_factor(metadata, design_factor, continuous_factors):
-    """
-    Create an interaction factor from two design factors. This function supports
-    categorical and continuous factors.
-
-    Parameters
-    ----------
-    metadata: pandas.DataFrame
-        The dataframe to modify.
-    design_factor: str
-        The name of the design factor to split.
-    continuous_factors: list
-        The list of continuous factors.
-    """
-    if isinstance(design_factor, str):
-        if ":" in design_factor:
-            design_factor = design_factor.split(':')
-        else:
-            return
-
-    nfactors = len(design_factor)
-    if nfactors > 2:
-        m = nfactors // 2
-        # function modifies metadata, continuous_factors inplace
-        left_part = build_single_interaction_factor(metadata, design_factor[:m], continuous_factors)
-        right_part = build_single_interaction_factor(metadata, design_factor[m:], continuous_factors)
-        return build_single_interaction_factor(metadata, left_part + right_part, continuous_factors)
-
-    if nfactors == 2:
-        left_factor, right_factor = design_factor[0], design_factor[1] 
-        interaction_column_name = left_factor + ":" + right_factor
-        is_left_categorical = left_factor not in continuous_factors
-        is_right_categorical = right_factor not in continuous_factors
-        is_any_categorical = is_left_categorical or is_right_categorical
-        if not is_any_categorical:
-            # All factors are continuous
-            metadata[interaction_column_name] = metadata[left_factor] * metadata[right_factor]
-            continuous_factors.append(interaction_column_name)
-            return interaction_column_name
-        else:
-            if is_left_categorical and is_right_categorical:
-                merge_categorical_columns_inplace(metadata, left_factor, right_factor)
-                return None, None
-            elif is_left_categorical:
-                cat_col_name = left_factor
-                cont_col_name = right_factor
-            elif is_right_categorical:
-                cat_col_name = right_factor
-                cont_col_name = left_factor
-            
-            cat_levels = metadata[cat_col_name].unique()
-            # We multiplex the continuous variable to cat_levels continuous variables
-            # that are cont_col_name when the level is the right one
-            interaction_column_names = []
-            for idx, cat_level in enumerate(cat_levels):
-                current_col_name = interaction_column_name + f"_{idx}"
-                interaction_column_names.append(current_col_name)
-                metadata[current_col_name + f"_{idx}"] = (metadata[cat_col_name] == cat_level).astype("float") * metadata[cont_col_name]
-                continuous_factors.append(current_col_name)
-            return interaction_column_names
-        
-    elif nfactors == 1:
-        return [design_factor[0]]
-
-
-
