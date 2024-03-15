@@ -212,6 +212,10 @@ def build_design_matrix(
             )
 
             def convert_formulaic_to_deseq2(x: str):
+                if x == "intercept":
+                    return "intercept"
+                if "T." not in x:
+                    return x
                 values = []
                 groups = []
                 # Dummy treatment coding
