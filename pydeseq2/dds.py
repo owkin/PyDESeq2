@@ -310,7 +310,6 @@ class DeseqDataSet(ad.AnnData):
             self.obsm["design_matrix"] = build_design_matrix(
                 metadata=self.obs,
                 design_factors=self.design_factors,
-                single_design_factors=self.single_design_factors,
                 continuous_factors=self.continuous_factors,
                 ref_level=ref_level,
                 expanded=False,
