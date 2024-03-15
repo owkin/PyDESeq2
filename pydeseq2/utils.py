@@ -334,12 +334,12 @@ def replace_underscores(factors: Union[str, List[str]]):
 
     Parameters
     ----------
-    factors : Union[str, List[str]]
+    factors : str or List[str]
         A list of strings which may contain underscores.
 
     Returns
     -------
-    Union[list, str]
+    list or str
         A list of strings or a string in which underscores were replaced by hyphens.
     """
     res = [factor.replace("_", "-") for factor in factors]
