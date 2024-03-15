@@ -1,4 +1,5 @@
 import multiprocessing
+import re
 import warnings
 from math import ceil
 from math import floor
@@ -206,7 +207,23 @@ def build_design_matrix(
         else:
             # TODO make sure it respects pydeseq2 naming convention
             design_matrix = model_matrix(design_factors, metadata)
-            design_matrix.rename(columns=lambda x: x.replace(":", "_vs_"), inplace=True)
+            design_matrix.rename(
+                columns=lambda x: x.replace("Intercept", "intercept"), inplace=True
+            )
+
+            def convert_formulaic_to_deseq2(x: str):
+                values = []
+                groups = []
+                # Dummy treatment coding
+                splits = re.split(r"(?<=\[T\.)(.*?)(?=\])", x)
+                for idx, split in enumerate(splits):
+                    if idx % 2 == 1:
+                        values.append(split)
+                    else:
+                        groups.append(re.sub(r"(\[T\.)|(\])", "", split))
+                return "".join(groups) + "_" + "_vs_".join(values)
+
+            design_matrix.rename(columns=convert_formulaic_to_deseq2, inplace=True)
             return design_matrix
 
     for factor in design_factors:
@@ -303,7 +320,7 @@ def build_design_matrix(
         for factor in continuous_factors:
             # This factor should be numeric
             design_matrix[factor] = pd.to_numeric(metadata[factor])
-    breakpoint()
+
     return design_matrix
 
 
