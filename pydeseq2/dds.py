@@ -1,3 +1,5 @@
+import itertools
+import re
 import sys
 import time
 import warnings
@@ -237,42 +239,14 @@ class DeseqDataSet(ad.AnnData):
         # Check that design factors don't contain underscores. If so, convert them to
         # hyphens.
         self.design_factors = design_factors
-        if isinstance(self.design_factors, list):
-            if np.any(["_" in factor for factor in self.design_factors]):
-                warnings.warn(
-                    """Same factor names in the design contain underscores ('_').
-                    They will be converted to hyphens ('-').""",
-                    UserWarning,
-                    stacklevel=2,
-                )
-
-                new_factors = replace_underscores(self.design_factors)
-
-                self.obs.rename(
-                    columns=dict(zip(self.design_factors, new_factors)),
-                    inplace=True,
-                )
-
-                self.design_factors = new_factors
-
-                # Also check continuous factors
-                if continuous_factors is not None:
-                    self.continuous_factors = replace_underscores(continuous_factors)
-
-            # If ref_level has underscores, covert them to hyphens
-            # Don't raise a warning: it will be raised by build_design_matrix()
-            if ref_level is not None:
-                ref_level = replace_underscores(ref_level)
-
-            self.single_design_factors = list(
-                set(self.design_factors) & set(self.obs.columns)
-            )
 
         # Following lines handle the case where the user provides a formula
         # of the type formulaic can recognize or a column
-        elif isinstance(self.design_factors, str):
+        if isinstance(self.design_factors, str):
             self.continuous_factors = continuous_factors
             if self.design_factors not in self.obs.columns:
+                # TODO make check stricter as formulaic grammar is too complex
+                # for now
                 try:
                     Formula(self.design_factors)
                 except FormulaInvalidError as err:
@@ -291,6 +265,37 @@ class DeseqDataSet(ad.AnnData):
         else:
             raise ValueError("Design factors should be a string or a list of strings")
 
+        # We modify only obs object
+        if np.any(["_" in factor for factor in self.design_factors]):
+            warnings.warn(
+                """Same factor names in the design contain underscores ('_').
+                They will be converted to hyphens ('-').""",
+                UserWarning,
+                stacklevel=2,
+            )
+
+            new_factors = replace_underscores(self.design_factors)
+
+            self.obs.rename(
+                columns=dict(zip(self.design_factors, new_factors)),
+                inplace=True,
+            )
+
+            self.design_factors = new_factors
+
+            # Also check continuous factors
+            if continuous_factors is not None:
+                self.continuous_factors = replace_underscores(continuous_factors)
+
+        # If ref_level has underscores, covert them to hyphens
+        # Don't raise a warning: it will be raised by build_design_matrix()
+        if ref_level is not None:
+            ref_level = replace_underscores(ref_level)
+
+        self.single_design_factors = list(
+            set(self.design_factors) & set(self.obs.columns)
+        )
+
         self.continuous_factors = continuous_factors
 
         if self.obs[self.single_design_factors].isna().any().any():
@@ -305,6 +310,7 @@ class DeseqDataSet(ad.AnnData):
             self.obsm["design_matrix"] = build_design_matrix(
                 metadata=self.obs,
                 design_factors=self.design_factors,
+                single_design_factors=self.single_design_factors,
                 continuous_factors=self.continuous_factors,
                 ref_level=ref_level,
                 expanded=False,
@@ -317,9 +323,24 @@ class DeseqDataSet(ad.AnnData):
                 UserWarning,
                 stacklevel=2,
             )
-            # TODO check that design_matrix is valid (not full rank it is done
-            # afterwards)
+
+            assert "intercept" in self.obsm["design_matrix"].columns
+            assert self.obsm["design_matrix"]["intercept"].equals(
+                pd.Series(1.0, index=self.obsm["design_matrix"].index)
+            )
+            found_individual_factors = itertools.chain(
+                *[
+                    re.sub(r"\:|_vs_", " ", col).split(" ")
+                    for col in self.obsm["design_matrix"]
+                    if col != "intercept"
+                ]
+            )
+            assert all(
+                [factor in self.obs.columns for factor in found_individual_factors]
+            )
+            # With some luck here design_matrix is valid all the time
             self.obsm["design_matrix"] = design_matrix
+
             # TODO check columns respect naming convention of pydeseq2
             # TODO set other attributes to values derived from given design_matrix
 
