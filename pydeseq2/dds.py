@@ -231,8 +231,9 @@ class DeseqDataSet(ad.AnnData):
             raise ValueError(
                 "Either adata or both counts and metadata arguments must be provided."
             )
-        if any([col.strip() != col for col in self.obs.columns]):
-            raise ValueError("Columns cannot contain leading or trailing spaces")
+        for col in self.obs.columns:
+            if col.strip() != col:
+                raise ValueError("Columns cannot contain leading or trailing spaces")
 
         # Check that design factors don't contain underscores. If so, convert them to
         # hyphens.
@@ -254,17 +255,13 @@ class DeseqDataSet(ad.AnnData):
                 self.design_factors = re.sub(" +|+ ", "+", self.design_factors)
                 # Check that we have something like ~a + b + a:b:c:d
                 assert self.design_factors.startswith("~")
-                assert all(
-                    [
-                        factor in self.obs.columns
-                        for factor in itertools.chain(
-                            *[
-                                term.split(":")
-                                for term in self.design_factors[1:].split("+")
-                            ]
-                        )
-                    ]
-                )
+
+                for factor in itertools.chain(
+                    *[term.split(":") for term in self.design_factors[1:].split("+")]
+                ):
+                    if factor not in self.obs.columns:
+                        raise ValueError(f"Formula contain unknown factor {factor}")
+
                 self.single_design_factors = list(
                     {col for col in self.obs.columns if col in self.design_factors}
                     & set(self.obs.columns)
@@ -275,9 +272,18 @@ class DeseqDataSet(ad.AnnData):
                 self.single_design_factors = self.design_factors
 
         elif isinstance(self.design_factors, list):
-            # TODO add case where one passes a list of interacting columns
-            # by converting it into a formula
-            self.single_design_factors = self.design_factors
+            # If there are interacting terms in the list we'll use formulaic
+            interacting_terms = [
+                factor for factor in self.design_factors if ":" in factor
+            ]
+            if len(interacting_terms) > 0:
+                self.design_factors = "~".join(self.design_factors)
+                self.single_design_factors = list(
+                    {col for col in self.obs.columns if col in self.design_factors}
+                    & set(self.obs.columns)
+                )
+            else:
+                self.single_design_factors = self.design_factors
         else:
             raise ValueError("Design factors should be a string or a list of strings")
 
@@ -337,7 +343,7 @@ class DeseqDataSet(ad.AnnData):
         else:
             warnings.warn(
                 """Design matrix was given; ignoring counts, metadata,
-                design_factors, ref_level""",
+                design_factors and ref_level""",
                 UserWarning,
                 stacklevel=2,
             )
@@ -346,16 +352,18 @@ class DeseqDataSet(ad.AnnData):
             assert self.obsm["design_matrix"]["intercept"].equals(
                 pd.Series(1.0, index=self.obsm["design_matrix"].index)
             )
-            found_individual_factors = itertools.chain(
+            for individual_factor in itertools.chain(
                 *[
                     re.sub(r"\:|_vs_", " ", col).split(" ")
                     for col in self.obsm["design_matrix"]
                     if col != "intercept"
                 ]
-            )
-            assert all(
-                [factor in self.obs.columns for factor in found_individual_factors]
-            )
+            ):
+                if individual_factor not in self.obs.columns:
+                    raise ValueError(
+                        f"Design matrix contains unknown factor {individual_factor}"
+                    )
+
             # With some luck here design_matrix is valid all the time
             self.obsm["design_matrix"] = design_matrix
             # TODO set other attributes to values derived from given design_matrix
