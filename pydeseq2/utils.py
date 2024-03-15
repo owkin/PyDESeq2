@@ -159,9 +159,10 @@ def build_design_matrix(
         DataFrame containing metadata information.
         Must be indexed by sample barcodes.
 
-    design_factors : list
+    design_factors : list[str] or str
         Name of the columns of metadata to be used as design variables.
-        Interaction terms can also be used such as col1:...:colN.
+        or formula with interaction terms. Careful, unlike in dds, interaction
+        terms cannot be provided as a list only as a formula.
         (default: ``"condition"``).
 
     ref_level : list or None
@@ -199,13 +200,10 @@ def build_design_matrix(
     KeyError
         If the reference level is not in the metadata.
     """
-    # Making function idempotent
-
     if isinstance(design_factors, str):
         if design_factors in metadata.columns:
             design_factors = [design_factors]
         else:
-            # TODO make sure it respects pydeseq2 naming convention
             design_matrix = model_matrix(design_factors, metadata)
             design_matrix.rename(
                 columns=lambda x: x.replace("Intercept", "intercept"), inplace=True
