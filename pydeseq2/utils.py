@@ -159,7 +159,7 @@ def build_design_matrix(
         DataFrame containing metadata information.
         Must be indexed by sample barcodes.
 
-    design_factors : list[str] or str
+    design_factors : list or str
         Name of the columns of metadata to be used as design variables.
         or formula with interaction terms. Careful, unlike in dds, interaction
         terms cannot be provided as a list only as a formula.
@@ -334,7 +334,7 @@ def replace_underscores(factors: Union[str, List[str]]):
 
     Parameters
     ----------
-    factors : str or List[str]
+    factors : str or list
         A list of strings which may contain underscores.
 
     Returns
