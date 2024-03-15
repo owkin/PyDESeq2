@@ -346,21 +346,32 @@ class DeseqDataSet(ad.AnnData):
                 UserWarning,
                 stacklevel=2,
             )
-            assert len(design_matrix.index) == len(self.obs.index)
-            assert "intercept" in self.obsm["design_matrix"].columns
-            assert self.obsm["design_matrix"]["intercept"].equals(
-                pd.Series(1.0, index=self.obsm["design_matrix"].index)
-            )
-            for individual_factor in itertools.chain(
+            if len(design_matrix.index) != len(self.obs.index):
+                raise ValueError("Design matrix and metadata have different lengths")
+            if "intercept" not in design_matrix.columns:
+                raise ValueError("Design matrix doesn't have intercept")
+
+            if not design_matrix["intercept"].equals(
+                pd.Series(1.0, index=design_matrix.index)
+            ):
+                raise ValueError("Design matrix doesn't have intercept")
+            for individual_factor_or_level in itertools.chain(
                 *[
-                    re.sub(r"\:|_vs_", " ", col).split(" ")
-                    for col in self.obsm["design_matrix"]
+                    re.sub(r"\:|_vs_|_", " ", col).split(" ")
+                    for col in design_matrix
                     if col != "intercept"
                 ]
             ):
-                if individual_factor not in self.obs.columns:
+                if (
+                    individual_factor_or_level not in self.obs.columns
+                    and individual_factor_or_level
+                    not in itertools.chain(
+                        *[self.obs[col].unique().tolist() for col in self.obs.columns]
+                    )
+                ):
                     raise ValueError(
-                        f"Design matrix contains unknown factor {individual_factor}"
+                        "Design matrix contains unknown factor"
+                        f" {individual_factor_or_level}"
                     )
 
             # With some luck here design_matrix is valid all the time
