@@ -252,7 +252,7 @@ class DeseqDataSet(ad.AnnData):
                 #         f"Design factor {self.design_factors} is not a valid formula"
                 #     ) from err
                 # Remove potential spaces around + signs
-                self.design_factors = re.sub(" +|+ ", "+", self.design_factors)
+                self.design_factors = re.sub(r"\ \+|\+\ ", "+", self.design_factors)
                 # Check that we have something like ~a + b + a:b:c:d
                 assert self.design_factors.startswith("~")
 
@@ -277,7 +277,7 @@ class DeseqDataSet(ad.AnnData):
                 factor for factor in self.design_factors if ":" in factor
             ]
             if len(interacting_terms) > 0:
-                self.design_factors = "~".join(self.design_factors)
+                self.design_factors = "~" + "+".join(self.design_factors)
                 self.single_design_factors = list(
                     {col for col in self.obs.columns if col in self.design_factors}
                     & set(self.obs.columns)
