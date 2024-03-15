@@ -80,8 +80,7 @@ class DeseqDataSet(ad.AnnData):
         we're testing, e.g. ``["condition", "A"]``. (default: ``None``).
 
     design_matrix: pd.DataFrame or None
-        If given will take precedence over all previous arguments adata, counts,
-        metadata, design_factors and ref_level.
+        If given will take precedence over design_factors and ref_level.
         (default: ``None``).
 
     min_mu : float
@@ -338,12 +337,12 @@ class DeseqDataSet(ad.AnnData):
             )
         else:
             warnings.warn(
-                """Design matrix was given; ignoring counts, metadata,
-                design_factors and ref_level""",
+                """Design matrix was given; ignoring design_factors and
+                ref_level""",
                 UserWarning,
                 stacklevel=2,
             )
-
+            assert len(design_matrix.index) == len(self.obs.index)
             assert "intercept" in self.obsm["design_matrix"].columns
             assert self.obsm["design_matrix"]["intercept"].equals(
                 pd.Series(1.0, index=self.obsm["design_matrix"].index)
