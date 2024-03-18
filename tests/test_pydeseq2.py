@@ -35,58 +35,93 @@ def metadata():
     )
 
 
-@pytest.mark.parametrize(
-    "independent_filtering, trend_fit_type",
-    [(True, "parametric"), (True, "mean"), (False, "parametric")],
-)
-def test_deseq(counts_df, metadata, independent_filtering, trend_fit_type, tol=0.02):
+def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
-    if independent_filtering:
-        if trend_fit_type == "parametric":
-            r_res = pd.read_csv(
-                os.path.join(test_path, "data/single_factor/r_test_res.csv"),
-                index_col=0,
-            )
-        elif trend_fit_type == "mean":
-            r_res = pd.read_csv(
-                os.path.join(test_path, "data/single_factor/r_test_res_mean_curve.csv"),
-                index_col=0,
-            )
-    else:
-        r_res = pd.read_csv(
-            os.path.join(
-                test_path, "data/single_factor/r_test_res_no_independent_filtering.csv"
-            ),
-            index_col=0,
-        )
+    r_res = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_res.csv"),
+        index_col=0,
+    )
 
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
         design_factors="condition",
-        trend_fit_type=trend_fit_type,
+        trend_fit_type="parametric",
     )
     dds.deseq2()
 
-    res = DeseqStats(dds, independent_filter=independent_filtering)
+    res = DeseqStats(dds)
     res.summary()
     res_df = res.results_df
 
-    # check that the same p-values are NaN
-    assert (res_df.pvalue.isna() == r_res.pvalue.isna()).all()
-    assert (res_df.padj.isna() == r_res.padj.isna()).all()
+    # Check results
+    assert_res_almost_equal(res_df, r_res, tol)
 
-    # Check that the same LFC, p-values and adjusted p-values are found (up to tol)
-    assert (
-        abs(r_res.log2FoldChange - res_df.log2FoldChange) / abs(r_res.log2FoldChange)
-    ).max() < tol
-    assert (abs(r_res.pvalue - res_df.pvalue) / r_res.pvalue).max() < tol
-    assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
+
+def test_deseq_independent_filtering_mean_fit(counts_df, metadata, tol=0.02):
+    """Test that the outputs of the DESeq2 function match those of the original R
+    package, up to a tolerance in relative error, with a mean fit.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    r_res = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_res_mean_curve.csv"),
+        index_col=0,
+    )
+
+    dds = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors="condition",
+        trend_fit_type="mean",
+    )
+    dds.deseq2()
+
+    res = DeseqStats(dds)
+    res.summary()
+    res_df = res.results_df
+
+    # Check results
+    assert_res_almost_equal(res_df, r_res, tol)
+
+
+def test_deseq_without_independent_filtering_parametric_fit(
+    counts_df, metadata, tol=0.02
+):
+    """Test that the outputs of the DESeq2 function match those of the original R
+    package, up to a tolerance in relative error, with a parametric fit and no
+    independent filtering.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    r_res = pd.read_csv(
+        os.path.join(
+            test_path, "data/single_factor/r_test_res_no_independent_filtering.csv"
+        ),
+        index_col=0,
+    )
+
+    dds = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors="condition",
+        trend_fit_type="parametric",
+    )
+    dds.deseq2()
+
+    res = DeseqStats(dds, independent_filter=False)
+    res.summary()
+    res_df = res.results_df
+
+    # Check results
+    assert_res_almost_equal(res_df, r_res, tol)
 
 
 @pytest.mark.parametrize("alt_hypothesis", ["lessAbs", "greaterAbs", "less", "greater"])
@@ -160,16 +195,8 @@ def test_deseq_no_refit_cooks(counts_df, metadata, tol=0.02):
     res.summary()
     res_df = res.results_df
 
-    # check that the same p-values are NaN
-    assert (res_df.pvalue.isna() == r_res.pvalue.isna()).all()
-    assert (res_df.padj.isna() == r_res.padj.isna()).all()
-
-    # Check that the same LFC, p-values and adjusted p-values are found (up to tol)
-    assert (
-        abs(r_res.log2FoldChange - res_df.log2FoldChange) / abs(r_res.log2FoldChange)
-    ).max() < tol
-    assert (abs(r_res.pvalue - res_df.pvalue) / r_res.pvalue).max() < tol
-    assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
+    # Check results
+    assert_res_almost_equal(res_df, r_res, tol)
 
 
 def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
@@ -272,16 +299,8 @@ def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.04):
     res.summary()
     res_df = res.results_df
 
-    # check that the same p-values are NaN
-    assert (res_df.pvalue.isna() == r_res.pvalue.isna()).all()
-    assert (res_df.padj.isna() == r_res.padj.isna()).all()
-
-    # Check that the same LFC, p-values and adjusted p-values are found (up to tol)
-    assert (
-        abs(r_res.log2FoldChange - res_df.log2FoldChange) / abs(r_res.log2FoldChange)
-    ).max() < tol
-    assert (abs(r_res.pvalue - res_df.pvalue) / r_res.pvalue).max() < tol
-    assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
+    # Check results
+    assert_res_almost_equal(res_df, r_res, tol)
 
 
 def test_multifactor_lfc_shrinkage(counts_df, metadata, tol=0.02):
@@ -377,16 +396,8 @@ def test_continuous_deseq(
     res.summary()
     res_df = res.results_df
 
-    # check that the same p-values are NaN
-    assert (res_df.pvalue.isna() == r_res.pvalue.isna()).all()
-    assert (res_df.padj.isna() == r_res.padj.isna()).all()
-
-    # Check that the same LFC, p-values and adjusted p-values are found (up to tol)
-    assert (
-        abs(r_res.log2FoldChange - res_df.log2FoldChange) / abs(r_res.log2FoldChange)
-    ).max() < tol
-    assert (abs(r_res.pvalue - res_df.pvalue) / r_res.pvalue).max() < tol
-    assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
+    # Check results
+    assert_res_almost_equal(res_df, r_res, tol)
 
 
 def test_continuous_lfc_shrinkage(tol=0.02):
@@ -478,16 +489,8 @@ def test_wide_deseq(
     res.summary()
     res_df = res.results_df
 
-    # check that the same p-values are NaN
-    assert (res_df.pvalue.isna() == r_res.pvalue.isna()).all()
-    assert (res_df.padj.isna() == r_res.padj.isna()).all()
-
-    # Check that the same LFC, p-values and adjusted p-values are found (up to tol)
-    assert (
-        abs(r_res.log2FoldChange - res_df.log2FoldChange) / abs(r_res.log2FoldChange)
-    ).max() < tol
-    assert (abs(r_res.pvalue - res_df.pvalue) / r_res.pvalue).max() < tol
-    assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
+    # Check results
+    assert_res_almost_equal(res_df, r_res, tol)
 
 
 def test_contrast(counts_df, metadata):
@@ -557,16 +560,8 @@ def test_anndata_init(counts_df, metadata, tol=0.02):
     res.summary()
     res_df = res.results_df
 
-    # check that the same p-values are NaN
-    assert (res_df.pvalue.isna() == r_res.pvalue.isna()).all()
-    assert (res_df.padj.isna() == r_res.padj.isna()).all()
-
-    # Check that the same LFC, p-values and adjusted p-values are found (up to tol)
-    assert (
-        abs(r_res.log2FoldChange - res_df.log2FoldChange) / abs(r_res.log2FoldChange)
-    ).max() < tol
-    assert (abs(r_res.pvalue - res_df.pvalue) / r_res.pvalue).max() < tol
-    assert (abs(r_res.padj - res_df.padj) / r_res.padj).max() < tol
+    # Check results
+    assert_res_almost_equal(res_df, r_res, tol)
 
 
 def test_vst(counts_df, metadata, tol=0.02):
@@ -717,3 +712,16 @@ def test_vst_transform(train_dds, test_counts):
     assert isinstance(result, np.ndarray)
     # 25 samples, 10 genes
     assert result.shape == (25, 10)
+
+
+def assert_res_almost_equal(py_res, r_res, tol=0.02):
+    # check that the same p-values are NaN
+    assert (py_res.pvalue.isna() == r_res.pvalue.isna()).all()
+    assert (py_res.padj.isna() == r_res.padj.isna()).all()
+
+    # Check that the same LFC, p-values and adjusted p-values are found (up to tol)
+    assert (
+        abs(r_res.log2FoldChange - py_res.log2FoldChange) / abs(r_res.log2FoldChange)
+    ).max() < tol
+    assert (abs(r_res.pvalue - py_res.pvalue) / r_res.pvalue).max() < tol
+    assert (abs(r_res.padj - py_res.padj) / r_res.padj).max() < tol
