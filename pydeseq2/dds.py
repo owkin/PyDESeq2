@@ -1,3 +1,5 @@
+import itertools
+import re
 import sys
 import time
 import warnings
@@ -60,7 +62,13 @@ class DeseqDataSet(ad.AnnData):
 
     design_factors : str or list
         Name of the columns of metadata to be used as design variables.
-        (default: ``'condition'``).
+        Interaction terms can also be used such as col1:...:colN.
+        Finally, if you wish to use a formula, you can write:
+        ``"~ col1 + ... + colN + colk1:...:colN1 + ... + colkni:...:colNni"``.
+        In this case, the formula will be parsed and the factors (interacting
+        and non-interacting) will be extracted automatically from adata or counts
+        and metadata relying on the wonderful formulaic package.
+        (default: ``"condition"``).
 
     continuous_factors : list or None
         An optional list of continuous (as opposed to categorical) factors. Any factor
@@ -70,6 +78,10 @@ class DeseqDataSet(ad.AnnData):
         An optional list of two strings of the form ``["factor", "test_level"]``
         specifying the factor of interest and the reference (control) level against which
         we're testing, e.g. ``["condition", "A"]``. (default: ``None``).
+
+    design_matrix: pd.DataFrame or None
+        If given will take precedence over design_factors and ref_level.
+        (default: ``None``).
 
     min_mu : float
         Threshold for mean estimates. (default: ``0.5``).
@@ -181,6 +193,7 @@ class DeseqDataSet(ad.AnnData):
         design_factors: Union[str, List[str]] = "condition",
         continuous_factors: Optional[List[str]] = None,
         ref_level: Optional[List[str]] = None,
+        design_matrix: Optional[pd.DataFrame] = None,
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
         max_disp: float = 10.0,
@@ -213,55 +226,153 @@ class DeseqDataSet(ad.AnnData):
             raise ValueError(
                 "Either adata or both counts and metadata arguments must be provided."
             )
-
-        # Convert design_factors to list if a single string was provided.
-        self.design_factors = (
-            [design_factors] if isinstance(design_factors, str) else design_factors
-        )
-        self.continuous_factors = continuous_factors
-
-        if self.obs[self.design_factors].isna().any().any():
-            raise ValueError("NaNs are not allowed in the design factors.")
-        self.obs[self.design_factors] = self.obs[self.design_factors].astype(str)
+        for col in self.obs.columns:
+            if col.strip() != col:
+                raise ValueError("Columns cannot contain leading or trailing spaces")
 
         # Check that design factors don't contain underscores. If so, convert them to
         # hyphens.
-        if np.any(["_" in factor for factor in self.design_factors]):
+        self.design_factors = design_factors
+
+        # Following lines handle the case where the user provides a formula
+        # of the type formulaic can recognize or a column
+        if isinstance(self.design_factors, str):
+            self.continuous_factors = continuous_factors
+            if self.design_factors not in self.obs.columns:
+                # TODO uncomment when we support all of formulaic grammar
+                # try:
+                #     Formula(self.design_factors)
+                # except FormulaInvalidError as err:
+                #     raise (
+                #         f"Design factor {self.design_factors} is not a valid formula"
+                #     ) from err
+                # Remove potential spaces around + signs
+                self.design_factors = re.sub(r"\ \+|\+\ ", "+", self.design_factors)
+                # Check that we have something like ~a + b + a:b:c:d
+                assert self.design_factors.startswith("~")
+
+                for factor in itertools.chain(
+                    *[term.split(":") for term in self.design_factors[1:].split("+")]
+                ):
+                    if factor not in self.obs.columns:
+                        raise ValueError(f"Formula contain unknown factor {factor}")
+
+                self.single_design_factors = list(
+                    {col for col in self.obs.columns if col in self.design_factors}
+                    & set(self.obs.columns)
+                )
+            else:
+                # Only one factor
+                self.design_factors = [self.design_factors]
+                self.single_design_factors = self.design_factors
+
+        elif isinstance(self.design_factors, list):
+            # If there are interacting terms in the list we'll use formulaic
+            interacting_terms = [
+                factor for factor in self.design_factors if ":" in factor
+            ]
+            if len(interacting_terms) > 0:
+                self.design_factors = "~" + "+".join(self.design_factors)
+                self.single_design_factors = list(
+                    {col for col in self.obs.columns if col in self.design_factors}
+                    & set(self.obs.columns)
+                )
+            else:
+                self.single_design_factors = self.design_factors
+        else:
+            raise ValueError("Design factors should be a string or a list of strings")
+
+        # We modify only obs object
+        if np.any(["_" in factor for factor in self.single_design_factors]):
             warnings.warn(
-                """Same factor names in the design contain underscores ('_'). They will
-                be converted to hyphens ('-').""",
+                """Same factor names in the design contain underscores ('_').
+                They will be converted to hyphens ('-').""",
                 UserWarning,
                 stacklevel=2,
             )
 
-            new_factors = replace_underscores(self.design_factors)
+            new_factors = replace_underscores(self.single_design_factors)
 
             self.obs.rename(
-                columns=dict(zip(self.design_factors, new_factors)),
+                columns=dict(zip(self.single_design_factors, new_factors)),
                 inplace=True,
             )
 
-            self.design_factors = new_factors
+            self.single_design_factors = new_factors
 
             # Also check continuous factors
-            if self.continuous_factors is not None:
-                self.continuous_factors = replace_underscores(self.continuous_factors)
+            if continuous_factors is not None:
+                self.continuous_factors = replace_underscores(continuous_factors)
 
         # If ref_level has underscores, covert them to hyphens
         # Don't raise a warning: it will be raised by build_design_matrix()
         if ref_level is not None:
             ref_level = replace_underscores(ref_level)
 
-        # Build the design matrix
-        # Stored in the obsm attribute of the dataset
-        self.obsm["design_matrix"] = build_design_matrix(
-            metadata=self.obs,
-            design_factors=self.design_factors,
-            continuous_factors=self.continuous_factors,
-            ref_level=ref_level,
-            expanded=False,
-            intercept=True,
+        self.single_design_factors = list(
+            set(self.design_factors) & set(self.obs.columns)
         )
+        # Remark it works if self.design_factors is a string as well by iterating
+        # on chars
+        self.design_factors = replace_underscores(self.design_factors)
+
+        self.continuous_factors = continuous_factors
+
+        if self.obs[self.single_design_factors].isna().any().any():
+            raise ValueError("NaNs are not allowed in the design factors.")
+        self.obs[self.single_design_factors] = self.obs[
+            self.single_design_factors
+        ].astype(str)
+
+        # Build the design matrix or use given one
+        # Stored in the obsm attribute of the dataset
+        if design_matrix is None:
+            self.obsm["design_matrix"] = build_design_matrix(
+                metadata=self.obs,
+                design_factors=self.design_factors,
+                continuous_factors=self.continuous_factors,
+                ref_level=ref_level,
+                expanded=False,
+                intercept=True,
+            )
+        else:
+            warnings.warn(
+                """Design matrix was given; ignoring design_factors and
+                ref_level""",
+                UserWarning,
+                stacklevel=2,
+            )
+            if len(design_matrix.index) != len(self.obs.index):
+                raise ValueError("Design matrix and metadata have different lengths")
+            if "intercept" not in design_matrix.columns:
+                raise ValueError("Design matrix doesn't have intercept")
+
+            if not design_matrix["intercept"].equals(
+                pd.Series(1.0, index=design_matrix.index)
+            ):
+                raise ValueError("Design matrix doesn't have intercept")
+            for individual_factor_or_level in itertools.chain(
+                *[
+                    re.sub(r"\:|_vs_|_", " ", col).split(" ")
+                    for col in design_matrix
+                    if col != "intercept"
+                ]
+            ):
+                if (
+                    individual_factor_or_level not in self.obs.columns
+                    and individual_factor_or_level
+                    not in itertools.chain(
+                        *[self.obs[col].unique().tolist() for col in self.obs.columns]
+                    )
+                ):
+                    raise ValueError(
+                        "Design matrix contains unknown factor"
+                        f" {individual_factor_or_level}"
+                    )
+
+            # With some luck here design_matrix is valid all the time
+            self.obsm["design_matrix"] = design_matrix
+            # TODO set other attributes to values derived from given design_matrix
 
         # Check that the design matrix has full rank
         self._check_full_rank_design()

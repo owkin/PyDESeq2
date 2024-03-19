@@ -1,4 +1,5 @@
 import multiprocessing
+import re
 import warnings
 from math import ceil
 from math import floor
@@ -12,6 +13,7 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+from formulaic import model_matrix
 from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
@@ -157,11 +159,13 @@ def build_design_matrix(
         DataFrame containing metadata information.
         Must be indexed by sample barcodes.
 
-    design_factors : str or list
-        Name of the columns of metadata to be used as design_matrix variables.
+    design_factors : list or str
+        Name of the columns of metadata to be used as design variables.
+        or formula with interaction terms. Careful, unlike in dds, interaction
+        terms cannot be provided as a list only as a formula.
         (default: ``"condition"``).
 
-    ref_level : dict or None
+    ref_level : list or None
         An optional list of two strings of the form ``["factor", "ref_level"]``
         specifying the factor of interest and the desired reference level, e.g.
         ``["condition", "A"]``. (default: ``None``).
@@ -176,18 +180,53 @@ def build_design_matrix(
         (default: ``False``).
 
     intercept : bool
-        If true, add an intercept (a column containing only ones). (default: ``True``).
+        If true, add an intercept (a column containing only ones).
+        (default: ``True``).
 
     Returns
     -------
     pandas.DataFrame
         A DataFrame with experiment design information (to split cohorts).
         Indexed by sample barcodes.
+
+    Raises
+    ------
+    ValueError
+        If design_factors is not a list.
+    ValueError
+        If a factor has only one level.
+    KeyError
+        If the reference level does not contain two strings.
+    KeyError
+        If the reference level is not in the metadata.
     """
-    if isinstance(
-        design_factors, str
-    ):  # if there is a single factor, convert to singleton list
-        design_factors = [design_factors]
+    if isinstance(design_factors, str):
+        if design_factors in metadata.columns:
+            design_factors = [design_factors]
+        else:
+            design_matrix = model_matrix(design_factors, metadata)
+            design_matrix.rename(
+                columns=lambda x: x.replace("Intercept", "intercept"), inplace=True
+            )
+
+            def convert_formulaic_to_deseq2(x: str):
+                if x == "intercept":
+                    return "intercept"
+                if "T." not in x:
+                    return x
+                values = []
+                groups = []
+                # Dummy treatment coding
+                splits = re.split(r"(?<=\[T\.)(.*?)(?=\])", x)
+                for idx, split in enumerate(splits):
+                    if idx % 2 == 1:
+                        values.append(split)
+                    else:
+                        groups.append(re.sub(r"(\[T\.)|(\])", "", split))
+                return "".join(groups) + "_" + "_vs_".join(values)
+
+            design_matrix.rename(columns=convert_formulaic_to_deseq2, inplace=True)
+            return design_matrix
 
     for factor in design_factors:
         # Check that each factor has at least 2 levels
@@ -283,10 +322,11 @@ def build_design_matrix(
         for factor in continuous_factors:
             # This factor should be numeric
             design_matrix[factor] = pd.to_numeric(metadata[factor])
+
     return design_matrix
 
 
-def replace_underscores(factors: List[str]):
+def replace_underscores(factors: Union[str, List[str]]):
     """Replace all underscores from strings in a list by hyphens.
 
     To be used on design factors to avoid bugs due to the reliance on `str.split("_")`
@@ -294,15 +334,18 @@ def replace_underscores(factors: List[str]):
 
     Parameters
     ----------
-    factors : list
+    factors : str or list
         A list of strings which may contain underscores.
 
     Returns
     -------
-    list
-        A list of strings in which underscores were replaced by hyphens.
+    list or str
+        A list of strings or a string in which underscores were replaced by hyphens.
     """
-    return [factor.replace("_", "-") for factor in factors]
+    res = [factor.replace("_", "-") for factor in factors]
+    if isinstance(factors, str):
+        return "".join(res)
+    return res
 
 
 def dispersion_trend(
