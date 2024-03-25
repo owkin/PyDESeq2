@@ -1050,6 +1050,7 @@ class DeseqDataSet(ad.AnnData):
             ),
             metadata=self.obs,
             design_factors=self.design_factors,
+            continuous_factors=self.continuous_factors,
             ref_level=self.ref_level,
             min_mu=self.min_mu,
             min_disp=self.min_disp,
