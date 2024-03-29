@@ -383,16 +383,18 @@ class DeseqDataSet(ad.AnnData):
                 pd.Series(1.0, index=design_matrix.index)
             ):
                 raise ValueError("'intercept' column should be all ones.")
-
+            extracted_single_factors = list(
+                itertools.chain(
+                    *[
+                        re.sub(r"\:|_vs_|_", " ", col).split(" ")
+                        for col in design_matrix
+                        if col != "intercept"
+                    ]
+                )
+            )
             # We extract all individual factors from the design matrix following
             # pydeseq2 naming conventions containing potentially _vs_
-            for individual_factor_or_level in itertools.chain(
-                *[
-                    re.sub(r"\:|_vs_|_", " ", col).split(" ")
-                    for col in design_matrix
-                    if col != "intercept"
-                ]
-            ):
+            for individual_factor_or_level in extracted_single_factors:
                 if (
                     individual_factor_or_level not in self.obs.columns
                     and individual_factor_or_level
@@ -407,7 +409,8 @@ class DeseqDataSet(ad.AnnData):
 
             # With some luck here design_matrix is valid all the time
             self.obsm["design_matrix"] = design_matrix
-            # TODO set other attributes to values derived from given design_matrix
+            # No idea if it is useful but for consistency
+            self.single_design_factors = list(set(extracted_single_factors))
 
         # Check that the design matrix has full rank
         self._check_full_rank_design()
