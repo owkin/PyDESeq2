@@ -67,7 +67,12 @@ class DeseqDataSet(ad.AnnData):
         ``"~ col1 + ... + colN + colk1:...:colN1 + ... + colkni:...:colNni"``.
         In this case, the formula will be parsed and the factors (interacting
         and non-interacting) will be extracted automatically from adata or counts
-        and metadata relying on the wonderful formulaic package.
+        and metadata relying on the wonderful formulaic package. Note that for
+        the moment pydeseq2 doesn't support the entirety of formulaic grammar.
+        Formulas using syntax such as 'C(values, contr.poly, levels=[10, 20, 30])'
+        or '*' are NOT supported yet as input. For precise control over categorical
+        encoding users should use ref_level argument. Every column will be interpreted
+        as categorical by design except if listed in continuous_factors.
         (default: ``"condition"``).
 
     continuous_factors : list or None
@@ -222,6 +227,7 @@ class DeseqDataSet(ad.AnnData):
             test_valid_counts(adata.X)
             # Copy fields from original AnnData
             self.__dict__.update(adata.__dict__)
+
         elif counts is not None and metadata is not None:
             # Test counts before going further
             test_valid_counts(counts)
@@ -234,58 +240,83 @@ class DeseqDataSet(ad.AnnData):
             if col.strip() != col:
                 raise ValueError("Columns cannot contain leading or trailing spaces")
 
-        # Check that design factors don't contain underscores. If so, convert them to
-        # hyphens.
         self.design_factors = design_factors
+        self.continuous_factors = continuous_factors
+
+        # If it's a list we convert it right back to a formulaic string
+        if isinstance(self.design_factors, list):
+            # Little bit of careful formating as below to remove space around : symbols
+            self.design_factors = [
+                re.sub(r"\ \:|\:\ ", ":", factor) for factor in self.design_factors
+            ]
+            # We extract all single factors
+            is_interaction_terms = [":" in factor for factor in self.design_factors]
+            extracted_interacting_terms_single_factors = itertools.chain(
+                *[
+                    factor.split(":")
+                    for is_interaction, factor in zip(
+                        is_interaction_terms, self.design_factors
+                    )
+                    if is_interaction
+                ]
+            )
+            extracted_single_factors = [
+                factor
+                for is_interaction, factor in zip(
+                    is_interaction_terms, self.design_factors
+                )
+                if not is_interaction
+            ]
+            extracted_single_factors = list(
+                set(extracted_single_factors)
+                & set(extracted_interacting_terms_single_factors)
+            )
+            self.single_design_factors = extracted_single_factors
+            self.design_factors = "~" + "+".join(self.design_factors)
 
         # Following lines handle the case where the user provides a formula
-        # of the type formulaic can recognize or a column
-        if isinstance(self.design_factors, str):
-            self.continuous_factors = continuous_factors
-            if self.design_factors not in self.obs.columns:
-                # TODO uncomment when we support all of formulaic grammar
-                # try:
-                #     Formula(self.design_factors)
-                # except FormulaInvalidError as err:
-                #     raise (
-                #         f"Design factor {self.design_factors} is not a valid formula"
-                #     ) from err
-                # Remove potential spaces around + signs
-                self.design_factors = re.sub(r"\ \+|\+\ ", "+", self.design_factors)
-                # Check that we have something like ~a + b + a:b:c:d
-                assert self.design_factors.startswith("~")
-
-                for factor in itertools.chain(
+        # of the type formulaic can recognize or a column everything will be
+        # converted to formulaic formulas as in the first case
+        elif isinstance(self.design_factors, str):
+            # TODO uncomment when we support all of formulaic grammar
+            # try:
+            #     Formula(self.design_factors)
+            # except FormulaInvalidError as err:
+            #     raise (
+            #         f"Design factor {self.design_factors} is not a valid formula"
+            #     ) from err
+            # Remove potential spaces around +,: or ~ signs for easier parsing
+            # of individual factor
+            if not self.design_factors.startswith("~"):
+                self.design_factors = "~" + self.design_factors
+            self.design_factors = re.sub(r"\ \+|\+\ ", "+", self.design_factors)
+            self.design_factors = re.sub(r"\ \:|\:\ ", ":", self.design_factors)
+            self.design_factors = re.sub(r"\ \~|\~\ ", ":", self.design_factors)
+            # Now we should have something of the form '~a+b+a:b:c:d'
+            # We also support the fact of passing only one factor such as 'a' by
+            # converting it to the corresponding formula '~a'
+            # Thanks to the previous reformatting we can do easily single-factor
+            # extraction
+            extracted_single_factors = list(
+                itertools.chain(
                     *[term.split(":") for term in self.design_factors[1:].split("+")]
-                ):
-                    if factor not in self.obs.columns:
-                        raise ValueError(f"Formula contain unknown factor {factor}")
-
-                self.single_design_factors = list(
-                    {col for col in self.obs.columns if col in self.design_factors}
-                    & set(self.obs.columns)
                 )
-            else:
-                # Only one factor
-                self.design_factors = [self.design_factors]
-                self.single_design_factors = self.design_factors
+            )
+            self.single_design_factors = extracted_single_factors
 
-        elif isinstance(self.design_factors, list):
-            # If there are interacting terms in the list we'll use formulaic
-            interacting_terms = [
-                factor for factor in self.design_factors if ":" in factor
-            ]
-            if len(interacting_terms) > 0:
-                self.design_factors = "~" + "+".join(self.design_factors)
-                self.single_design_factors = list(
-                    {col for col in self.obs.columns if col in self.design_factors}
-                    & set(self.obs.columns)
-                )
-            else:
-                self.single_design_factors = self.design_factors
         else:
-            raise ValueError("Design factors should be a string or a list of strings")
+            raise ValueError(
+                "Design factors should be a string or a list of strings got"
+                f" {type(self.design_factors)}"
+            )
 
+        # We check all single factors extracted were indeed in the columns
+        for factor in self.single_design_factors:
+            if factor not in self.obs.columns:
+                raise ValueError(f"Formula contain unknown extracted factor {factor}")
+
+        # Check that design factors don't contain underscores. If so, convert them to
+        # hyphens.
         # We modify only obs object
         if np.any(["_" in factor for factor in self.single_design_factors]):
             warnings.warn(
@@ -294,36 +325,29 @@ class DeseqDataSet(ad.AnnData):
                 UserWarning,
                 stacklevel=2,
             )
-
             new_factors = replace_underscores(self.single_design_factors)
-
             self.obs.rename(
                 columns=dict(zip(self.single_design_factors, new_factors)),
                 inplace=True,
             )
-
             self.single_design_factors = new_factors
-
             # Also check continuous factors
             if continuous_factors is not None:
                 self.continuous_factors = replace_underscores(continuous_factors)
 
-        # If ref_level has underscores, covert them to hyphens
+        # If ref_level has underscores, convert them to hyphens
         # Don't raise a warning: it will be raised by build_design_matrix()
         if ref_level is not None:
             ref_level = replace_underscores(ref_level)
 
-        self.single_design_factors = list(
-            set(self.design_factors) & set(self.obs.columns)
-        )
-        # Remark it works if self.design_factors is a string as well by iterating
-        # on chars
         self.design_factors = replace_underscores(self.design_factors)
 
         self.continuous_factors = continuous_factors
 
         if self.obs[self.single_design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
+
+        # We convert every factor in the design_factors to string type
         self.obs[self.single_design_factors] = self.obs[
             self.single_design_factors
         ].astype(str)
@@ -349,12 +373,19 @@ class DeseqDataSet(ad.AnnData):
             if len(design_matrix.index) != len(self.obs.index):
                 raise ValueError("Design matrix and metadata have different lengths")
             if "intercept" not in design_matrix.columns:
-                raise ValueError("Design matrix doesn't have intercept")
+                warnings.warn(
+                    "Careful provided design matrix doesn't have intercept",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
             if not design_matrix["intercept"].equals(
                 pd.Series(1.0, index=design_matrix.index)
             ):
-                raise ValueError("Design matrix doesn't have intercept")
+                raise ValueError("'intercept' column should be all ones.")
+
+            # We extract all individual factors from the design matrix following
+            # pydeseq2 naming conventions containing potentially _vs_
             for individual_factor_or_level in itertools.chain(
                 *[
                     re.sub(r"\:|_vs_|_", " ", col).split(" ")
