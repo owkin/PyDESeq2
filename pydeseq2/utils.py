@@ -1,6 +1,5 @@
 import multiprocessing
 import re
-import warnings
 from math import ceil
 from math import floor
 from pathlib import Path
@@ -143,11 +142,8 @@ def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
 
 def build_design_matrix(
     metadata: pd.DataFrame,
-    design_factors: Union[str, List[str]] = "condition",
-    ref_level: Optional[List[str]] = None,
-    continuous_factors: Optional[List[str]] = None,
-    expanded: bool = False,
-    intercept: bool = True,
+    design_factors: str = "condition",
+    ref_level: Optional[List[tuple[str, str]]] = None,
 ) -> pd.DataFrame:
     """Build design_matrix matrix for DEA.
 
@@ -159,29 +155,16 @@ def build_design_matrix(
         DataFrame containing metadata information.
         Must be indexed by sample barcodes.
 
-    design_factors : list or str
+    design_factors : str
         Name of the columns of metadata to be used as design variables.
         or formula with interaction terms. Careful, unlike in dds, interaction
         terms cannot be provided as a list only as a formula.
         (default: ``"condition"``).
 
-    ref_level : list or None
-        An optional list of two strings of the form ``["factor", "ref_level"]``
+    ref_level : List[tuple[str, str]] or None
+        An optional list of tuples each with two strings: ``("factor", "ref_level")``
         specifying the factor of interest and the desired reference level, e.g.
-        ``["condition", "A"]``. (default: ``None``).
-
-    continuous_factors : list or None
-        An optional list of continuous (as opposed to categorical) factors. Any factor
-        not in ``continuous_factors`` will be considered categorical (default: ``None``).
-
-    expanded : bool
-        If true, use one column per category. Else, use n-1 columns, for each n-level
-        categorical factor.
-        (default: ``False``).
-
-    intercept : bool
-        If true, add an intercept (a column containing only ones).
-        (default: ``True``).
+        ``[("condition", "A")]``. (default: ``None``).
 
     Returns
     -------
@@ -200,133 +183,168 @@ def build_design_matrix(
     KeyError
         If the reference level is not in the metadata.
     """
-    if isinstance(design_factors, str):
-        if design_factors in metadata.columns:
-            design_factors = [design_factors]
-        else:
-            design_matrix = model_matrix(design_factors, metadata)
-            design_matrix.rename(
-                columns=lambda x: x.replace("Intercept", "intercept"), inplace=True
-            )
+    # Because of preprocessing we did in dds continuous and categorical variables
+    # are tagged in the metadata
+    # We just need special treatments if there are ref_levels
+    patterns_to_reverse = {}
+    if ref_level is not None:
+        assert isinstance(ref_level, list), "The reference level should be a list."
+        assert all(
+            isinstance(ref, tuple) for ref in ref_level
+        ), "The reference levels is not a list of tuples"
+        assert all(
+            len(ref) == 2 for ref in ref_level
+        ), "The reference levels should all contain 2 strings."
+        assert all(
+            ref[0] in metadata.columns for ref in ref_level
+        ), "The reference levels should all be in the metadata."
+        # This is how formulaic expects ref_level [("condition", "A")]:
+        # ~ C(condition, contr.treatment(base="A"))
+        for ref in ref_level:
+            replacement_key = "C(" + ref[0] + ", contr.treatment(base=" + ref[1] + ")"
+            patterns_to_reverse[replacement_key] = ref[0] + "_" + ref[1]
+            re.sub(design_factors, ref[0], replacement_key)
 
-            def convert_formulaic_to_deseq2(x: str):
-                if x == "intercept":
-                    return "intercept"
-                if "T." not in x:
-                    return x
-                values = []
-                groups = []
-                # Dummy treatment coding
-                splits = re.split(r"(?<=\[T\.)(.*?)(?=\])", x)
-                for idx, split in enumerate(splits):
-                    if idx % 2 == 1:
-                        values.append(split)
-                    else:
-                        groups.append(re.sub(r"(\[T\.)|(\])", "", split))
-                return "".join(groups) + "_" + "_vs_".join(values)
+    design_matrix = model_matrix(design_factors, metadata)
+    # forumlaic renames the intercept column to "Intercept"
+    design_matrix.rename(
+        columns=lambda x: x.replace("Intercept", "intercept"), inplace=True
+    )
 
-            design_matrix.rename(columns=convert_formulaic_to_deseq2, inplace=True)
-            return design_matrix
+    def convert_formulaic_to_deseq2(x: str):
+        if x == "intercept":
+            return "intercept"
+        if "T." not in x:
+            return x
+        values = []
+        groups = []
+        # Dummy treatment coding
+        splits = re.split(r"(?<=\[T\.)(.*?)(?=\])", x)
+        for idx, split in enumerate(splits):
+            if idx % 2 == 1:
+                values.append(split)
+            else:
+                groups.append(re.sub(r"(\[T\.)|(\])", "", split))
+        return "".join(groups) + "_" + "_vs_".join(values)
 
-    for factor in design_factors:
-        # Check that each factor has at least 2 levels
-        if len(np.unique(metadata[factor])) < 2:
-            raise ValueError(
-                f"Factors should take at least two values, but {factor} "
-                f"takes the single value '{np.unique(metadata[factor])}'."
-            )
-
-    # Check that level factors in the design don't contain underscores. If so, convert
-    # them to hyphens
-    warning_issued = False
-    for factor in design_factors:
-        if np.any(["_" in value for value in metadata[factor]]):
-            if not warning_issued:
-                warnings.warn(
-                    """Some factor levels in the design contain underscores ('_').
-                    They will be converted to hyphens ('-').""",
-                    UserWarning,
-                    stacklevel=2,
+    design_matrix.rename(columns=convert_formulaic_to_deseq2, inplace=True)
+    # If ref_level was not None we need to convert it back to expected naming
+    # conventions
+    replacement_names = {}
+    for col in design_matrix.columns:
+        for new_pattern, old_value in patterns_to_reverse.items():
+            if col in replacement_names:
+                raise ValueError(
+                    "Cannot revert formatting please open an issue"
+                    " on github with your data"
                 )
-                warning_issued = True
-            metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
+            replacement_names[col] = re.sub(col, new_pattern, old_value)
 
-    if continuous_factors is not None:
-        categorical_factors = [
-            factor for factor in design_factors if factor not in continuous_factors
-        ]
-    else:
-        categorical_factors = design_factors
-
-    # Check that there is at least one categorical factor
-    if len(categorical_factors) > 0:
-        design_matrix = pd.get_dummies(
-            metadata[categorical_factors], drop_first=not expanded
-        )
-
-        if ref_level is not None:
-            if len(ref_level) != 2:
-                raise KeyError("The reference level should contain 2 strings.")
-            if ref_level[1] not in metadata[ref_level[0]].values:
-                raise KeyError(
-                    f"The metadata data should contain a '{ref_level[0]}' column"
-                    f" with a '{ref_level[1]}' level."
-                )
-
-            # Check that the reference level is not in the matrix (if unexpanded design)
-            ref_level_name = "_".join(ref_level)
-            if (not expanded) and ref_level_name in design_matrix.columns:
-                # Remove the reference level and add one
-                factor_cols = [
-                    col for col in design_matrix.columns if col.startswith(ref_level[0])
-                ]
-                missing_level = next(
-                    level
-                    for level in np.unique(metadata[ref_level[0]])
-                    if f"{ref_level[0]}_{level}" not in design_matrix.columns
-                )
-                design_matrix[f"{ref_level[0]}_{missing_level}"] = 1 - design_matrix[
-                    factor_cols
-                ].sum(1)
-                design_matrix.drop(ref_level_name, axis="columns", inplace=True)
-
-        if not expanded:
-            # Add reference level as column name suffix
-            for factor in design_factors:
-                if ref_level is None or factor != ref_level[0]:
-                    # The reference is the unique level that is no longer there
-                    ref = next(
-                        level
-                        for level in np.unique(metadata[factor])
-                        if f"{factor}_{level}" not in design_matrix.columns
-                    )
-                else:
-                    # The reference level is given as an argument
-                    ref = ref_level[1]
-                design_matrix.columns = [
-                    f"{col}_vs_{ref}" if col.startswith(factor) else col
-                    for col in design_matrix.columns
-                ]
-    else:
-        # There is no categorical factor in the design
-        design_matrix = pd.DataFrame(index=metadata.index)
-
-    if intercept:
-        design_matrix.insert(0, "intercept", 1)
-
-    # Convert categorical factors one-hot encodings to int
-    design_matrix = design_matrix.astype("int")
-
-    # Add continuous factors
-    if continuous_factors is not None:
-        for factor in continuous_factors:
-            # This factor should be numeric
-            design_matrix[factor] = pd.to_numeric(metadata[factor])
+    design_matrix.rename(columns=replacement_names, inplace=True)
 
     return design_matrix
 
+    # for factor in design_factors:
+    #     # Check that each factor has at least 2 levels
+    #     if len(np.unique(metadata[factor])) < 2:
+    #         raise ValueError(
+    #             f"Factors should take at least two values, but {factor} "
+    #             f"takes the single value '{np.unique(metadata[factor])}'."
+    #         )
 
-def replace_underscores(factors: Union[str, List[str]]):
+    # # Check that level factors in the design don't contain underscores. If so, convert
+    # # them to hyphens
+    # warning_issued = False
+    # for factor in design_factors:
+    #     if np.any(["_" in value for value in metadata[factor]]):
+    #         if not warning_issued:
+    #             warnings.warn(
+    #                 """Some factor levels in the design contain underscores ('_').
+    #                 They will be converted to hyphens ('-').""",
+    #                 UserWarning,
+    #                 stacklevel=2,
+    #             )
+    #             warning_issued = True
+    #         metadata[factor] = metadata[factor].apply(lambda x: x.replace("_", "-"))
+
+    # if continuous_factors is not None:
+    #     categorical_factors = [
+    #         factor for factor in design_factors if factor not in continuous_factors
+    #     ]
+    # else:
+    #     categorical_factors = design_factors
+
+    # # Check that there is at least one categorical factor
+    # if len(categorical_factors) > 0:
+    #     design_matrix = pd.get_dummies(
+    #         metadata[categorical_factors], drop_first=not expanded
+    #     )
+
+    #     if ref_level is not None:
+    #         if len(ref_level) != 2:
+    #             raise KeyError("The reference level should contain 2 strings.")
+    #         if ref_level[1] not in metadata[ref_level[0]].values:
+    #             raise KeyError(
+    #                 f"The metadata data should contain a '{ref_level[0]}' column"
+    #                 f" with a '{ref_level[1]}' level."
+    #             )
+
+    #         # Check that the reference level is not in the matrix
+    #  (if unexpanded design)
+    #         ref_level_name = "_".join(ref_level)
+    #         if (not expanded) and ref_level_name in design_matrix.columns:
+    #             # Remove the reference level and add one
+    #             factor_cols = [
+    #                 col for col in design_matrix.columns
+    #                        if col.startswith(ref_level[0])
+    #             ]
+    #             missing_level = next(
+    #                 level
+    #                 for level in np.unique(metadata[ref_level[0]])
+    #                 if f"{ref_level[0]}_{level}" not in design_matrix.columns
+    #             )
+    #             design_matrix[f"{ref_level[0]}_{missing_level}"] = 1 - design_matrix[
+    #                 factor_cols
+    #             ].sum(1)
+    #             design_matrix.drop(ref_level_name, axis="columns", inplace=True)
+
+    #     if not expanded:
+    #         # Add reference level as column name suffix
+    #         for factor in design_factors:
+    #             if ref_level is None or factor != ref_level[0]:
+    #                 # The reference is the unique level that is no longer there
+    #                 ref = next(
+    #                     level
+    #                     for level in np.unique(metadata[factor])
+    #                     if f"{factor}_{level}" not in design_matrix.columns
+    #                 )
+    #             else:
+    #                 # The reference level is given as an argument
+    #                 ref = ref_level[1]
+    #             design_matrix.columns = [
+    #                 f"{col}_vs_{ref}" if col.startswith(factor) else col
+    #                 for col in design_matrix.columns
+    #             ]
+    # else:
+    #     # There is no categorical factor in the design
+    #     design_matrix = pd.DataFrame(index=metadata.index)
+
+    # if intercept:
+    #     design_matrix.insert(0, "intercept", 1)
+
+    # # Convert categorical factors one-hot encodings to int
+    # design_matrix = design_matrix.astype("int")
+
+    # # Add continuous factors
+    # if continuous_factors is not None:
+    #     for factor in continuous_factors:
+    #         # This factor should be numeric
+    #         design_matrix[factor] = pd.to_numeric(metadata[factor])
+
+    # return design_matrix
+
+
+def replace_underscores(factors: Union[str, List[str], tuple[str, str]]):
     """Replace all underscores from strings in a list by hyphens.
 
     To be used on design factors to avoid bugs due to the reliance on
@@ -334,7 +352,7 @@ def replace_underscores(factors: Union[str, List[str]]):
 
     Parameters
     ----------
-    factors : str or list
+    factors : str or list[str] or tuple[str, str]
         A list of strings which may contain underscores.
 
     Returns
@@ -342,10 +360,17 @@ def replace_underscores(factors: Union[str, List[str]]):
     list or str
         A list of strings or a string in which underscores were replaced by hyphens.
     """
-    res = [factor.replace("_", "-") for factor in factors]
     if isinstance(factors, str):
+        res = [factor.replace("_", "-") for factor in factors]
         return "".join(res)
-    return res
+    elif isinstance(factors, list):
+        return [replace_underscores(factor) for factor in factors]
+    elif isinstance(factors, tuple):
+        return (replace_underscores(factor) for factor in factors)
+    else:
+        raise ValueError(
+            "Factors should be a string, a list of strings or a tuple of strings"
+        )
 
 
 def dispersion_trend(

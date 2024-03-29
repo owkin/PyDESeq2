@@ -12,6 +12,8 @@ from typing import cast
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
+from pandas import Categorical
+from pandas import to_numeric
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
@@ -79,10 +81,11 @@ class DeseqDataSet(ad.AnnData):
         An optional list of continuous (as opposed to categorical) factors. Any factor
         not in ``continuous_factors`` will be considered categorical (default: ``None``).
 
-    ref_level : list or None
-        An optional list of two strings of the form ``["factor", "test_level"]``
-        specifying the factor of interest and the reference (control) level against which
-        we're testing, e.g. ``["condition", "A"]``. (default: ``None``).
+    ref_level : list[tuple[str, str]] or None
+        An optional list of tuples each with two strings of the form
+        ``("factor", "test_level")`` specifying the factor of interest and the
+        reference (control) level against which we're testing, e.g.
+        ``[("condition", "A")]``. (default: ``None``).
 
     trend_fit_type : str
         Either "parametric" or "mean" for the type of fitting of the dispersions
@@ -200,8 +203,8 @@ class DeseqDataSet(ad.AnnData):
         metadata: Optional[pd.DataFrame] = None,
         design_factors: Union[str, List[str]] = "condition",
         continuous_factors: Optional[List[str]] = None,
-        ref_level: Optional[List[str]] = None,
         trend_fit_type: Literal["parametric", "mean"] = "parametric",
+        ref_level: Optional[List[tuple[str, str]]] = None,
         design_matrix: Optional[pd.DataFrame] = None,
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
@@ -241,7 +244,9 @@ class DeseqDataSet(ad.AnnData):
                 raise ValueError("Columns cannot contain leading or trailing spaces")
 
         self.design_factors = design_factors
-        self.continuous_factors = continuous_factors
+        self.continuous_factors = (
+            continuous_factors if continuous_factors is not None else []
+        )
 
         # If it's a list we convert it right back to a formulaic string
         if isinstance(self.design_factors, list):
@@ -251,14 +256,16 @@ class DeseqDataSet(ad.AnnData):
             ]
             # We extract all single factors
             is_interaction_terms = [":" in factor for factor in self.design_factors]
-            extracted_interacting_terms_single_factors = itertools.chain(
-                *[
-                    factor.split(":")
-                    for is_interaction, factor in zip(
-                        is_interaction_terms, self.design_factors
-                    )
-                    if is_interaction
-                ]
+            extracted_interacting_terms_single_factors = list(
+                itertools.chain(
+                    *[
+                        factor.split(":")
+                        for is_interaction, factor in zip(
+                            is_interaction_terms, self.design_factors
+                        )
+                        if is_interaction
+                    ]
+                )
             )
             extracted_single_factors = [
                 factor
@@ -298,8 +305,10 @@ class DeseqDataSet(ad.AnnData):
             # Thanks to the previous reformatting we can do easily single-factor
             # extraction
             extracted_single_factors = list(
-                itertools.chain(
-                    *[term.split(":") for term in self.design_factors[1:].split("+")]
+                set(
+                    itertools.chain(
+                        *[term.split(":") for term in self.design_factors[1:].split("+")]
+                    )
                 )
             )
             self.single_design_factors = extracted_single_factors
@@ -338,30 +347,35 @@ class DeseqDataSet(ad.AnnData):
         # If ref_level has underscores, convert them to hyphens
         # Don't raise a warning: it will be raised by build_design_matrix()
         if ref_level is not None:
-            ref_level = replace_underscores(ref_level)
+            ref_level = [replace_underscores(ref) for ref in ref_level]
 
         self.design_factors = replace_underscores(self.design_factors)
-
-        self.continuous_factors = continuous_factors
 
         if self.obs[self.single_design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
 
         # We convert every factor in the design_factors to string type
-        self.obs[self.single_design_factors] = self.obs[
-            self.single_design_factors
-        ].astype(str)
+        assert isinstance(
+            self.single_design_factors, list
+        ), "Could not extract any single factor"
+        for factor in self.single_design_factors:
+            if self.continuous_factor is None:
+                self.obs[factor] = Categorical(self.obs[factor].astype(str))
+            elif factor not in self.continuous_factors:
+                self.obs[factor] = Categorical(self.obs[factor].astype(str))
+            else:
+                self.obs[factor] = to_numeric(self.obs[factor])
 
         # Build the design matrix or use given one
         # Stored in the obsm attribute of the dataset
         if design_matrix is None:
+            assert isinstance(
+                self.design_factors, str
+            ), "By now design_factors should be a string"
             self.obsm["design_matrix"] = build_design_matrix(
                 metadata=self.obs,
                 design_factors=self.design_factors,
-                continuous_factors=self.continuous_factors,
                 ref_level=ref_level,
-                expanded=False,
-                intercept=True,
             )
         else:
             warnings.warn(
