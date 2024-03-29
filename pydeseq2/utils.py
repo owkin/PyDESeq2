@@ -201,15 +201,42 @@ def build_design_matrix(
         # This is how formulaic expects ref_level [("condition", "A")]:
         # ~ C(condition, contr.treatment(base="A"))
         for ref in ref_level:
-            replacement_key = "C(" + ref[0] + ", contr.treatment(base=" + ref[1] + ")"
-            patterns_to_reverse[replacement_key] = ref[0] + "_" + ref[1]
-            re.sub(design_factors, ref[0], replacement_key)
+            assert ref[0] in set(
+                metadata.columns
+            ), "The reference level is not in the metadata"
+            assert (
+                ref[1] in metadata[ref[0]].unique()
+            ), f"The reference level is not in the metadata col={ref[0]}"
+            replacement_key = "C(" + ref[0] + ", contr.treatment(base='" + ref[1] + "'))"
+            patterns_to_reverse[replacement_key] = ref[0]
+            design_factors = re.sub(ref[0], replacement_key, design_factors)
 
     design_matrix = model_matrix(design_factors, metadata)
     # forumlaic renames the intercept column to "Intercept"
     design_matrix.rename(
         columns=lambda x: x.replace("Intercept", "intercept"), inplace=True
     )
+    # If ref_level was not None we remove the verbose:
+    # 'C(condition, contr.treatment(base="A"))' from the columns
+    replacement_names = {}
+    for col in design_matrix.columns:
+        if col != "intercept":
+            for new_pattern, old_value in patterns_to_reverse.items():
+                # This should not happen a column should be affected twice
+                if col in replacement_names:
+                    raise ValueError(
+                        "Cannot revert formatting please open an issue"
+                        " on github with your data"
+                    )
+                regexp_from_new_pattern = r""
+                for char in new_pattern:
+                    if char in ["(", ")", "=", " ", "'"]:
+                        regexp_from_new_pattern += "\\" + char
+                    else:
+                        regexp_from_new_pattern += char
+                replacement_names[col] = re.sub(regexp_from_new_pattern, old_value, col)
+
+    design_matrix.rename(columns=replacement_names, inplace=True)
 
     def convert_formulaic_to_deseq2(x: str):
         if x == "intercept":
@@ -228,19 +255,6 @@ def build_design_matrix(
         return "".join(groups) + "_" + "_vs_".join(values)
 
     design_matrix.rename(columns=convert_formulaic_to_deseq2, inplace=True)
-    # If ref_level was not None we need to convert it back to expected naming
-    # conventions
-    replacement_names = {}
-    for col in design_matrix.columns:
-        for new_pattern, old_value in patterns_to_reverse.items():
-            if col in replacement_names:
-                raise ValueError(
-                    "Cannot revert formatting please open an issue"
-                    " on github with your data"
-                )
-            replacement_names[col] = re.sub(col, new_pattern, old_value)
-
-    design_matrix.rename(columns=replacement_names, inplace=True)
 
     return design_matrix
 

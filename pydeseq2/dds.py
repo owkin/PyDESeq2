@@ -377,8 +377,8 @@ class DeseqDataSet(ad.AnnData):
             )
         else:
             warnings.warn(
-                """Design matrix was given; ignoring design_factors and
-                ref_level""",
+                """Design matrix was given; ignoring design_factors, continuous factors
+                and ref_level""",
                 UserWarning,
                 stacklevel=2,
             )

@@ -143,7 +143,7 @@ def test_underscores_in_factors():
             counts=counts_df,
             metadata=metadata,
             design_factors="some_variable_with_underscores",
-            ref_level=["some_variable_with_underscores", "level_with_underscores"],
+            ref_level=[("some_variable_with_underscores", "level_with_underscores")],
         )
     dds.deseq2()
 
@@ -198,7 +198,7 @@ def test_full_rank_design(design_factors):
     )
 
     design = build_design_matrix(metadata, design_factors)
-    breakpoint()
+    # breakpoint
     assert np.linalg.matrix_rank(design) == design.shape[1]
 
 
@@ -237,7 +237,7 @@ def test_reference_level():
             counts=counts_df,
             metadata=metadata,
             design_factors="condition",
-            ref_level="control",
+            ref_level=[("condition", "control")],
         )
 
 
