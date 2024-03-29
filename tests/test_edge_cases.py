@@ -198,6 +198,7 @@ def test_full_rank_design(design_factors):
     )
 
     design = build_design_matrix(metadata, design_factors)
+    breakpoint()
     assert np.linalg.matrix_rank(design) == design.shape[1]
 
 

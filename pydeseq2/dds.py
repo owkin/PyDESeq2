@@ -359,9 +359,7 @@ class DeseqDataSet(ad.AnnData):
             self.single_design_factors, list
         ), "Could not extract any single factor"
         for factor in self.single_design_factors:
-            if self.continuous_factor is None:
-                self.obs[factor] = Categorical(self.obs[factor].astype(str))
-            elif factor not in self.continuous_factors:
+            if factor not in self.continuous_factors:
                 self.obs[factor] = Categorical(self.obs[factor].astype(str))
             else:
                 self.obs[factor] = to_numeric(self.obs[factor])
