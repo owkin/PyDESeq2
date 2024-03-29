@@ -56,7 +56,6 @@ def test_build_single_factor():
     result["a:b"] = [str(a) + str(b) for a, b in zip(original_df["a"], original_df["b"])]
     tag_continuous_factors(result, continuous_factors)
     result["a:b"] = to_numeric(result["a:b"])
-    breakpoint()
     pd.testing.assert_frame_equal(design, result)
 
     # 2 interacting terms with one categorical and one continuous column
