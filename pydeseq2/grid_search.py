@@ -21,7 +21,7 @@ def vec_nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: np.ndarray) -> np.ndar
 
     alpha : ndarray
         Dispersion of the distribution, s.t. the variance is
-        :math:`\mu + \alpha * \mu^2`.
+        :math:`\mu + \alpha \mu^2`.
 
     Returns
     -------

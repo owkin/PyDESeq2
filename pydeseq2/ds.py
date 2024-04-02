@@ -274,7 +274,7 @@ class DeseqStats:
     def run_wald_test(self) -> None:
         """Perform a Wald test.
 
-        Get gene-wise p-values for gene over/under-expression.`
+        Get gene-wise p-values for gene over/under-expression.
         """
         num_vars = self.design_matrix.shape[1]
 

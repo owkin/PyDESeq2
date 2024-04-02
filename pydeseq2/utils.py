@@ -289,8 +289,8 @@ def build_design_matrix(
 def replace_underscores(factors: List[str]):
     """Replace all underscores from strings in a list by hyphens.
 
-    To be used on design factors to avoid bugs due to the reliance on `str.split("_")`
-    in parts of the code.
+    To be used on design factors to avoid bugs due to the reliance on
+    ``str.split("_")`` in parts of the code.
 
     Parameters
     ----------
@@ -421,7 +421,7 @@ def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
 
     alpha : float
         Dispersion of the distribution,
-        s.t. the variance is :math:`\mu + \alpha * \mu^2`.
+        s.t. the variance is :math:`\mu + \alpha\mu^2`.
 
     Returns
     -------
@@ -1468,7 +1468,7 @@ def make_MA_plot(
 
     Useful for looking at log fold-change versus mean expression
     between two groups/samples/etc.
-    Uses matplotlib to emulate make_MA() function in DESeq2 in R.
+    Uses matplotlib to emulate the ``make_MA()`` function in DESeq2 in R.
 
     Parameters
     ----------
