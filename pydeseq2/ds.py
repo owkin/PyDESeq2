@@ -468,7 +468,7 @@ class DeseqStats:
 
         Useful for looking at log fold-change versus mean expression
         between two groups/samples/etc.
-        Uses matplotlib to emulate make_MA() function in DESeq2 in R.
+        Uses matplotlib to emulate the ``make_MA()`` function in DESeq2 in R.
 
         Parameters
         ----------
