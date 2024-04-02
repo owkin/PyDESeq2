@@ -357,7 +357,7 @@ def nb_nll(
             - \log \left( \frac{\Gamma(y_i + \alpha^{-1})}{
             \Gamma(y_i + 1)\Gamma(\alpha^{-1})
         } \right)
-        + (\alpha^{-1} + y_i) \log (\alpha^{-1} + y_i)
+        + (\alpha^{-1} + y_i) \log (\alpha^{-1} + \mu)
         - y_i \log \mu
             \right \rbrace
 
