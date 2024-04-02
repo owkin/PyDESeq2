@@ -339,27 +339,27 @@ def nb_nll(
 
     Mathematically, if ``counts`` is a vector of counting entries :math:`y_i`
     then the likelihood of each entry :math:`y_i` to be drawn from a negative
-    binomial :math:`NB(\\mu, \\alpha)` is [1]
+    binomial :math:`NB(\mu, \alpha)` is [1]
 
     .. math::
-        p(y_i | \\mu, \\alpha) = \\frac{\\Gamma(y_i + \\alpha^{-1})}{
-            \\Gamma(y_i + 1)\\Gamma(\\alpha^{-1})
+        p(y_i | \mu, \alpha) = \frac{\Gamma(y_i + \alpha^{-1})}{
+            \Gamma(y_i + 1)\Gamma(\alpha^{-1})
         }
-        \\left(\\frac{1}{1 + \\alpha \\mu} \\right)^{1/\\alpha}
-        \\left(\\frac{\\mu}{\\alpha^{-1} + \\mu} \\right)^{y_i}
+        \left(\frac{1}{1 + \alpha \mu} \right)^{1/\alpha}
+        \left(\frac{\mu}{\alpha^{-1} + \mu} \right)^{y_i}
 
     As a consequence, assuming there are :math:`n` entries,
     the total negative log-likelihood for ``counts`` is
 
     .. math::
-        \\ell(\\mu, \\alpha) = \\frac{n}{\\alpha} \\log(\\alpha) +
-            \\sum_i \\left \\lbrace
-            - \\log \\left( \\frac{\\Gamma(y_i + \\alpha^{-1})}{
-            \\Gamma(y_i + 1)\\Gamma(\\alpha^{-1})
-        } \\right)
-        + (\\alpha^{-1} + y_i) \\log (\\alpha^{-1} + y_i)
-        - y_i \\log \\mu
-            \\right \\rbrace
+        \ell(\mu, \alpha) = \frac{n}{\alpha} \log(\alpha) +
+            \sum_i \left \lbrace
+            - \log \left( \frac{\Gamma(y_i + \alpha^{-1})}{
+            \Gamma(y_i + 1)\Gamma(\alpha^{-1})
+        } \right)
+        + (\alpha^{-1} + y_i) \log (\alpha^{-1} + y_i)
+        - y_i \log \mu
+            \right \rbrace
 
     This is implemented in this function.
 
@@ -369,17 +369,17 @@ def nb_nll(
         Observations.
 
     mu : ndarray
-        Mean of the distribution :math:`\\mu`.
+        Mean of the distribution :math:`\mu`.
 
     alpha : float or ndarray
-        Dispersion of the distribution :math:`\\alpha`,
-        s.t. the variance is :math:`\\mu + \\alpha \\mu^2`.
+        Dispersion of the distribution :math:`\alpha`,
+        s.t. the variance is :math:`\mu + \alpha \mu^2`.
 
     Returns
     -------
     float or ndarray
         Negative log likelihood of the observations counts
-        following :math:`NB(\\mu, \\alpha)`.
+        following :math:`NB(\mu, \alpha)`.
 
     Notes
     -----
@@ -421,12 +421,12 @@ def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
 
     alpha : float
         Dispersion of the distribution,
-        s.t. the variance is :math:`\\mu + \\alpha * \\mu^2`.
+        s.t. the variance is :math:`\mu + \alpha * \mu^2`.
 
     Returns
     -------
     float
-        Derivative of negative log likelihood of NB w.r.t. :math:`\\alpha`.
+        Derivative of negative log likelihood of NB w.r.t. :math:`\alpha`.
     """
     alpha_neg1 = 1 / alpha
     ll_part = (
