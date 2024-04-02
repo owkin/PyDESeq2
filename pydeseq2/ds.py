@@ -330,7 +330,7 @@ class DeseqStats:
             self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
 
-    def lfc_shrink(self, coeff: Optional[str] = None) -> None:
+    def lfc_shrink(self, coeff: Optional[str] = None, adapt: bool = True) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
@@ -343,6 +343,9 @@ class DeseqStats:
             If the desired coefficient is not available, it may be set from the
             :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
             (default: ``None``).
+        adapt: bool
+            Whether to use the MLE estimates of LFC to adapt the prior. If False, the
+            prior scale is set to 1. (``default=True``)
         """
         if self.contrast[1] == self.contrast[2] == "":
             # The factor being tested is continuous
@@ -391,7 +394,9 @@ class DeseqStats:
         # Set priors
         prior_no_shrink_scale = 15
         prior_var = self._fit_prior_var(coeff_idx=coeff_idx)
-        prior_scale = np.minimum(np.sqrt(prior_var), 1)
+        prior_scale = 1
+        if adapt:
+            prior_scale = np.minimum(np.sqrt(prior_var), 1)
 
         design_matrix = self.design_matrix.values
 
