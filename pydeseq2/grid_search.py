@@ -21,13 +21,13 @@ def vec_nb_nll(counts: np.ndarray, mu: np.ndarray, alpha: np.ndarray) -> np.ndar
 
     alpha : ndarray
         Dispersion of the distribution, s.t. the variance is
-        :math:`\\mu + \\alpha * \\mu^2`.
+        :math:`\mu + \alpha \mu^2`.
 
     Returns
     -------
     ndarray
         Negative log likelihood of the observations counts following
-        :math:`NB(\\mu, \\alpha)`.
+        :math:`NB(\mu, \alpha)`.
     """
     n = len(counts)
     alpha_neg1 = 1 / alpha
