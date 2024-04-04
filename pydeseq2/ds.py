@@ -393,9 +393,9 @@ class DeseqStats:
 
         # Set priors
         prior_no_shrink_scale = 15
-        prior_var = self._fit_prior_var(coeff_idx=coeff_idx)
         prior_scale = 1
         if adapt:
+            prior_var = self._fit_prior_var(coeff_idx=coeff_idx)
             prior_scale = np.minimum(np.sqrt(prior_var), 1)
 
         design_matrix = self.design_matrix.values
