@@ -310,11 +310,14 @@ class DeseqDataSet(ad.AnnData):
         use_design : bool
             Whether to use the full design matrix to fit dispersions and the trend curve.
             If False, only an intercept is used. (default: ``False``).
+
         fit_type: str
-            - None : use the trend_fit_type to fit the dispersions
-            - "parametric" : fit a dispersion-mean relation via a robust gamma-family GLM
-            - "mean" : use the mean of gene-wise dispersion estimates
-            (default: ``None``)
+            - ``None``: use the trend_fit_type to fit the dispersions
+            - ``"parametric"``: fit a dispersion-mean relation via a robust
+              gamma-family GLM
+            - ``"mean"``: use the mean of gene-wise dispersion estimates
+
+            (default: ``None``).
         """
         if fit_type is not None:
             self.trend_fit_type = fit_type
