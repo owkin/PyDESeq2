@@ -20,9 +20,8 @@ def test_build_single_factor():
                 df[factor] = to_numeric(df[factor])
             else:
                 df[factor] = Categorical(df[factor].astype("str"))
-        return df
 
-    # 2 interaction terms between continuous factors
+    # 1 interaction terms between categorical factors + all columns all categorical
     df = copy.deepcopy(original_df)
     continuous_factors = None
     tag_continuous_factors(df, continuous_factors)
@@ -44,7 +43,7 @@ def test_build_single_factor():
 
     pd.testing.assert_frame_equal(design, result)
 
-    # 2 interacting terms between categorical factors
+    # 2 interacting terms between categorical factors wo other columuns
     df = copy.deepcopy(original_df)
     continuous_factors = None
     tag_continuous_factors(df, continuous_factors)
@@ -54,11 +53,29 @@ def test_build_single_factor():
     result = copy.deepcopy(original_df)
     # to which we have added the column concatenating both a and  as str
     result["a:b"] = [str(a) + str(b) for a, b in zip(original_df["a"], original_df["b"])]
-    tag_continuous_factors(result, continuous_factors)
-    result["a:b"] = to_numeric(result["a:b"])
+    dummified_b = pd.get_dummies(result["b"], prefix="b", drop_first=True).astype("int")
+    dummified_ab = pd.get_dummies(result["a:b"], drop_first=True).astype("int")
+    dummified_ab.rename(
+        columns={k: "a:b_" + k[0] + "_vs_" + k[1] for k in dummified_ab.columns},
+        inplace=True,
+    )
+    # formulaic also encodes all not found combinations of a and b as long as
+    # it's full-rank
+    import itertools
+
+    ab_list = itertools.product(result["a"].unique(), result["b"].unique())
+    for ab in ab_list:
+        ab_str = (str(ab[0]), str(ab[1]))
+        if "".join(ab_str) not in result["a:b"].unique():
+            dummified_ab["a:b_" + ab_str[0] + "_vs_" + ab_str[1]] = 0
+    # Now we can drop some columns because of formulaic's complicated full-rankness
+    # matric construction
+    result = pd.concat([dummified_b, dummified_ab], axis=1)[design.columns]
+
     pd.testing.assert_frame_equal(design, result)
 
-    # 2 interacting terms with one categorical and one continuous column
+    # 2 interacting terms with one categorical and one continuous column and no
+    # other column
     df = copy.deepcopy(original_df)
     continuous_factors = ["b"]
     tag_continuous_factors(df, continuous_factors)
