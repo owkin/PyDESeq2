@@ -759,6 +759,48 @@ def test_vst_transform(train_dds, test_counts):
     assert result.shape == (25, 10)
 
 
+@pytest.mark.parametrize(
+    ("trend_fit_type", "vst_fit_type"),
+    [
+        ("mean", "parametric"),
+        ("parametric", "mean"),
+        ("parametric", "parametric"),
+        ("mean", "mean"),
+    ],
+)
+def test_vst_blind(train_counts, train_metadata, trend_fit_type, vst_fit_type):
+    """Test vst with combinatory dea trend_fit_type and vst_fit_type"""
+    train_dds = DeseqDataSet(
+        counts=train_counts,
+        metadata=train_metadata,
+        design_factors="condition",
+        trend_fit_type=trend_fit_type,
+    )
+    train_dds.deseq2()
+    if trend_fit_type == "parametric":
+        assert "trend_coeffs" in train_dds.uns
+    else:
+        assert "mean_disp" in train_dds.uns
+    assert "normed_counts" in train_dds.layers
+    assert "size_factors" in train_dds.obsm
+    assert train_dds.trend_fit_type == trend_fit_type
+
+    train_dds.vst(use_design=False, fit_type=vst_fit_type)
+    assert train_dds.trend_fit_type == vst_fit_type
+
+
+def test_vst_transform_no_fit(train_counts, train_metadata, test_counts):
+    """Test vst_transform without calling vst_fit()"""
+    train_dds = DeseqDataSet(
+        counts=train_counts,
+        metadata=train_metadata,
+        design_factors="condition",
+        trend_fit_type="parametric",
+    )
+    with pytest.raises(RuntimeError):
+        train_dds.vst_transform(test_counts.to_numpy())
+
+
 def assert_res_almost_equal(py_res, r_res, tol=0.02):
     # check that the same p-values are NaN
     assert (py_res.pvalue.isna() == r_res.pvalue.isna()).all()
