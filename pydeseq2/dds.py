@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import re
 import sys
@@ -6,6 +8,7 @@ import warnings
 from typing import List
 from typing import Literal
 from typing import Optional
+from typing import Tuple
 from typing import Union
 from typing import cast
 
@@ -77,11 +80,11 @@ class DeseqDataSet(ad.AnnData):
         as categorical by design except if listed in continuous_factors.
         (default: ``"condition"``).
 
-    continuous_factors : list or None
+    continuous_factors : List or None
         An optional list of continuous (as opposed to categorical) factors. Any factor
         not in ``continuous_factors`` will be considered categorical (default: ``None``).
 
-    ref_level : list[tuple[str, str]] or None
+    ref_level : List or None
         An optional list of tuples each with two strings of the form
         ``("factor", "test_level")`` specifying the factor of interest and the
         reference (control) level against which we're testing, e.g.
@@ -204,7 +207,7 @@ class DeseqDataSet(ad.AnnData):
         design_factors: Union[str, List[str]] = "condition",
         continuous_factors: Optional[List[str]] = None,
         trend_fit_type: Literal["parametric", "mean"] = "parametric",
-        ref_level: Optional[List[tuple[str, str]]] = None,
+        ref_level: Optional[List[Tuple[str, str]]] = None,
         design_matrix: Optional[pd.DataFrame] = None,
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
