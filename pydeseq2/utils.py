@@ -260,13 +260,20 @@ def build_design_matrix(
         groups = []
         splits = re.split(r"(?<=\[T\.)(.*?)(?=\])", x)
         activated_ref_levels = []
-
         for idx, split in enumerate(splits):
             if idx % 2 == 1:
                 values.append(split)
-                activated_ref_levels.append(
-                    all_metadata_ref_levels[re.sub(":", "", current_col)]
-                )
+                if ":" in current_col:
+                    if current_col.endswith(":"):
+                        colname = current_col[:-1]
+                    else:
+                        colname = current_col
+                    activated_ref_level_current_col = ""
+                    for interacting_col in colname.split(":"):
+                        if interacting_col in all_metadata_ref_levels:
+                            activated_ref_level_current_col += all_metadata_ref_levels[interacting_col]
+                    activated_ref_levels.append(all_metadata_ref_levels[interacting_col])
+                    
             else:
                 current_col = re.sub(r"(\[T\.)|(\])", "", split)
                 groups.append(current_col)
