@@ -75,7 +75,6 @@ def test_dds_with_design_matrix(design_matrix):
             design_matrix = build_design_matrix(
                 metadata=metadata,
                 design_factors="~condition+condition:group",
-                intercept=True,
             )
 
         # Create dataset

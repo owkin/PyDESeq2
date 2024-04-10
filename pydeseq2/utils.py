@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from formulaic import model_matrix
 from matplotlib import pyplot as plt
+from pandas.api.types import is_numeric_dtype
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
 from scipy.special import gammaln  # type: ignore
@@ -215,7 +216,7 @@ def build_design_matrix(
     all_metadata_ref_levels = {}
     given_refs_cols = [ref[0] for ref in ref_level]
     for col in metadata.columns:
-        if not metadata[col].dtype.name == "category":
+        if is_numeric_dtype(metadata[col]):
             continue
         if col in given_refs_cols:
             all_metadata_ref_levels[col] = ref_level[given_refs_cols.index(col)][1]

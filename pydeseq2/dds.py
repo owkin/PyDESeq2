@@ -394,11 +394,24 @@ class DeseqDataSet(ad.AnnData):
             if not design_matrix["intercept"].equals(
                 pd.Series(1.0, index=design_matrix.index)
             ):
-                raise ValueError("'intercept' column should be all ones.")
+                warnings.warn(
+                    "'intercept' column is not all ones.", UserWarning, stacklevel=2
+                )
+
+            def col_name_parser(colname):
+                # There can be either 0 or one vs
+                colname = colname.split("_vs_")
+                assert len(colname) in {1, 2}, "There should be 0 or 1 vs in the name"
+                if len(colname) == 1:
+                    return [colname[0]]
+                else:
+                    # Left part before the underscore is an interaction term
+                    return colname[0].split("_")[0].split(":")
+
             extracted_single_factors = list(
                 itertools.chain(
                     *[
-                        re.sub(r"\:|_vs_|_", " ", col).split(" ")
+                        col_name_parser(col)
                         for col in design_matrix
                         if col != "intercept"
                     ]
@@ -406,17 +419,18 @@ class DeseqDataSet(ad.AnnData):
             )
             # We extract all individual factors from the design matrix following
             # pydeseq2 naming conventions containing potentially _vs_
-            for individual_factor_or_level in extracted_single_factors:
-                if (
-                    individual_factor_or_level not in self.obs.columns
-                    and individual_factor_or_level
-                    not in itertools.chain(
-                        *[self.obs[col].unique().tolist() for col in self.obs.columns]
-                    )
-                ):
+            for individual_factor in extracted_single_factors:
+                if individual_factor not in self.obs.columns:
                     raise ValueError(
-                        "Design matrix contains unknown factor"
-                        f" {individual_factor_or_level}"
+                        "Design matrix contains unknown factor, be careful if"
+                        " there were underscores in the column names they were"
+                        " converted automatically to underscores"
+                        " in the obs matrix."
+                        f"Could not match extracted factor: {individual_factor}"
+                        f" with the list of factors found in the observation:"
+                        f" {self.obs.columns}, make sure the name of the columns"
+                        " of your design matrix respects pydeseq2 conventions:"
+                        "colname = 'factor1:...:factorN_val1...val3_vs_ref1...ref2ref3'"
                     )
 
             # With some luck here design_matrix is valid all the time
