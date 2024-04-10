@@ -405,7 +405,6 @@ def test_continuous_deseq(
     res = DeseqStats(dds)
     res.summary()
     res_df = res.results_df
-
     # Check results
     assert_res_almost_equal(res_df, r_res, tol)
 

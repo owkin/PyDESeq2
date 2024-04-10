@@ -273,11 +273,12 @@ class DeseqDataSet(ad.AnnData):
                 )
                 if not is_interaction
             ]
-            extracted_single_factors = list(
-                set(extracted_single_factors).union(
-                    set(extracted_interacting_terms_single_factors)
-                )
-            )
+            # This is of utmost importance to preserve the order of the factors
+            extracted_single_factors = extracted_single_factors + [
+                f
+                for f in extracted_interacting_terms_single_factors
+                if f not in extracted_single_factors
+            ]
             self.single_design_factors = extracted_single_factors
             self.design_factors = "~" + "+".join(self.design_factors)
 

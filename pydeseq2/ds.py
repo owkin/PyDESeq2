@@ -682,6 +682,8 @@ class DeseqStats:
                     )
             self.contrast = contrast
         else:  # Build contrast if None
+            # TODO Boris does it break with interaction terms ?
+            # Why is it the last one ?
             factor = self.dds.single_design_factors[-1]
             # Check whether this factor is categorical or continuous.
             if (
