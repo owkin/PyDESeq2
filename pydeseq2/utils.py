@@ -1,5 +1,6 @@
 import multiprocessing
 import re
+import warnings
 from math import ceil
 from math import floor
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import Tuple
 from typing import Union
 from typing import cast
 
+import formulaic
 import numpy as np
 import pandas as pd
 from formulaic import model_matrix
@@ -225,8 +227,34 @@ def build_design_matrix(
         else:
             # taking the first factor as reference level
             all_metadata_ref_levels[col] = metadata[col].iloc[0]
-
-    design_matrix = model_matrix(design_factors, metadata)
+    try:
+        design_matrix = model_matrix(design_factors, metadata)
+    except formulaic.errors.FactorEvaluationError:
+        # It is a design choice due to the fact that forumalaic doesn't handle
+        # well expressions with hyphens
+        warnings.warn(
+            "It seems one of the factor of the formula could not be"
+            "well parsed by formulaic trying to fix it",
+            UserWarning,
+            stacklevel=2,
+        )
+        design_factors = design_factors.strip()
+        assert design_factors.startswith("~"), "The formula should start with a ~"
+        design_factors = design_factors[1:]
+        new_formula = "~"
+        for idx, design_factor in enumerate(design_factors.split(":")):
+            inner_group = ""
+            for jdx, factor in enumerate(design_factor.split("+")):
+                if jdx == 0:
+                    inner_group += f"`{factor}`"
+                else:
+                    inner_group += f"+`{factor}`"
+            if idx == 0:
+                new_formula += inner_group
+            else:
+                new_formula += f":{inner_group}"
+        design_factors = new_formula
+        design_matrix = model_matrix(design_factors, metadata)
 
     # forumlaic renames the intercept column to "Intercept"
     design_matrix.rename(

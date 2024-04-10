@@ -151,6 +151,19 @@ def test_underscores_in_factors():
     stat_res.summary()
     stat_res.lfc_shrink()
 
+    # Run the pipeline. This should raise a warning, but not cause bugs.
+    with pytest.warns(UserWarning):
+        dds = DeseqDataSet(
+            counts=counts_df,
+            metadata=metadata,
+            design_factors="some_variable_with_underscores",
+        )
+    dds.deseq2()
+
+    stat_res = DeseqStats(dds)
+    stat_res.summary()
+    stat_res.lfc_shrink()
+
 
 def test_one_factor():
     """Test that a ValueError is thrown when the design factor takes only one value."""
