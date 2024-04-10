@@ -617,7 +617,7 @@ def test_ref_level(counts_df, metadata):
         counts=counts_df,
         metadata=metadata,
         design_factors=["group", "condition"],
-        ref_level=["group", "Y"],
+        ref_level=[("group", "Y")],
     )
 
     # Check that the column exists

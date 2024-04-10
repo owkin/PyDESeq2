@@ -204,12 +204,12 @@ def build_design_matrix(
         # This is how formulaic expects ref_level [("condition", "A")]:
         # ~ C(condition, contr.treatment(base="A"))
         for ref in ref_level:
-            assert ref[0] in set(
-                metadata.columns
-            ), "The reference level is not in the metadata"
-            assert (
-                ref[1] in metadata[ref[0]].unique()
-            ), f"The reference level is not in the metadata col={ref[0]}"
+            if ref[0] not in set(metadata.columns):
+                raise ValueError("The reference level is not in the metadata")
+            if ref[1] not in metadata[ref[0]].unique():
+                raise KeyError(
+                    f"The reference level is not in the metadata col={ref[0]}"
+                )
             replacement_key = (
                 "C(`" + ref[0] + "`, contr.treatment(base='" + ref[1] + "'))"
             )
@@ -238,6 +238,7 @@ def build_design_matrix(
             UserWarning,
             stacklevel=2,
         )
+        # We rewrite the foruma with quotes
         design_factors = design_factors.strip()
         assert design_factors.startswith("~"), "The formula should start with a ~"
         design_factors = design_factors[1:]

@@ -682,7 +682,7 @@ class DeseqStats:
                     )
             self.contrast = contrast
         else:  # Build contrast if None
-            factor = self.dds.design_factors[-1]
+            factor = self.dds.single_design_factors[-1]
             # Check whether this factor is categorical or continuous.
             if (
                 self.dds.continuous_factors is not None

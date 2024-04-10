@@ -447,8 +447,12 @@ class DeseqDataSet(ad.AnnData):
 
             # With some luck here design_matrix is valid all the time
             self.obsm["design_matrix"] = design_matrix
-            # No idea if it is useful but for consistency
+            # useful for build_contrast
             self.single_design_factors = list(set(extracted_single_factors))
+
+        if len(self.single_design_factors) == 1:
+            if self.obs[self.single_design_factors[0]].nunique() == 1:
+                raise ValueError("Only one unique value and one design factor.")
 
         # Check that the design matrix has full rank
         self._check_full_rank_design()
