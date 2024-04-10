@@ -184,8 +184,8 @@ def build_design_matrix(
         If the reference level is not in the metadata.
     """
     # Because of preprocessing we did in dds continuous and categorical variables
-    # are tagged in the metadata
-    # We just need special treatments if there are ref_levels
+    # are tagged in the metadata directly
+    # We just need special treatments if there are specified ref_levels
     patterns_to_reverse = {}
     if ref_level is not None:
         assert isinstance(ref_level, list), "The reference level should be a list."
@@ -211,7 +211,20 @@ def build_design_matrix(
             patterns_to_reverse[replacement_key] = ref[0]
             design_factors = re.sub(ref[0], replacement_key, design_factors)
 
+    ref_level = []
+    all_metadata_ref_levels = {}
+    given_refs_cols = [ref[0] for ref in ref_level]
+    for col in metadata.columns:
+        if not metadata[col].dtype.name == "category":
+            continue
+        if col in given_refs_cols:
+            all_metadata_ref_levels[col] = ref_level[given_refs_cols.index(col)][1]
+        else:
+            # taking the first factor as reference level
+            all_metadata_ref_levels[col] = metadata[col].iloc[0]
+
     design_matrix = model_matrix(design_factors, metadata)
+
     # forumlaic renames the intercept column to "Intercept"
     design_matrix.rename(
         columns=lambda x: x.replace("Intercept", "intercept"), inplace=True
@@ -245,14 +258,25 @@ def build_design_matrix(
             return x
         values = []
         groups = []
-        # Dummy treatment coding
         splits = re.split(r"(?<=\[T\.)(.*?)(?=\])", x)
+        activated_ref_levels = []
+
         for idx, split in enumerate(splits):
             if idx % 2 == 1:
                 values.append(split)
+                activated_ref_levels.append(
+                    all_metadata_ref_levels[re.sub(":", "", current_col)]
+                )
             else:
-                groups.append(re.sub(r"(\[T\.)|(\])", "", split))
-        return "".join(groups) + "_" + "_vs_".join(values)
+                current_col = re.sub(r"(\[T\.)|(\])", "", split)
+                groups.append(current_col)
+        return (
+            "".join(groups)
+            + "_"
+            + "".join(values)
+            + "_vs_"
+            + "".join(activated_ref_levels)
+        )
 
     design_matrix.rename(columns=convert_formulaic_to_deseq2, inplace=True)
 
