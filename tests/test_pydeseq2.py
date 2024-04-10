@@ -389,12 +389,16 @@ def test_continuous_deseq(
         counts_df.loc["sample1", "gene1"] = 2000
         counts_df.loc["sample11", "gene7"] = 1000
         metadata.loc["sample1", "condition"] = "C"
+        ref_level = [("condition", "C")]
+    else:
+        ref_level = None
 
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
         design_factors=["group", "condition", "measurement"],
         continuous_factors=["measurement"],
+        ref_level=ref_level,
     )
     dds.deseq2()
 
