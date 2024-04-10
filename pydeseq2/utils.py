@@ -259,7 +259,10 @@ def build_design_matrix(
         values = []
         groups = []
         splits = re.split(r"(?<=\[T\.)(.*?)(?=\])", x)
+
         activated_ref_levels = []
+        # I am initializing current_col only for linter purposes
+        current_col = re.sub(r"(\[T\.)|(\])", "", splits[0])
         for idx, split in enumerate(splits):
             if idx % 2 == 1:
                 values.append(split)
@@ -268,12 +271,16 @@ def build_design_matrix(
                         colname = current_col[:-1]
                     else:
                         colname = current_col
-                    activated_ref_level_current_col = ""
-                    for interacting_col in colname.split(":"):
-                        if interacting_col in all_metadata_ref_levels:
-                            activated_ref_level_current_col += all_metadata_ref_levels[interacting_col]
-                    activated_ref_levels.append(all_metadata_ref_levels[interacting_col])
-                    
+                else:
+                    colname = current_col
+                activated_ref_level_current_col = ""
+                for interacting_col in colname.split(":"):
+                    if interacting_col in all_metadata_ref_levels:
+                        activated_ref_level_current_col += all_metadata_ref_levels[
+                            interacting_col
+                        ]
+                activated_ref_levels.append(all_metadata_ref_levels[interacting_col])
+
             else:
                 current_col = re.sub(r"(\[T\.)|(\])", "", split)
                 groups.append(current_col)

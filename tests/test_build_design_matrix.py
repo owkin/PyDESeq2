@@ -21,101 +21,101 @@ def test_build_single_factor():
             else:
                 df[factor] = Categorical(df[factor].astype("str"))
 
-    # # 1 interaction terms between continuous factors + all columns + all continuous
-    # df = copy.deepcopy(original_df)
-    # continuous_factors = ["a", "b", "c"]
-    # tag_continuous_factors(df, continuous_factors)
+    # 1 interaction terms between continuous factors + all columns + all continuous
+    df = copy.deepcopy(original_df)
+    continuous_factors = ["a", "b", "c"]
+    tag_continuous_factors(df, continuous_factors)
 
-    # design = build_design_matrix(df, "~ a+b +c+a:b")
-    # design.drop(columns=["intercept"], inplace=True)
+    design = build_design_matrix(df, "~ a+b +c+a:b")
+    design.drop(columns=["intercept"], inplace=True)
 
-    # # The result should be the original df
-    # result = copy.deepcopy(original_df)
-    # # to which we have added the column multiplying both a and b coeff by coeff
-    # result["a:b"] = [a * b for a, b in zip(original_df["a"], original_df["b"])]
-    # tag_continuous_factors(result, continuous_factors)
-    # result["a:b"] = to_numeric(result["a:b"])
+    # The result should be the original df
+    result = copy.deepcopy(original_df)
+    # to which we have added the column multiplying both a and b coeff by coeff
+    result["a:b"] = [a * b for a, b in zip(original_df["a"], original_df["b"])]
+    tag_continuous_factors(result, continuous_factors)
+    result["a:b"] = to_numeric(result["a:b"])
 
-    # pd.testing.assert_frame_equal(design, result)
+    pd.testing.assert_frame_equal(design, result)
 
-    # # 2 interacting terms between categorical factors wo other columuns
-    # df = copy.deepcopy(original_df)
-    # continuous_factors = None
-    # tag_continuous_factors(df, continuous_factors)
-    # design = build_design_matrix(df, "~ a:b")
-    # design.drop(columns=["intercept"], inplace=True)
+    # 2 interacting terms between categorical factors wo other columuns
+    df = copy.deepcopy(original_df)
+    continuous_factors = None
+    tag_continuous_factors(df, continuous_factors)
+    design = build_design_matrix(df, "~ a:b")
+    design.drop(columns=["intercept"], inplace=True)
 
-    # # The result should be the original df
-    # result = copy.deepcopy(original_df)
-    # # to which we have added the column concatenating both a and  as str
-    # result["a:b"] = [str(a) + str(b) for a, b in zip(original_df["a"], original_df["b"])]
-    # ref_levels = {"a": str(result["a"].iloc[0]), "b": str(result["b"].iloc[0])}
-    # dummified_b = pd.get_dummies(result["b"], prefix="b", drop_first=True).astype("int")
-    # dummified_b.rename(
-    #     columns={col: col + "_vs_" + ref_levels["b"] for col in dummified_b.columns},
-    #     inplace=True,
-    # )
-    # dummified_ab = pd.get_dummies(result["a:b"], drop_first=True).astype("int")
-    # dummified_ab.rename(
-    #     columns={
-    #         k: "a:b_" + k[0] + k[1] + "_vs_" + ref_levels["a"] + ref_levels["b"]
-    #         for k in dummified_ab.columns
-    #     },
-    #     inplace=True,
-    # )
-    # # formulaic also encodes all not found combinations of a and b as long as
-    # # it's full-rank
-    # import itertools
+    # The result should be the original df
+    result = copy.deepcopy(original_df)
+    # to which we have added the column concatenating both a and  as str
+    result["a:b"] = [str(a) + str(b) for a, b in zip(original_df["a"], original_df["b"])]
+    ref_levels = {"a": str(result["a"].iloc[0]), "b": str(result["b"].iloc[0])}
+    dummified_b = pd.get_dummies(result["b"], prefix="b", drop_first=True).astype("int")
+    dummified_b.rename(
+        columns={col: col + "_vs_" + ref_levels["b"] for col in dummified_b.columns},
+        inplace=True,
+    )
+    dummified_ab = pd.get_dummies(result["a:b"], drop_first=True).astype("int")
+    dummified_ab.rename(
+        columns={
+            k: "a:b_" + k[0] + k[1] + "_vs_" + ref_levels["a"] + ref_levels["b"]
+            for k in dummified_ab.columns
+        },
+        inplace=True,
+    )
+    # formulaic also encodes all not found combinations of a and b as long as
+    # it's full-rank
+    import itertools
 
-    # ab_list = itertools.product(result["a"].unique(), result["b"].unique())
-    # for ab in ab_list:
-    #     ab_str = (str(ab[0]), str(ab[1]))
-    #     if "".join(ab_str) not in result["a:b"].unique():
-    #         dummified_ab[
-    #             "a:b_"
-    #             + ab_str[0]
-    #             + ab_str[1]
-    #             + "_vs_"
-    #             + ref_levels["a"]
-    #             + ref_levels["b"]
-    #         ] = 0
-    # # Now we can drop some columns because of formulaic's complicated full-rankness
-    # # matric construction
-    # result = pd.concat([dummified_b, dummified_ab], axis=1)[design.columns]
+    ab_list = itertools.product(result["a"].unique(), result["b"].unique())
+    for ab in ab_list:
+        ab_str = (str(ab[0]), str(ab[1]))
+        if "".join(ab_str) not in result["a:b"].unique():
+            dummified_ab[
+                "a:b_"
+                + ab_str[0]
+                + ab_str[1]
+                + "_vs_"
+                + ref_levels["a"]
+                + ref_levels["b"]
+            ] = 0
+    # Now we can drop some columns because of formulaic's complicated full-rankness
+    # matric construction
+    result = pd.concat([dummified_b, dummified_ab], axis=1)[design.columns]
 
-    # pd.testing.assert_frame_equal(design, result)
+    pd.testing.assert_frame_equal(design, result)
 
-    # # 3 interacting terms with one categorical and one continuous column and no
-    # # other column
-    # df = copy.deepcopy(original_df)
-    # continuous_factors = ["b"]
-    # tag_continuous_factors(df, continuous_factors)
-    # design = build_design_matrix(
-    #     df,
-    #     "~a:b",
-    # )
-    # design.drop(columns=["intercept"], inplace=True)
-    # # The result should be the original df
-    # result = copy.deepcopy(original_df)
-    # # to which we have added the column multiplexing b to the categories of a
-    # zeros = [0.0, 0.0, 0.0, 0.0, 0.0]
-    # ref_levels = {"a": str(result["a"].iloc[0])}
-    # result[f"a:b_1_vs_{ref_levels['a']}"] = [
-    #     int(z) if idx not in [0, 1] else int(original_df["b"].iloc[idx])
-    #     for idx, z in enumerate(zeros)
-    # ]
-    # result[f"a:b_2_vs_{ref_levels['a']}"] = [
-    #     int(z) if idx not in [2, 4] else int(original_df["b"].iloc[idx])
-    #     for idx, z in enumerate(zeros)
-    # ]
-    # result[f"a:b_3_vs_{ref_levels['a']}"] = [
-    #     int(z) if idx != 3 else int(original_df["b"].iloc[idx])
-    #     for idx, z in enumerate(zeros)
-    # ]
-    # # full-rankedness
+    # 3 interacting terms with one categorical and one continuous column and no
+    # other column
+    df = copy.deepcopy(original_df)
+    continuous_factors = ["b"]
+    tag_continuous_factors(df, continuous_factors)
+    design = build_design_matrix(
+        df,
+        "~a:b",
+    )
+    design.drop(columns=["intercept"], inplace=True)
+    # The result should be the original df
+    result = copy.deepcopy(original_df)
+    # to which we have added the column multiplexing b to the categories of a
+    zeros = [0.0, 0.0, 0.0, 0.0, 0.0]
+    ref_levels = {"a": str(result["a"].iloc[0])}
+    result[f"a:b_1_vs_{ref_levels['a']}"] = [
+        int(z) if idx not in [0, 1] else int(original_df["b"].iloc[idx])
+        for idx, z in enumerate(zeros)
+    ]
+    result[f"a:b_2_vs_{ref_levels['a']}"] = [
+        int(z) if idx not in [2, 4] else int(original_df["b"].iloc[idx])
+        for idx, z in enumerate(zeros)
+    ]
+    result[f"a:b_3_vs_{ref_levels['a']}"] = [
+        int(z) if idx != 3 else int(original_df["b"].iloc[idx])
+        for idx, z in enumerate(zeros)
+    ]
+    # full-rankedness
 
-    # result = result[design.columns]
-    # pd.testing.assert_frame_equal(design, result)
+    result = result[design.columns]
+    pd.testing.assert_frame_equal(design, result)
 
     # 4, 3(!) interacting terms with the last one being categorical
     df = copy.deepcopy(original_df)
@@ -177,14 +177,26 @@ def test_build_single_factor():
         str(a) + str(b) + str(c)
         for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
     ]
-    ref_levels = {"a": str(result["a"].iloc[0]), "b": str(result["b"].iloc[0]), "c": str(result["c"].iloc[0])}
-    dummified_abc = pd.get_dummies(result["a:b:c"], prefix="a:b:c", drop_first=True).astype("int")
+    ref_levels = {
+        "a": str(result["a"].iloc[0]),
+        "b": str(result["b"].iloc[0]),
+        "c": str(result["c"].iloc[0]),
+    }
+    dummified_abc = pd.get_dummies(
+        result["a:b:c"], prefix="a:b:c", drop_first=True
+    ).astype("int")
     dummified_abc.rename(
-        columns={col: col + "_vs_" + ref_levels["a"] + ref_levels["b"] + ref_levels["c"] for col in dummified_abc.columns},
+        columns={
+            col: col + "_vs_" + ref_levels["a"] + ref_levels["b"] + ref_levels["c"]
+            for col in dummified_abc.columns
+        },
         inplace=True,
     )
     import itertools
-    abc_list = itertools.product(result["a"].unique(), result["b"].unique(), result["c"].unique())
+
+    abc_list = itertools.product(
+        result["a"].unique(), result["b"].unique(), result["c"].unique()
+    )
     for abc in abc_list:
         abc_str = (str(abc[0]), str(abc[1]), str(abc[2]))
         if "".join(abc_str) not in result["a:b:c"].unique():
@@ -198,12 +210,14 @@ def test_build_single_factor():
                 + ref_levels["b"]
                 + ref_levels["c"]
             ] = 0
-    # For simplicity we only check triple interacting terms but giving a:b:c to formulaic also
-    # forms all double products a:b, a:c, b:c modulo rank
+    # For simplicity we only check triple interacting terms but giving a:b:c to
+    # formulaic also forms all double products a:b, a:c, b:c modulo rank
     # TODO add tests for doubly interacting terms
     triple_interaction_columns = [col for col in design.columns if "a:b:c" in col]
-    breakpoint()
-    pd.testing.assert_frame_equal(design[triple_interaction_columns], dummified_abc[triple_interaction_columns])
+
+    pd.testing.assert_frame_equal(
+        design[triple_interaction_columns], dummified_abc[triple_interaction_columns]
+    )
 
     # 6, 3(!) interacting terms all continuous
     original_df["c"] = [float(el) for el in original_df["c"].tolist()]
@@ -222,8 +236,10 @@ def test_build_single_factor():
         a * b * c
         for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
     ]
-    # For simplicity we only check triple interacting terms but giving a:b:c to formulaic also
-    # forms all double products a:b, a:c, b:c modulo rank
+    # For simplicity we only check triple interacting terms but giving a:b:c to
+    # formulaic also forms all double products a:b, a:c, b:c modulo rank
     # TODO add tests for doubly interacting terms
     triple_interaction_columns = [col for col in design.columns if "a:b:c" in col]
-    pd.testing.assert_frame_equal(design[triple_interaction_columns], result[triple_interaction_columns])
+    pd.testing.assert_frame_equal(
+        design[triple_interaction_columns], result[triple_interaction_columns]
+    )
