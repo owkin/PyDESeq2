@@ -329,7 +329,7 @@ class DeseqDataSet(ad.AnnData):
         # We modify only obs object
         if np.any(["_" in factor for factor in self.single_design_factors]):
             warnings.warn(
-                """Same factor names in the design contain underscores ('_').
+                """Some factor names in the design contain underscores ('_').
                 They will be converted to hyphens ('-').""",
                 UserWarning,
                 stacklevel=2,
@@ -347,7 +347,7 @@ class DeseqDataSet(ad.AnnData):
         # If ref_level has underscores, convert them to hyphens
         # Don't raise a warning: it will be raised by build_design_matrix()
         if ref_level is not None:
-            ref_level = [replace_underscores(ref) for ref in ref_level]
+            ref_level = replace_underscores(ref_level)
 
         self.design_factors = replace_underscores(self.design_factors)
 
@@ -361,6 +361,18 @@ class DeseqDataSet(ad.AnnData):
         for factor in self.single_design_factors:
             if factor not in self.continuous_factors:
                 self.obs[factor] = Categorical(self.obs[factor].astype(str))
+                levels = self.obs[factor].unique()
+                if "_" in "".join(levels):
+                    warnings.warn(
+                        f"""Some category in the design of factor {factor} contain
+                        underscores ('_'). They will be converted to hyphens ('-').""",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    self.obs[factor] = self.obs[factor].cat.rename_categories(
+                        replace_underscores(levels.to_list())
+                    )
+
             else:
                 self.obs[factor] = to_numeric(self.obs[factor])
 

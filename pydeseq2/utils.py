@@ -208,7 +208,9 @@ def build_design_matrix(
             assert (
                 ref[1] in metadata[ref[0]].unique()
             ), f"The reference level is not in the metadata col={ref[0]}"
-            replacement_key = "C(" + ref[0] + ", contr.treatment(base='" + ref[1] + "'))"
+            replacement_key = (
+                "C(`" + ref[0] + "`, contr.treatment(base='" + ref[1] + "'))"
+            )
             patterns_to_reverse[replacement_key] = ref[0]
             design_factors = re.sub(ref[0], replacement_key, design_factors)
 
@@ -397,7 +399,9 @@ def build_design_matrix(
     # return design_matrix
 
 
-def replace_underscores(factors: Union[str, List[str], tuple[str, str]]):
+def replace_underscores(
+    factors: Union[str, List[str], tuple[str, str], List[tuple[str, str]]]
+):
     """Replace all underscores from strings in a list by hyphens.
 
     To be used on design factors to avoid bugs due to the reliance on
@@ -405,7 +409,7 @@ def replace_underscores(factors: Union[str, List[str], tuple[str, str]]):
 
     Parameters
     ----------
-    factors : str or list[str] or tuple[str, str]
+    factors : str or list[str] or tuple[str, str] or List[tuple[str, str]]
         A list of strings which may contain underscores.
 
     Returns
@@ -414,12 +418,11 @@ def replace_underscores(factors: Union[str, List[str], tuple[str, str]]):
         A list of strings or a string in which underscores were replaced by hyphens.
     """
     if isinstance(factors, str):
-        res = [factor.replace("_", "-") for factor in factors]
-        return "".join(res)
+        return factors.replace("_", "-")
     elif isinstance(factors, list):
         return [replace_underscores(factor) for factor in factors]
     elif isinstance(factors, tuple):
-        return (replace_underscores(factor) for factor in factors)
+        return (replace_underscores(factors[0]), replace_underscores(factors[1]))
     else:
         raise ValueError(
             "Factors should be a string, a list of strings or a tuple of strings"
