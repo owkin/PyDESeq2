@@ -216,9 +216,12 @@ def build_design_matrix(
             patterns_to_reverse[replacement_key] = ref[0]
             design_factors = re.sub(ref[0], replacement_key, design_factors)
 
-    ref_level = []
+    if ref_level is None:
+        ref_level = []
+
     all_metadata_ref_levels = {}
     given_refs_cols = [ref[0] for ref in ref_level]
+
     for col in metadata.columns:
         if is_numeric_dtype(metadata[col]):
             continue
@@ -227,6 +230,7 @@ def build_design_matrix(
         else:
             # taking the first factor as reference level
             all_metadata_ref_levels[col] = metadata[col].iloc[0]
+
     try:
         design_matrix = model_matrix(design_factors, metadata)
     except formulaic.errors.FactorEvaluationError:
