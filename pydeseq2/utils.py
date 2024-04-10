@@ -329,6 +329,8 @@ def build_design_matrix(
         )
 
     design_matrix.rename(columns=convert_formulaic_to_deseq2, inplace=True)
+    # for weird pickling issues of formulaic objects breaking the tutorial
+    design_matrix = pd.DataFrame(design_matrix)
 
     return design_matrix
 
