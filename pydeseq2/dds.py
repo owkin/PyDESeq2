@@ -247,7 +247,6 @@ class DeseqDataSet(ad.AnnData):
         self.continuous_factors = (
             continuous_factors if continuous_factors is not None else []
         )
-
         # If it's a list we convert it right back to a formulaic string
         if isinstance(self.design_factors, list):
             # Little bit of careful formating as below to remove space around : symbols
@@ -275,8 +274,9 @@ class DeseqDataSet(ad.AnnData):
                 if not is_interaction
             ]
             extracted_single_factors = list(
-                set(extracted_single_factors)
-                & set(extracted_interacting_terms_single_factors)
+                set(extracted_single_factors).union(
+                    set(extracted_interacting_terms_single_factors)
+                )
             )
             self.single_design_factors = extracted_single_factors
             self.design_factors = "~" + "+".join(self.design_factors)
