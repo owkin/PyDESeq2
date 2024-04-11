@@ -49,7 +49,10 @@ def test_build_single_factor():
     result = copy.deepcopy(original_df)
     # to which we have added the column concatenating both a and  as str
     result["a:b"] = [str(a) + str(b) for a, b in zip(original_df["a"], original_df["b"])]
-    ref_levels = {"a": str(result["a"].iloc[0]), "b": str(result["b"].iloc[0])}
+    ref_levels = {
+        "a": str(sorted(result["a"].unique())[0]),
+        "b": str(sorted(result["b"].unique())[0]),
+    }
     dummified_b = pd.get_dummies(result["b"], prefix="b", drop_first=True).astype("int")
     dummified_b.rename(
         columns={col: col + "_vs_" + ref_levels["b"] for col in dummified_b.columns},
@@ -99,7 +102,7 @@ def test_build_single_factor():
     result = copy.deepcopy(original_df)
     # to which we have added the column multiplexing b to the categories of a
     zeros = [0.0, 0.0, 0.0, 0.0, 0.0]
-    ref_levels = {"a": str(result["a"].iloc[0])}
+    ref_levels = {"a": str(sorted(result["a"].unique())[0])}
     result[f"a:b_1_vs_{ref_levels['a']}"] = [
         int(z) if idx not in [0, 1] else int(original_df["b"].iloc[idx])
         for idx, z in enumerate(zeros)
@@ -132,7 +135,7 @@ def test_build_single_factor():
     # to which we have added the following column multiplexed against the possible
     # values of c
     zeros = [0.0, 0.0, 0.0, 0.0, 0.0]
-    ref_levels = {"c": str(result["c"].iloc[0])}
+    ref_levels = {"c": str(sorted(result["c"].unique())[0])}
     result[f"a:b:c_7_vs_{ref_levels['c']}"] = [
         z if idx != 0 else original_df["a"].iloc[idx] * original_df["b"].iloc[idx]
         for idx, z in enumerate(zeros)
@@ -178,9 +181,9 @@ def test_build_single_factor():
         for a, b, c in zip(original_df["a"], original_df["b"], original_df["c"])
     ]
     ref_levels = {
-        "a": str(result["a"].iloc[0]),
-        "b": str(result["b"].iloc[0]),
-        "c": str(result["c"].iloc[0]),
+        "a": str(sorted(result["a"].unique())[0]),
+        "b": str(sorted(result["b"].unique())[0]),
+        "c": str(sorted(result["c"].unique())[0]),
     }
     dummified_abc = pd.get_dummies(
         result["a:b:c"], prefix="a:b:c", drop_first=True

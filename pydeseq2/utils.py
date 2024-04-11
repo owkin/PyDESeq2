@@ -228,8 +228,8 @@ def build_design_matrix(
         if col in given_refs_cols:
             all_metadata_ref_levels[col] = ref_level[given_refs_cols.index(col)][1]
         else:
-            # taking the first factor as reference level
-            all_metadata_ref_levels[col] = metadata[col].iloc[0]
+            # We use the first factor in lexicographic order as deseq2 does
+            all_metadata_ref_levels[col] = sorted(metadata[col].unique())[0]
 
     try:
         design_matrix = model_matrix(design_factors, metadata)
