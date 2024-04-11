@@ -5,11 +5,7 @@ import re
 import sys
 import time
 import warnings
-from typing import List
 from typing import Literal
-from typing import Optional
-from typing import Tuple
-from typing import Union
 from typing import cast
 
 import anndata as ad  # type: ignore
@@ -80,11 +76,11 @@ class DeseqDataSet(ad.AnnData):
         as categorical by design except if listed in continuous_factors.
         (default: ``"condition"``).
 
-    continuous_factors : List or None
+    continuous_factors : list or None
         An optional list of continuous (as opposed to categorical) factors. Any factor
         not in ``continuous_factors`` will be considered categorical (default: ``None``).
 
-    ref_level : List or None
+    ref_level : list or None
         An optional list of tuples each with two strings of the form
         ``("factor", "test_level")`` specifying the factor of interest and the
         reference (control) level against which we're testing, e.g.
@@ -201,22 +197,22 @@ class DeseqDataSet(ad.AnnData):
     def __init__(
         self,
         *,
-        adata: Optional[ad.AnnData] = None,
-        counts: Optional[pd.DataFrame] = None,
-        metadata: Optional[pd.DataFrame] = None,
-        design_factors: Union[str, List[str]] = "condition",
-        continuous_factors: Optional[List[str]] = None,
+        adata: ad.AnnData | None = None,
+        counts: pd.DataFrame | None = None,
+        metadata: pd.DataFrame | None = None,
+        design_factors: str | list[str] = "condition",
+        continuous_factors: list[str] | None = None,
         trend_fit_type: Literal["parametric", "mean"] = "parametric",
-        ref_level: Optional[List[Tuple[str, str]]] = None,
-        design_matrix: Optional[pd.DataFrame] = None,
+        ref_level: list[tuple[str, str]] | None = None,
+        design_matrix: pd.DataFrame | None = None,
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
         max_disp: float = 10.0,
         refit_cooks: bool = True,
         min_replicates: int = 7,
         beta_tol: float = 1e-8,
-        n_cpus: Optional[int] = None,
-        inference: Optional[Inference] = None,
+        n_cpus: int | None = None,
+        inference: Inference | None = None,
         quiet: bool = False,
     ) -> None:
         # Initialize the AnnData part
@@ -556,7 +552,7 @@ class DeseqDataSet(ad.AnnData):
             self.obsm["design_matrix"] = self.obsm["design_matrix_buffer"].copy()
             del self.obsm["design_matrix_buffer"]
 
-    def vst_transform(self, counts: Optional[np.ndarray] = None) -> np.ndarray:
+    def vst_transform(self, counts: np.ndarray | None = None) -> np.ndarray:
         """Apply the variance stabilizing transformation.
 
         Uses the results from the ``vst_fit`` method.
@@ -1030,7 +1026,7 @@ class DeseqDataSet(ad.AnnData):
         )
 
     def plot_dispersions(
-        self, log: bool = True, save_path: Optional[str] = None, **kwargs
+        self, log: bool = True, save_path: str | None = None, **kwargs
     ) -> None:
         """Plot dispersions.
 
