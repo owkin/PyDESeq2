@@ -152,7 +152,6 @@ print(dds)
 # As such, it can be saved using
 # `pickle.dump <https://docs.python.org/3/library/pickle.html#pickle.dump>`_.
 
-breakpoint()
 with open(os.path.join(OUTPUT_PATH, "dds.pkl"), "wb") as f:
     pkl.dump(dds, f)
 
