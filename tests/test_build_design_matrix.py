@@ -246,3 +246,35 @@ def test_build_single_factor():
     pd.testing.assert_frame_equal(
         design[triple_interaction_columns], result[triple_interaction_columns]
     )
+    # 7, deseq2 vignette proposed by Anaïs Chossegros
+
+    data = {"batch": [1, 1, 1, 1, 2, 2], "condition": ["A", "A", "B", "B", "C", "C"]}
+
+    # Create the DataFrame
+    edge_df = pd.DataFrame(data)
+    continuous_factors = None
+    tag_continuous_factors(edge_df, continuous_factors)
+    design = build_design_matrix(
+        edge_df,
+        ["batch", "condition"],
+    )
+
+    ref_levels = {
+        "batch": str(sorted(edge_df["batch"].unique())[0]),
+        "condition": str(sorted(edge_df["condition"].unique())[0]),
+    }
+    # Note that I am purposefully not dropping the first level of the dummies to
+    # match formulaic's behavior of using this dummy level as an intercept
+    dummified_batch = pd.get_dummies(
+        edge_df["batch"], prefix="batch", drop_first=False
+    ).astype("int")
+    dummified_condition = pd.get_dummies(
+        edge_df["condition"], prefix="condition", drop_first=True
+    ).astype("int")
+    result = pd.concat([dummified_batch, dummified_condition], axis=1)
+    for col in list(result.columns):
+        result.rename(
+            columns={col: col + "_vs_" + ref_levels[col.split("_")[0]]}, inplace=True
+        )
+
+    pd.testing.assert_frame_equal(design, result[design.columns])
