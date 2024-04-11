@@ -1,10 +1,15 @@
 import copy
+import itertools
+import os
+from pathlib import Path
 
 import pandas as pd
 from pandas import Categorical
 from pandas import to_numeric
 
+import tests
 from pydeseq2.utils import build_design_matrix
+from pydeseq2.utils import load_example_data
 
 
 def test_build_single_factor():
@@ -68,7 +73,6 @@ def test_build_single_factor():
     )
     # formulaic also encodes all not found combinations of a and b as long as
     # it's full-rank
-    import itertools
 
     ab_list = itertools.product(result["a"].unique(), result["b"].unique())
     for ab in ab_list:
@@ -195,7 +199,6 @@ def test_build_single_factor():
         },
         inplace=True,
     )
-    import itertools
 
     abc_list = itertools.product(
         result["a"].unique(), result["b"].unique(), result["c"].unique()
@@ -278,3 +281,83 @@ def test_build_single_factor():
         )
 
     pd.testing.assert_frame_equal(design, result[design.columns])
+
+    df = load_example_data(
+        modality="metadata",
+        dataset="synthetic",
+        debug=False,
+    )
+    ref_levels = {
+        "condition": str(sorted(df["condition"].unique())[0]),
+        "group": str(sorted(df["group"].unique())[0]),
+    }
+    # Test "~condition+group:condition" against deseq2 saves data from R
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_res = pd.read_csv(
+        os.path.join(
+            test_path, "data/interactions/r_design_matrix_condition+group_condition.csv"
+        ),
+        index_col=0,
+    )
+    # switch to pydeseq2 naming conventions
+    # Note that formulaic reverses the order of the interaction terms
+    # for some reasons
+    # TODO investigate why if users find it important
+    r_res.rename(
+        columns={
+            "(Intercept)": "intercept",
+            "conditionB": "condition_B"
+            + "_vs_"
+            + ref_levels["condition"],  # pydeseq2 adds the ref_level
+            "conditionA:groupY": "group:condition_YA_vs_"
+            + ref_levels["group"]
+            + ref_levels[
+                "condition"
+            ],  # pydeseq2 puts all interaction col names together and adds the ref_level
+            "conditionB:groupY": "group:condition_YB_vs_XA"
+            + ref_levels["group"]
+            + ref_levels[
+                "condition"
+            ],  # pydeseq2 puts all interaction col names together and adds the ref_level
+        },
+        inplace=True,
+    )
+    r_res["intercept"] = r_res["intercept"].astype("float")
+    continuous_factors = None
+    tag_continuous_factors(df, continuous_factors)
+    design = build_design_matrix(df, "~condition+group:condition")
+    pd.testing.assert_frame_equal(design, r_res[design.columns])
+
+    # Test "~group:condition + group" against deseq2 saves data from R
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_res = pd.read_csv(
+        os.path.join(
+            test_path, "data/interactions/r_design_matrix_group_condition+group.csv"
+        ),
+        index_col=0,
+    )
+    # switch to pydeseq2 naming conventions
+    r_res.rename(
+        columns={
+            "(Intercept)": "intercept",
+            "groupY": "group_Y"
+            + "_vs_"
+            + ref_levels["group"],  # pydeseq2 adds the ref_level
+            "groupX:conditionB": "group:condition_XB_vs_"
+            + ref_levels["group"]
+            + ref_levels[
+                "condition"
+            ],  # pydeseq2 puts all interaction col names together and adds the ref_level
+            "groupY:conditionB": "group:condition_YB_vs_"
+            + ref_levels["group"]
+            + ref_levels[
+                "condition"
+            ],  # pydeseq2 puts all interaction col names together and adds the ref_level
+        },
+        inplace=True,
+    )
+    r_res["intercept"] = r_res["intercept"].astype("float")
+    continuous_factors = None
+    tag_continuous_factors(df, continuous_factors)
+    design = build_design_matrix(df, "~group:condition + group")
+    pd.testing.assert_frame_equal(design, r_res[design.columns])
