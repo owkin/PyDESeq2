@@ -314,7 +314,7 @@ def test_build_single_factor():
             + ref_levels[
                 "condition"
             ],  # pydeseq2 puts all interaction col names together and adds the ref_level
-            "conditionB:groupY": "group:condition_YB_vs_XA"
+            "conditionB:groupY": "group:condition_YB_vs_"
             + ref_levels["group"]
             + ref_levels[
                 "condition"
