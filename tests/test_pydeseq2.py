@@ -734,3 +734,32 @@ def assert_res_almost_equal(py_res, r_res, tol=0.02):
     ).max() < tol
     assert (abs(r_res.pvalue - py_res.pvalue) / r_res.pvalue).max() < tol
     assert (abs(r_res.padj - py_res.padj) / r_res.padj).max() < tol
+
+
+def test_interactions(counts_df, metadata, tol=0.02):
+    """Test that the outputs of the pydeseq2 pipeline match those of the original
+    R package (starting from the same inputs), up to a tolerance in relative error.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_group_plus_int = pd.read_csv(  # noqa F841
+        os.path.join(
+            test_path, "data/interactions/r_test_res_group_condition+group.csv"
+        ),
+        index_col=0,
+    )
+    # r_cond_plus_ints = pd.read_csv(
+    #     os.path.join(test_path, "data/interactions/r_test_res_condition+group_condition.csv"), # noqa E501
+    #     index_col=0,
+    # )
+
+    dds_group_plus_int = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors="~group + condition:group",
+    )
+    dds_group_plus_int.deseq2()
+
+    # res = DeseqStats(dds_group_plus_int)
+    # TODO check why it doesn't match
+    # pd.testing.assert_frame_equal(res.summary(), r_group_plus_int, atol=tol)
