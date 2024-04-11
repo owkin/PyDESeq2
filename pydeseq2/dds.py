@@ -296,9 +296,16 @@ class DeseqDataSet(ad.AnnData):
             # of individual factor
             if not self.design_factors.startswith("~"):
                 self.design_factors = "~" + self.design_factors
-            self.design_factors = re.sub(r"\ \+|\+\ ", "+", self.design_factors)
-            self.design_factors = re.sub(r"\ \:|\:\ ", ":", self.design_factors)
-            self.design_factors = re.sub(r"\ \~|\~\ ", ":", self.design_factors)
+
+            self.design_factors = re.sub(
+                r"(?:(?<=\+) +| +(?=\+))", "", self.design_factors
+            )
+            self.design_factors = re.sub(
+                r"(?:(?<=\:) +| +(?=\:))", "", self.design_factors
+            )
+            self.design_factors = re.sub(
+                r"(?:(?<=\~) +| +(?=\~))", "", self.design_factors
+            )
             # Now we should have something of the form '~a+b+a:b:c:d'
             # We also support the fact of passing only one factor such as 'a' by
             # converting it to the corresponding formula '~a'
