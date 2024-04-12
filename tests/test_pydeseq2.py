@@ -242,6 +242,51 @@ def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
     ).max() < tol
 
 
+def test_lfc_shrinkage_no_apeAdapt(counts_df, metadata, tol=0.02):
+    """Test that the outputs of the lfc_shrink function match those of the original
+    R package (starting from the same inputs), up to a tolerance in relative error.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_res = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
+    )
+    r_shrunk_res = pd.read_csv(
+        os.path.join(
+            test_path, "data/single_factor/r_test_lfc_shrink_no_apeAdapt_res.csv"
+        ),
+        index_col=0,
+    )
+
+    r_size_factors = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_size_factors.csv"),
+        index_col=0,
+    ).squeeze()
+
+    r_dispersions = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_dispersions.csv"),
+        index_col=0,
+    ).squeeze()
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds.deseq2()
+    dds.obsm["size_factors"] = r_size_factors.values
+    dds.varm["dispersions"] = r_dispersions.values
+    dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
+
+    res = DeseqStats(dds)
+    res.summary()
+    res.SE = r_res.lfcSE * np.log(2)
+    res.lfc_shrink(coeff="condition_B_vs_A", adapt=False)
+    shrunk_res = res.results_df
+
+    # Check that the same LFC are found (up to tol)
+    assert (
+        abs(r_shrunk_res.log2FoldChange - shrunk_res.log2FoldChange)
+        / abs(r_shrunk_res.log2FoldChange)
+    ).max() < tol
+
+
 def test_iterative_size_factors(counts_df, metadata, tol=0.02):
     """Test that the outputs of the iterative size factor method match those of the
     original R package (starting from the same inputs), up to a tolerance in relative
