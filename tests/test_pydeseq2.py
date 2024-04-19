@@ -51,7 +51,7 @@ def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.0
         counts=counts_df,
         metadata=metadata,
         design_factors="condition",
-        trend_fit_type="parametric",
+        fit_type="parametric",
     )
     dds.deseq2()
 
@@ -79,7 +79,7 @@ def test_deseq_independent_filtering_mean_fit(counts_df, metadata, tol=0.02):
         counts=counts_df,
         metadata=metadata,
         design_factors="condition",
-        trend_fit_type="mean",
+        fit_type="mean",
     )
     dds.deseq2()
 
@@ -112,7 +112,7 @@ def test_deseq_without_independent_filtering_parametric_fit(
         counts=counts_df,
         metadata=metadata,
         design_factors="condition",
-        trend_fit_type="parametric",
+        fit_type="parametric",
     )
     dds.deseq2()
 
@@ -760,7 +760,7 @@ def test_vst_transform(train_dds, test_counts):
 
 
 @pytest.mark.parametrize(
-    ("trend_fit_type", "vst_fit_type"),
+    ("dea_fit_type", "vst_fit_type"),
     [
         ("mean", "parametric"),
         ("parametric", "mean"),
@@ -768,25 +768,25 @@ def test_vst_transform(train_dds, test_counts):
         ("mean", "mean"),
     ],
 )
-def test_vst_blind(train_counts, train_metadata, trend_fit_type, vst_fit_type):
-    """Test vst with combinatory dea trend_fit_type and vst_fit_type"""
+def test_vst_blind(train_counts, train_metadata, dea_fit_type, vst_fit_type):
+    """Test vst with combinatory dea dea_fit_type and vst_fit_type"""
     train_dds = DeseqDataSet(
         counts=train_counts,
         metadata=train_metadata,
         design_factors="condition",
-        trend_fit_type=trend_fit_type,
+        fit_type=dea_fit_type,
     )
     train_dds.deseq2()
-    if trend_fit_type == "parametric":
+    if dea_fit_type == "parametric":
         assert "trend_coeffs" in train_dds.uns
     else:
         assert "mean_disp" in train_dds.uns
     assert "normed_counts" in train_dds.layers
     assert "size_factors" in train_dds.obsm
-    assert train_dds.trend_fit_type == trend_fit_type
+    assert train_dds.fit_type == dea_fit_type
 
     train_dds.vst(use_design=False, fit_type=vst_fit_type)
-    assert train_dds.trend_fit_type == vst_fit_type
+    assert train_dds.fit_type == vst_fit_type
 
 
 def test_vst_transform_no_fit(train_counts, train_metadata, test_counts):
@@ -795,7 +795,7 @@ def test_vst_transform_no_fit(train_counts, train_metadata, test_counts):
         counts=train_counts,
         metadata=train_metadata,
         design_factors="condition",
-        trend_fit_type="parametric",
+        fit_type="parametric",
     )
     with pytest.raises(RuntimeError):
         train_dds.vst_transform(test_counts.to_numpy())
