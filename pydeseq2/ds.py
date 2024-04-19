@@ -681,19 +681,19 @@ class DeseqStats:
                         for col in columns_interacting
                         if not is_numeric_dtype(self.dds.obs[col])
                     ]
-                    potential_values = list(
-                        {
-                            "".join(interacting_values)
-                            for interacting_values in list(
-                                itertools.product(
-                                    *{
-                                        list(set(self.dds.obs[col].tolist()))
-                                        for col in categorical_columns_interacting
-                                    }
-                                )
+
+                    potential_values = [
+                        "".join(interacting_values)
+                        for interacting_values in list(
+                            itertools.product(
+                                *[
+                                    self.dds.obs[col].cat.categories.tolist()
+                                    for col in categorical_columns_interacting
+                                ]
                             )
-                        }
-                    )
+                        )
+                    ]
+
                 else:
                     categorical_columns_interacting = [contrast[0]]
                     potential_values = self.dds.obs[contrast[0]].values
