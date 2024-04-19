@@ -72,8 +72,8 @@ class DeseqDataSet(ad.AnnData):
         we're testing, e.g. ``["condition", "A"]``. (default: ``None``).
 
     fit_type: str
-        Either "parametric" or "mean" for the type of fitting of dispersions to the
-        mean intensity. "parametric": fit a dispersion-mean relation via a robust
+        Either ``"parametric"`` or ``"mean"`` for the type of fitting of dispersions to
+        the mean intensity. "parametric": fit a dispersion-mean relation via a robust
         gamma-family GLM. "mean": use the mean of gene-wise dispersion estimates.
         (default: ``"parametric"``).
         Will set the fit type for the DEA and the vst transformation. If needed,
@@ -315,7 +315,6 @@ class DeseqDataSet(ad.AnnData):
             - ``"parametric"``: fit a dispersion-mean relation via a robust
               gamma-family GLM
             - ``"mean"``: use the mean of gene-wise dispersion estimates
-
             (default: ``None``).
         """
         if fit_type is not None:
@@ -437,7 +436,7 @@ class DeseqDataSet(ad.AnnData):
             ) / np.log(2)
         else:
             raise NotImplementedError(
-                f"Found fit_type '{self.fit_type}'." " Expected 'parametric' or 'mean'."
+                f"Found fit_type '{self.fit_type}'. Expected 'parametric' or 'mean'."
             )
 
     def deseq2(self, fit_type: Optional[Literal["parametric", "mean"]] = None) -> None:
@@ -446,10 +445,10 @@ class DeseqDataSet(ad.AnnData):
         Parameters
         ----------
         fit_type : str
-            Either None, "parametric" or "mean" for the type of fitting of dispersions
-            to the mean intensity. parametric - fit a dispersion-mean relation via a
-            robust gamma-family GLM. mean - use the mean of gene-wise dispersion
-            estimates. (default: ``None``).
+            Either None, ``"parametric"`` or ``"mean"`` for the type of fitting of
+            dispersions to the mean intensity. parametric - fit a dispersion-mean
+            relation via a robust gamma-family GLM. mean - use the mean of gene-wise
+            dispersion estimates. (default: ``None``).
             If None, the fit_type provided at class initialization is used.
 
         Wrapper for the first part of the PyDESeq2 pipeline.
