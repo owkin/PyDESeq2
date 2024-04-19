@@ -742,24 +742,49 @@ def test_interactions(counts_df, metadata, tol=0.02):
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
-    r_group_plus_int = pd.read_csv(  # noqa F841
+    r_group_plus_int = pd.read_csv(  # F841
         os.path.join(
             test_path, "data/interactions/r_test_res_group_condition+group.csv"
         ),
         index_col=0,
     )
-    # r_cond_plus_ints = pd.read_csv(
-    #     os.path.join(test_path, "data/interactions/r_test_res_condition+group_condition.csv"), # noqa E501
-    #     index_col=0,
-    # )
+
+    r_cond_plus_int = pd.read_csv(
+        os.path.join(
+            test_path, "data/interactions/r_test_res_condition+group_condition.csv"
+        ),  # E501
+        index_col=0,
+    )
 
     dds_group_plus_int = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
         design_factors="~group + condition:group",
     )
+
     dds_group_plus_int.deseq2()
 
-    # res = DeseqStats(dds_group_plus_int)
-    # TODO check why it doesn't match
-    # pd.testing.assert_frame_equal(res.summary(), r_group_plus_int, atol=tol)
+    res_group_plus_int = DeseqStats(
+        dds_group_plus_int, contrast=["condition:group", "BY", "AX"]
+    )
+    res_group_plus_int.summary()
+
+    pd.testing.assert_frame_equal(
+        res_group_plus_int.results_df, r_group_plus_int, atol=tol
+    )
+
+    dds_cond_plus_int = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors="~condition + condition:group",
+    )
+
+    dds_cond_plus_int.deseq2()
+
+    res_cond_plus_int = DeseqStats(
+        dds_cond_plus_int, contrast=["condition:group", "BY", "AX"]
+    )
+    res_cond_plus_int.summary()
+    pd.testing.assert_frame_equal(
+        res_cond_plus_int.results_df, r_cond_plus_int, atol=tol
+    )

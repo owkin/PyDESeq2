@@ -1,3 +1,4 @@
+import itertools
 import sys
 import time
 from typing import List
@@ -7,6 +8,7 @@ from typing import Optional
 # import anndata as ad
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_numeric_dtype
 from scipy.optimize import root_scalar  # type: ignore
 from scipy.stats import f  # type: ignore
 from scipy.stats import false_discovery_control  # type: ignore
@@ -670,21 +672,47 @@ class DeseqStats:
             if not (contrast[1] == contrast[2] == ""):
                 # The contrast factor is categorical, so we should check that the tested
                 # and reference levels are valid.
-                if contrast[1] not in self.dds.obs[contrast[0]].values:
+
+                if ":" in contrast[0]:
+                    columns_interacting = contrast[0].split(":")
+
+                    categorical_columns_interacting = [
+                        col
+                        for col in columns_interacting
+                        if not is_numeric_dtype(self.dds.obs[col])
+                    ]
+                    potential_values = list(
+                        {
+                            "".join(interacting_values)
+                            for interacting_values in list(
+                                itertools.product(
+                                    *{
+                                        list(set(self.dds.obs[col].tolist()))
+                                        for col in categorical_columns_interacting
+                                    }
+                                )
+                            )
+                        }
+                    )
+                else:
+                    categorical_columns_interacting = [contrast[0]]
+                    potential_values = self.dds.obs[contrast[0]].values
+
+                if contrast[1] not in potential_values:
                     raise KeyError(
                         f"The tested level ('{contrast[1]}') should correspond to "
-                        f"one of the levels of '{contrast[0]}'"
+                        "one of the levels or product thereof of"
+                        f" '{categorical_columns_interacting}'"
                     )
-                if contrast[2] not in self.dds.obs[contrast[0]].values:
+                if contrast[2] not in potential_values:
                     raise KeyError(
                         f"The reference level ('{contrast[2]}') should correspond to "
-                        f"one of the levels of '{contrast[0]}'"
+                        "one of the levels or products thereof of"
+                        f" '{categorical_columns_interacting}'"
                     )
             self.contrast = contrast
         else:  # Build contrast if None
-            # TODO Boris does it break with interaction terms ?
-            # Why is it the last one ?
-            factor = self.dds.single_design_factors[-1]
+            factor = self.dds.design_factors[-1]
             # Check whether this factor is categorical or continuous.
             if (
                 self.dds.continuous_factors is not None

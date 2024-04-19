@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import itertools
 import re
 import sys
@@ -250,35 +251,17 @@ class DeseqDataSet(ad.AnnData):
         if isinstance(self.design_factors, list):
             # Little bit of careful formating as below to remove space around : symbols
             self.design_factors = [
-                re.sub(r"\ \:|\:\ ", ":", factor) for factor in self.design_factors
+                re.sub(r"(?:(?<=\:) +| +(?=\:))", "", factor)
+                for factor in self.design_factors
             ]
             # We extract all single factors
-            is_interaction_terms = [":" in factor for factor in self.design_factors]
-            extracted_interacting_terms_single_factors = list(
-                itertools.chain(
-                    *[
-                        factor.split(":")
-                        for is_interaction, factor in zip(
-                            is_interaction_terms, self.design_factors
-                        )
-                        if is_interaction
-                    ]
-                )
+            extracted_single_factors = list(
+                itertools.chain(*[factor.split(":") for factor in self.design_factors])
             )
-            extracted_single_factors = [
-                factor
-                for is_interaction, factor in zip(
-                    is_interaction_terms, self.design_factors
-                )
-                if not is_interaction
-            ]
-            # This is of utmost importance to preserve the order of the factors
-            extracted_single_factors = extracted_single_factors + [
-                f
-                for f in extracted_interacting_terms_single_factors
-                if f not in extracted_single_factors
-            ]
+
             self.single_design_factors = extracted_single_factors
+            # We store design factors as a list for later reuse in contrast
+            self.design_factors_list = copy.deepcopy(self.design_factors)
             self.design_factors = "~" + "+".join(self.design_factors)
 
         # Following lines handle the case where the user provides a formula
@@ -318,6 +301,11 @@ class DeseqDataSet(ad.AnnData):
                     )
                 )
             )
+            # Remove non unique characters while keeping the apparition order
+            factors_dict: dict[str, None] = {}
+            for factor in extracted_single_factors:
+                factors_dict[factor] = None
+            extracted_single_factors = list(factors_dict.keys())
             self.single_design_factors = extracted_single_factors
 
         else:
@@ -357,6 +345,9 @@ class DeseqDataSet(ad.AnnData):
             ref_level = replace_underscores(ref_level)
 
         self.design_factors = replace_underscores(self.design_factors)
+        # We need it for the contrast
+        assert isinstance(self.design_factors, str)
+        self.design_factors_list = self.design_factors[1:].split("+")
 
         if self.obs[self.single_design_factors].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
@@ -394,6 +385,8 @@ class DeseqDataSet(ad.AnnData):
                 design_factors=self.design_factors,
                 ref_level=ref_level,
             )
+            # Now tthat formulaic preprocessed the formula we need it as a list
+            self.design_factors = self.design_factors_list
         else:
             warnings.warn(
                 """Design matrix was given; ignoring design_factors, continuous factors
@@ -417,15 +410,19 @@ class DeseqDataSet(ad.AnnData):
                     "'intercept' column is not all ones.", UserWarning, stacklevel=2
                 )
 
-            def col_name_parser(colname):
+            def col_name_parser(colname, split_interactions=True):
                 # There can be either 0 or one vs
                 colname = colname.split("_vs_")
-                assert len(colname) in {1, 2}, "There should be 0 or 1 vs in the name"
+                assert len(colname) in {1, 2}, "There should be 0 or 1 _vs_ in the name"
                 if len(colname) == 1:
                     return [colname[0]]
                 else:
                     # Left part before the underscore is an interaction term
-                    return colname[0].split("_")[0].split(":")
+                    name_with_interaction = colname[0].split("_")[0]
+                    if not split_interactions:
+                        return name_with_interaction
+                    else:
+                        return name_with_interaction.split(":")
 
             extracted_single_factors = list(
                 itertools.chain(
@@ -436,6 +433,12 @@ class DeseqDataSet(ad.AnnData):
                     ]
                 )
             )
+            # Remove non unique characters while keeping the apparition orde
+            factors_dict = {}
+            for factor in extracted_single_factors:
+                factors_dict[factor] = None
+            extracted_single_factors = list(factors_dict.keys())
+
             # We extract all individual factors from the design matrix following
             # pydeseq2 naming conventions containing potentially _vs_
             for individual_factor in extracted_single_factors:
@@ -454,8 +457,15 @@ class DeseqDataSet(ad.AnnData):
 
             # With some luck here design_matrix is valid all the time
             self.obsm["design_matrix"] = design_matrix
-            # useful for build_contrast
-            self.single_design_factors = list(set(extracted_single_factors))
+
+            self.single_design_factors = extracted_single_factors
+
+            # We store design factors as a list for later reuse in contrast
+            self.design_factors = [
+                col_name_parser(col, split_interactions=False)
+                for col in design_matrix
+                if col != "intercept"
+            ]
 
         if len(self.single_design_factors) == 1:
             if self.obs[self.single_design_factors[0]].nunique() == 1:
