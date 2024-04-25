@@ -1096,6 +1096,12 @@ class DeseqDataSet(ad.AnnData):
         # Replace values in main object
         self.varm["_normed_means"][self.varm["refitted"]] = sub_dds.varm["_normed_means"]
         self.varm["LFC"][self.varm["refitted"]] = sub_dds.varm["LFC"]
+        self.varm["genewise_dispersions"][self.varm["refitted"]] = sub_dds.varm[
+            "genewise_dispersions"
+        ]
+        self.varm["fitted_dispersions"][self.varm["refitted"]] = sub_dds.varm[
+            "fitted_dispersions"
+        ]
         self.varm["dispersions"][self.varm["refitted"]] = sub_dds.varm["dispersions"]
 
         replace_cooks = pd.DataFrame(self.layers["cooks"].copy())
