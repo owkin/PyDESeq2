@@ -311,7 +311,8 @@ class DeseqDataSet(ad.AnnData):
             If False, only an intercept is used. (default: ``False``).
 
         fit_type: str
-            * ``None``: use the vst_fit_type to fit the dispersions.
+            * ``None``: fit_type provided at initialization to fit
+            the dispersions trend curve.
             * ``"parametric"``: fit a dispersion-mean relation via a robust
               gamma-family GLM.
             * ``"mean"``: use the mean of gene-wise dispersion estimates.
@@ -458,8 +459,8 @@ class DeseqDataSet(ad.AnnData):
             (default: ``None``).
         """
         if fit_type is not None:
-            self.current_fit_type = fit_type
-            print(f"Using {self.current_fit_type} fit type.")
+            self.fit_type = fit_type
+            print(f"Using {self.fit_type} fit type.")
 
         # Compute DESeq2 normalization factors using the Median-of-ratios method
         self.fit_size_factors()
