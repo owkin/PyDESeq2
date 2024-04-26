@@ -312,7 +312,7 @@ class DeseqDataSet(ad.AnnData):
 
         fit_type: str
             * ``None``: fit_type provided at initialization to fit
-            the dispersions trend curve.
+              the dispersions trend curve.
             * ``"parametric"``: fit a dispersion-mean relation via a robust
               gamma-family GLM.
             * ``"mean"``: use the mean of gene-wise dispersion estimates.
