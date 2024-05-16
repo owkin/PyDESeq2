@@ -524,8 +524,9 @@ def irls_solver(
         beta_init = solve(R, Q.T @ y)
         beta = beta_init
     else:  # Initialise intercept with log base mean
-        beta = np.zeros(num_vars)
-        beta[0] = np.log(counts / size_factors).mean()
+        beta_init = np.zeros(num_vars)
+        beta_init[0] = np.log(counts / size_factors).mean()
+        beta = beta_init
 
     dev = 1000.0
     dev_ratio = 1.0
