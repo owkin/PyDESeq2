@@ -744,7 +744,7 @@ def test_vst_fit(train_dds):
     train_dds.vst_fit()
 
     # the correct attributes are fit
-    assert "trend_coeffs" in train_dds.uns
+    assert "vst_trend_coeffs" in train_dds.uns
     assert "normed_counts" in train_dds.layers
     assert "size_factors" in train_dds.obsm
 
@@ -769,7 +769,7 @@ def test_vst_transform(train_dds, test_counts):
     ],
 )
 def test_vst_blind(train_counts, train_metadata, dea_fit_type, vst_fit_type):
-    """Test vst with combinatory dea dea_fit_type and vst_fit_type"""
+    """Test vst with combinatory dea dea_fit_type and fit_type"""
     train_dds = DeseqDataSet(
         counts=train_counts,
         metadata=train_metadata,
@@ -786,7 +786,8 @@ def test_vst_blind(train_counts, train_metadata, dea_fit_type, vst_fit_type):
     assert train_dds.fit_type == dea_fit_type
 
     train_dds.vst(use_design=False, fit_type=vst_fit_type)
-    assert train_dds.fit_type == vst_fit_type
+    # Check that the dea fit type hasn't changed
+    assert train_dds.fit_type == dea_fit_type
 
 
 def test_vst_transform_no_fit(train_counts, train_metadata, test_counts):
