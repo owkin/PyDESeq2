@@ -545,7 +545,7 @@ class DeseqDataSet(ad.AnnData):
                 beta_tol=self.beta_tol,
             )
 
-        self.layers["_mu_hat"] = np.full((self.n_obs, self.n_vars), np.NaN)
+        self.layers["_mu_hat"] = np.full((self.n_obs, self.n_vars), np.nan)
         self.layers["_mu_hat"][:, self.varm["non_zero"]] = mu_hat_
 
         if not self.quiet:
@@ -564,12 +564,12 @@ class DeseqDataSet(ad.AnnData):
         if not self.quiet:
             print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
-        self.varm["genewise_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.varm["genewise_dispersions"] = np.full(self.n_vars, np.nan)
         self.varm["genewise_dispersions"][self.varm["non_zero"]] = np.clip(
             dispersions_, self.min_disp, self.max_disp
         )
 
-        self.varm["_genewise_converged"] = np.full(self.n_vars, np.NaN)
+        self.varm["_genewise_converged"] = np.full(self.n_vars, np.nan)
         self.varm["_genewise_converged"][self.varm["non_zero"]] = l_bfgs_b_converged_
 
     def fit_dispersion_trend(self) -> None:
@@ -684,12 +684,12 @@ class DeseqDataSet(ad.AnnData):
         if not self.quiet:
             print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
 
-        self.varm["MAP_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.varm["MAP_dispersions"] = np.full(self.n_vars, np.nan)
         self.varm["MAP_dispersions"][self.varm["non_zero"]] = np.clip(
             dispersions_, self.min_disp, self.max_disp
         )
 
-        self.varm["_MAP_converged"] = np.full(self.n_vars, np.NaN)
+        self.varm["_MAP_converged"] = np.full(self.n_vars, np.nan)
         self.varm["_MAP_converged"][self.varm["non_zero"]] = l_bfgs_b_converged_
 
         # Filter outlier genes for which we won't apply shrinkage
@@ -731,7 +731,7 @@ class DeseqDataSet(ad.AnnData):
             print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
 
         self.varm["LFC"] = pd.DataFrame(
-            np.NaN,
+            np.nan,
             index=self.var_names,
             columns=self.obsm["design_matrix"].columns,
         )
@@ -744,13 +744,13 @@ class DeseqDataSet(ad.AnnData):
             )
         )
 
-        self.layers["_mu_LFC"] = np.full((self.n_obs, self.n_vars), np.NaN)
+        self.layers["_mu_LFC"] = np.full((self.n_obs, self.n_vars), np.nan)
         self.layers["_mu_LFC"][:, self.varm["non_zero"]] = mu_
 
-        self.layers["_hat_diagonals"] = np.full((self.n_obs, self.n_vars), np.NaN)
+        self.layers["_hat_diagonals"] = np.full((self.n_obs, self.n_vars), np.nan)
         self.layers["_hat_diagonals"][:, self.varm["non_zero"]] = hat_diagonals_
 
-        self.varm["_LFC_converged"] = np.full(self.n_vars, np.NaN)
+        self.varm["_LFC_converged"] = np.full(self.n_vars, np.nan)
         self.varm["_LFC_converged"][self.varm["non_zero"]] = converged_
 
     def calculate_cooks(self) -> None:
@@ -786,7 +786,7 @@ class DeseqDataSet(ad.AnnData):
             / (1 - nonzero_data.layers["_hat_diagonals"]) ** 2
         )
 
-        self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.NaN)
+        self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.nan)
         self.layers["cooks"][:, self.varm["non_zero"]] = (
             squared_pearson_res / num_vars * diag_mul
         )
@@ -834,7 +834,7 @@ class DeseqDataSet(ad.AnnData):
         )
         alpha_hat = np.minimum(rde, mde)
 
-        self.varm["_MoM_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.varm["_MoM_dispersions"] = np.full(self.n_vars, np.nan)
         self.varm["_MoM_dispersions"][self.varm["non_zero"]] = np.clip(
             alpha_hat, self.min_disp, self.max_disp
         )
@@ -934,7 +934,7 @@ class DeseqDataSet(ad.AnnData):
             )
         self.uns["trend_coeffs"] = pd.Series(coeffs, index=["a0", "a1"])
 
-        self.varm["fitted_dispersions"] = np.full(self.n_vars, np.NaN)
+        self.varm["fitted_dispersions"] = np.full(self.n_vars, np.nan)
         self.uns["disp_function_type"] = "parametric"
         self.varm["fitted_dispersions"][self.varm["non_zero"]] = self.disp_function(
             self.varm["_normed_means"][self.varm["non_zero"]]
