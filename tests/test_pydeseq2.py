@@ -671,7 +671,7 @@ def test_ref_level(counts_df, metadata):
     assert (
         dds.obsm["design_matrix"]["group_X_vs_Y"]
         == metadata["group"].apply(
-            lambda x: 1 if x == "X" else 0 if x == "Y" else np.NaN
+            lambda x: 1 if x == "X" else 0 if x == "Y" else np.nan
         )
     ).all()
 

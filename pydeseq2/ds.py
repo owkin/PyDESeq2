@@ -436,7 +436,7 @@ class DeseqStats:
             )
         )
 
-        self._LFC_shrink_converged = pd.Series(np.NaN, index=self.dds.var_names)
+        self._LFC_shrink_converged = pd.Series(np.nan, index=self.dds.var_names)
         self._LFC_shrink_converged.update(
             pd.Series(l_bfgs_b_converged_, index=self.dds.non_zero_genes)
         )
