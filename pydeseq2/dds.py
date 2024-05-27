@@ -750,11 +750,9 @@ class DeseqDataSet(ad.AnnData):
 
         # Filter outlier genes for which we won't apply shrinkage
         self.varm["dispersions"] = self.varm["MAP_dispersions"].copy()
-        self.varm["_outlier_genes"] = np.log(
-            self.varm["genewise_dispersions"]
-        ) > np.log(self.varm["fitted_dispersions"]) + 2 * np.sqrt(
-            self.uns["_squared_logres"]
-        )
+        self.varm["_outlier_genes"] = np.log(self.varm["genewise_dispersions"]) > np.log(
+            self.varm["fitted_dispersions"]
+        ) + 2 * np.sqrt(self.uns["_squared_logres"])
         self.varm["dispersions"][self.varm["_outlier_genes"]] = self.varm[
             "genewise_dispersions"
         ][self.varm["_outlier_genes"]]
@@ -1172,9 +1170,7 @@ class DeseqDataSet(ad.AnnData):
         sub_dds.fit_LFC()
 
         # Replace values in main object
-        self.varm["_normed_means"][self.varm["refitted"]] = sub_dds.varm[
-            "_normed_means"
-        ]
+        self.varm["_normed_means"][self.varm["refitted"]] = sub_dds.varm["_normed_means"]
         self.varm["LFC"][self.varm["refitted"]] = sub_dds.varm["LFC"]
         self.varm["genewise_dispersions"][self.varm["refitted"]] = sub_dds.varm[
             "genewise_dispersions"
@@ -1269,9 +1265,7 @@ class DeseqDataSet(ad.AnnData):
             ) < 1e-4:
                 break
             elif i == niter - 1:
-                print(
-                    "Iterative size factor fitting did not converge.", file=sys.stderr
-                )
+                print("Iterative size factor fitting did not converge.", file=sys.stderr)
 
         # Restore the design matrix and free buffer
         self.obsm["design_matrix"] = self.obsm["design_matrix_buffer"].copy()
