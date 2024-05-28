@@ -4,6 +4,7 @@ import pytest
 
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
+from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import load_example_data
 
 
@@ -142,7 +143,20 @@ def test_underscores_in_factors():
             counts=counts_df,
             metadata=metadata,
             design_factors="some_variable_with_underscores",
-            ref_level=["some_variable_with_underscores", "level_with_underscores"],
+            ref_level=[("some_variable_with_underscores", "level_with_underscores")],
+        )
+    dds.deseq2()
+
+    stat_res = DeseqStats(dds)
+    stat_res.summary()
+    stat_res.lfc_shrink()
+
+    # Run the pipeline. This should raise a warning, but not cause bugs.
+    with pytest.warns(UserWarning):
+        dds = DeseqDataSet(
+            counts=counts_df,
+            metadata=metadata,
+            design_factors="some_variable_with_underscores",
         )
     dds.deseq2()
 
@@ -176,6 +190,29 @@ def test_rank_deficient_design():
         DeseqDataSet(
             counts=counts_df, metadata=metadata, design_factors=["condition", "batch"]
         )
+
+
+@pytest.mark.parametrize(
+    "design_factors",
+    [
+        ["condition"],
+        ["condition", "group"],
+        "~condition:group",
+        "~condition+condition:group",
+    ],
+)
+def test_full_rank_design(design_factors):
+    """Check that the design matrix has full column rank in all of the above cases."""
+
+    metadata = load_example_data(
+        modality="metadata",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    design = build_design_matrix(metadata, design_factors)
+    # breakpoint
+    assert np.linalg.matrix_rank(design) == design.shape[1]
 
 
 def test_equal_num_vars_num_samples_design():
@@ -213,7 +250,7 @@ def test_reference_level():
             counts=counts_df,
             metadata=metadata,
             design_factors="condition",
-            ref_level="control",
+            ref_level=[("condition", "control")],
         )
 
 

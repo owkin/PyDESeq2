@@ -334,9 +334,15 @@ def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.04):
         counts_df.loc["sample1", "gene1"] = 2000
         counts_df.loc["sample11", "gene7"] = 1000
         metadata.loc["sample1", "condition"] = "C"
+        ref_level = [("condition", "C")]
+    else:
+        ref_level = None
 
     dds = DeseqDataSet(
-        counts=counts_df, metadata=metadata, design_factors=["group", "condition"]
+        counts=counts_df,
+        metadata=metadata,
+        design_factors=["group", "condition"],
+        ref_level=ref_level,
     )
     dds.deseq2()
 
@@ -428,19 +434,22 @@ def test_continuous_deseq(
         counts_df.loc["sample1", "gene1"] = 2000
         counts_df.loc["sample11", "gene7"] = 1000
         metadata.loc["sample1", "condition"] = "C"
+        ref_level = [("condition", "C")]
+    else:
+        ref_level = None
 
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
         design_factors=["group", "condition", "measurement"],
         continuous_factors=["measurement"],
+        ref_level=ref_level,
     )
     dds.deseq2()
 
     res = DeseqStats(dds)
     res.summary()
     res_df = res.results_df
-
     # Check results
     assert_res_almost_equal(res_df, r_res, tol)
 
@@ -662,7 +671,7 @@ def test_ref_level(counts_df, metadata):
         counts=counts_df,
         metadata=metadata,
         design_factors=["group", "condition"],
-        ref_level=["group", "Y"],
+        ref_level=[("group", "Y")],
     )
 
     # Check that the column exists
@@ -770,3 +779,57 @@ def assert_res_almost_equal(py_res, r_res, tol=0.02):
     ).max() < tol
     assert (abs(r_res.pvalue - py_res.pvalue) / r_res.pvalue).max() < tol
     assert (abs(r_res.padj - py_res.padj) / r_res.padj).max() < tol
+
+
+def test_interactions(counts_df, metadata, tol=0.02):
+    """Test that the outputs of the pydeseq2 pipeline match those of the original
+    R package (starting from the same inputs), up to a tolerance in relative error.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_group_plus_int = pd.read_csv(  # F841
+        os.path.join(
+            test_path, "data/interactions/r_test_res_group_condition+group.csv"
+        ),
+        index_col=0,
+    )
+
+    r_cond_plus_int = pd.read_csv(
+        os.path.join(
+            test_path, "data/interactions/r_test_res_condition+group_condition.csv"
+        ),  # E501
+        index_col=0,
+    )
+
+    dds_group_plus_int = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors="~group + condition:group",
+    )
+
+    dds_group_plus_int.deseq2()
+
+    res_group_plus_int = DeseqStats(
+        dds_group_plus_int, contrast=["condition:group", "BY", "AX"]
+    )
+    res_group_plus_int.summary()
+
+    pd.testing.assert_frame_equal(
+        res_group_plus_int.results_df, r_group_plus_int, atol=tol
+    )
+
+    dds_cond_plus_int = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors="~condition + condition:group",
+    )
+
+    dds_cond_plus_int.deseq2()
+
+    res_cond_plus_int = DeseqStats(
+        dds_cond_plus_int, contrast=["condition:group", "BY", "AX"]
+    )
+    res_cond_plus_int.summary()
+    pd.testing.assert_frame_equal(
+        res_cond_plus_int.results_df, r_cond_plus_int, atol=tol
+    )
