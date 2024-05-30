@@ -443,6 +443,26 @@ def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
 
 
 def irls_H(X, W, ridge_factor):
+    """
+    Calculate the diagonal of weighted hat matrix H
+
+    Parameters
+    ----------
+    X : ndarray
+        Design matrix
+
+    W : ndarray
+        Weights calculated from means and dispersion prior
+
+    ridge_factor : ndarray
+        Preallocated ridge factor (diagonal) array
+
+    Returns
+    -------
+    float
+        sqrt(W) * diag(X(XTWX)-1XT) * sqrt(W)
+    """
+
     W_sq = np.sqrt(W)
     XtWX = (X.T * W) @ X + ridge_factor
 
