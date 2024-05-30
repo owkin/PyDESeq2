@@ -957,8 +957,8 @@ def wald_test(
         Standard error of the Wald statistic.
     """
     # Build covariance matrix estimator
-    W = np.diag(mu / (1 + mu * disp))
-    M = design_matrix.T @ W @ design_matrix
+    W = mu / (1 + mu * disp)
+    M = (design_matrix.T * W[None, :]) @ design_matrix
     H = np.linalg.inv(M + ridge_factor)
     Hc = H @ contrast
     # Evaluate standard error and Wald statistic
