@@ -462,7 +462,6 @@ def irls_H(X, W, ridge_factor):
     float
         sqrt(W) * diag(X(XTWX)-1XT) * sqrt(W)
     """
-
     W_sq = np.sqrt(W)
     XtWX = (X.T * W) @ X + ridge_factor
 
