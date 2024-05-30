@@ -444,14 +444,10 @@ def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
 
 def irls_H(X, W, ridge_factor):
     W_sq = np.sqrt(W)
-    XtWX  =(X.T * W) @ X + ridge_factor
+    XtWX = (X.T * W) @ X + ridge_factor
 
     # Calculate only the diagonal for X(XTWX)-1X
-    H = np.einsum(
-        'ij,jk,ki->i',
-        X,
-        np.linalg.inv(XtWX), X.T
-    )
+    H = np.einsum("ij,jk,ki->i", X, np.linalg.inv(XtWX), X.T)
 
     return W_sq * H * W_sq
 

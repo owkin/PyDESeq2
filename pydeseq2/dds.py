@@ -519,14 +519,16 @@ class DeseqDataSet(ad.AnnData):
         if fit_type == "iterative":
             self._fit_iterate_size_factors()
 
-        elif fit_type == 'poscounts':
+        elif fit_type == "poscounts":
             log_counts = np.zeros_like(self.X, dtype=np.float32)
             np.log(self.X, out=log_counts, where=self.X != 0)
 
             self.logmeans = log_counts.mean(0)
             self.filtered_genes = (~np.isinf(self.logmeans)) & (self.logmeans > 0)
 
-            log_ratios = log_counts[:, self.filtered_genes] - self.logmeans[self.filtered_genes]
+            log_ratios = (
+                log_counts[:, self.filtered_genes] - self.logmeans[self.filtered_genes]
+            )
             self.obsm["size_factors"] = np.exp(np.median(log_ratios, axis=1))
             self.layers["normed_counts"] = self.X / self.obsm["size_factors"][:, None]
 
