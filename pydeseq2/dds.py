@@ -498,7 +498,7 @@ class DeseqDataSet(ad.AnnData):
             self.refit()
 
     def fit_size_factors(
-        self, fit_type: Literal["ratio", "iterative"] = "ratio"
+        self, fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio"
     ) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
@@ -513,9 +513,23 @@ class DeseqDataSet(ad.AnnData):
         """
         if not self.quiet:
             print("Fitting size factors...", file=sys.stderr)
+
         start = time.time()
+
         if fit_type == "iterative":
             self._fit_iterate_size_factors()
+
+        elif fit_type == 'poscounts':
+            log_counts = np.zeros_like(self.X, dtype=np.float32)
+            np.log(self.X, out=log_counts, where=self.X != 0)
+
+            self.logmeans = log_counts.mean(0)
+            self.filtered_genes = (~np.isinf(self.logmeans)) & (self.logmeans > 0)
+
+            log_ratios = log_counts[:, self.filtered_genes] - self.logmeans[self.filtered_genes]
+            self.obsm["size_factors"] = np.exp(np.median(log_ratios, axis=1))
+            self.layers["normed_counts"] = self.X / self.obsm["size_factors"][:, None]
+
         # Test whether it is possible to use median-of-ratios.
         elif (self.X == 0).any(0).all():
             # There is at least a zero for each gene
@@ -526,14 +540,15 @@ class DeseqDataSet(ad.AnnData):
                 stacklevel=2,
             )
             self._fit_iterate_size_factors()
+
         else:
             self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X)
             (
                 self.layers["normed_counts"],
                 self.obsm["size_factors"],
             ) = deseq2_norm_transform(self.X, self.logmeans, self.filtered_genes)
-        end = time.time()
 
+        end = time.time()
         self.varm["_normed_means"] = self.layers["normed_counts"].mean(0)
 
         if not self.quiet:

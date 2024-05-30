@@ -442,6 +442,20 @@ def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
     return -ll_part
 
 
+def irls_H(X, W, ridge_factor):
+    W_sq = np.sqrt(W)
+    XtWX  =(X.T * W) @ X + ridge_factor
+
+    # Calculate only the diagonal for X(XTWX)-1X
+    H = np.einsum(
+        'ij,jk,ki->i',
+        X,
+        np.linalg.inv(XtWX), X.T
+    )
+
+    return W_sq * H * W_sq
+
+
 def irls_solver(
     counts: np.ndarray,
     size_factors: np.ndarray,
@@ -594,9 +608,8 @@ def irls_solver(
 
     # Compute H diagonal (useful for Cook distance outlier filtering)
     W = mu / (1.0 + mu * disp)
-    W_sq = np.sqrt(W)
-    XtWX = (X.T * W) @ X + ridge_factor
-    H = W_sq * np.diag(X @ np.linalg.inv(XtWX) @ X.T) * W_sq
+    H = irls_H(X, W, ridge_factor)
+
     # Return an UNthresholded mu (as in the R code)
     # Previous quantities are estimated with a threshold though
     mu = size_factors * np.exp(X @ beta)
