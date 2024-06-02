@@ -837,27 +837,31 @@ class DeseqDataSet(ad.AnnData):
 
         num_vars = self.obsm["design_matrix"].shape[-1]
 
-        # Keep only non-zero genes
-        nonzero_data = self[:, self.non_zero_genes]
-        normed_counts = pd.DataFrame(
-            nonzero_data.X / self.obsm["size_factors"][:, None],
-            index=self.obs_names,
-            columns=self.non_zero_genes,
-        )
-
         dispersions = robust_method_of_moments_disp(
-            normed_counts, self.obsm["design_matrix"]
+            self.layers["normed_counts"][:, self.varm["non_zero"]],
+            self.obsm["design_matrix"]
         )
+        # Keep only non-zero genes
+        _mu_lfc_nonzero = self.layers["_mu_LFC"][:, self.varm["non_zero"]]
 
-        V = (
-            nonzero_data.layers["_mu_LFC"]
-            + dispersions.values[None, :] * nonzero_data.layers["_mu_LFC"] ** 2
-        )
-        squared_pearson_res = (nonzero_data.X - nonzero_data.layers["_mu_LFC"]) ** 2 / V
-        diag_mul = (
-            nonzero_data.layers["_hat_diagonals"]
-            / (1 - nonzero_data.layers["_hat_diagonals"]) ** 2
-        )
+        V = _mu_lfc_nonzero ** 2
+        V *= dispersions[None, :]
+        V += _mu_lfc_nonzero
+
+        squared_pearson_res = self.X[:, self.varm["non_zero"]] - _mu_lfc_nonzero
+        squared_pearson_res **= 2
+        squared_pearson_res /= V
+
+        del V
+        del _mu_lfc_nonzero
+
+        _hat_diag_nonzero = self.layers["_hat_diagonals"][:, self.varm["non_zero"]]
+
+        diag_mul = 1 - _hat_diag_nonzero
+        diag_mul **= 2
+        diag_mul = _hat_diag_nonzero / diag_mul
+
+        del _hat_diag_nonzero
 
         self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.nan)
         self.layers["cooks"][:, self.varm["non_zero"]] = (

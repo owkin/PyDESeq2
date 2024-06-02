@@ -792,7 +792,7 @@ def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
         return s[ntrim : n - ntrim].mean()
 
 
-def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
+def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
     """Return trimmed variance of counts according to condition.
 
     Compute the variance after trimming data of its smallest and largest elements,
@@ -801,7 +801,7 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
 
     Parameters
     ----------
-    counts : pandas.DataFrame
+    counts : np.ndarray
         Sample-wise gene counts.
 
     cells : pandas.Series
@@ -809,7 +809,7 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
 
     Returns
     -------
-    pandas.Series :
+    np.ndarray :
         Gene-wise trimmed variance estimate.
     """
     # how much to trim at different n
@@ -820,23 +820,28 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
         return 2 if x >= 23.5 else 1 if x >= 3.5 else 0
 
     ns = cells.value_counts()
-    cell_means = pd.DataFrame(index=counts.columns)
-    for lvl in cells.unique():
-        cell_means[lvl] = trimmed_mean(
-            counts.loc[cells == lvl], trim=trimratio[trimfn(ns[lvl])], axis=0
-        )
-    qmat = cell_means[cells].T
-    qmat.index = cells.index
-    sqerror = (counts - qmat) ** 2
+    sqerror = counts.copy()
 
-    varEst = pd.DataFrame(index=counts.columns)
     for lvl in cells.unique():
+        cell_means = trimmed_mean(
+            counts[cells == lvl, :],
+            trim=trimratio[trimfn(ns[lvl])],
+            axis=0
+        )
+        sqerror[cells == lvl, :] = sqerror[cells == lvl, :] - cell_means[None, :]
+    
+    sqerror **= 2
+
+    varEst = np.zeros((len(ns), counts.shape[1]), dtype=float)
+    for i, lvl in enumerate(cells.unique()):
         scale = [2.04, 1.86, 1.51][trimfn(ns[lvl])]
-        varEst[lvl] = scale * trimmed_mean(
-            sqerror[cells == lvl], trim=trimratio[trimfn(ns[lvl])], axis=0
+        varEst[i, :] = scale * trimmed_mean(
+            sqerror[cells == lvl, :],
+            trim=trimratio[trimfn(ns[lvl])],
+            axis=0
         )
 
-    return varEst.max(axis=1)
+    return varEst.max(axis=0)
 
 
 def trimmed_variance(
@@ -1101,7 +1106,8 @@ def n_or_more_replicates(design_matrix: pd.DataFrame, min_replicates: int) -> pd
 
 
 def robust_method_of_moments_disp(
-    normed_counts: pd.DataFrame, design_matrix: pd.DataFrame
+    normed_counts: np.ndarray,
+    design_matrix: pd.DataFrame
 ) -> pd.Series:
     """Perform dispersion estimation using a method of trimmed moments.
 
@@ -1128,7 +1134,7 @@ def robust_method_of_moments_disp(
         # 1 - group rows by unique combinations of design factors
         # 2 - keep only groups with 3 or more replicates
         # 3 - filter the counts matrix to only keep rows in those groups
-        filtered_counts = normed_counts.loc[three_or_more, :]
+        filtered_counts = normed_counts[three_or_more.values, :]
         filtered_design = design_matrix.loc[three_or_more, :]
         cell_id = pd.Series(
             filtered_design.groupby(
@@ -1138,15 +1144,14 @@ def robust_method_of_moments_disp(
         )
         v = trimmed_cell_variance(filtered_counts, cell_id)
     else:
-        v = pd.Series(
-            trimmed_variance(normed_counts.values), index=normed_counts.columns
-        )
+        v = trimmed_variance(normed_counts)
+
     m = normed_counts.mean(0)
     alpha = (v - m) / m**2
     # cannot use the typical min_disp = 1e-8 here or else all counts in the same
     # group as the outlier count will get an extreme Cook's distance
     minDisp = 0.04
-    alpha = cast(pd.Series, np.maximum(alpha, minDisp))
+    alpha = np.maximum(alpha, minDisp)
     return alpha
 
 
