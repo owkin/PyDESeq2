@@ -817,11 +817,8 @@ class DeseqDataSet(ad.AnnData):
             )
         )
 
-        self.layers["_mu_LFC"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["_mu_LFC"][:, self.varm["non_zero"]] = mu_
-
-        self.layers["_hat_diagonals"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["_hat_diagonals"][:, self.varm["non_zero"]] = hat_diagonals_
+        self.obsm["_mu_LFC"] = mu_
+        self.obsm["_hat_diagonals"] = hat_diagonals_
 
         self.varm["_LFC_converged"] = np.full(self.n_vars, np.nan)
         self.varm["_LFC_converged"][self.varm["non_zero"]] = converged_
@@ -835,6 +832,10 @@ class DeseqDataSet(ad.AnnData):
         if "dispersions" not in self.varm:
             self.fit_MAP_dispersions()
 
+        if not self.quiet:
+            print("Calculating cook's distance...", file=sys.stderr)
+        
+        start = time.time()
         num_vars = self.obsm["design_matrix"].shape[-1]
 
         dispersions = robust_method_of_moments_disp(
@@ -842,31 +843,29 @@ class DeseqDataSet(ad.AnnData):
             self.obsm["design_matrix"]
         )
         # Keep only non-zero genes
-        _mu_lfc_nonzero = self.layers["_mu_LFC"][:, self.varm["non_zero"]]
-
-        V = _mu_lfc_nonzero ** 2
+        V = self.obsm["_mu_LFC"] ** 2
         V *= dispersions[None, :]
-        V += _mu_lfc_nonzero
+        V += self.obsm["_mu_LFC"]
 
-        squared_pearson_res = self.X[:, self.varm["non_zero"]] - _mu_lfc_nonzero
+        squared_pearson_res = self.X[:, self.varm["non_zero"]] - self.obsm["_mu_LFC"]
         squared_pearson_res **= 2
         squared_pearson_res /= V
+        squared_pearson_res /= num_vars
 
         del V
-        del _mu_lfc_nonzero
 
-        _hat_diag_nonzero = self.layers["_hat_diagonals"][:, self.varm["non_zero"]]
-
-        diag_mul = 1 - _hat_diag_nonzero
+        diag_mul = 1 - self.obsm["_hat_diagonals"]
         diag_mul **= 2
-        diag_mul = _hat_diag_nonzero / diag_mul
+        diag_mul = self.obsm["_hat_diagonals"] / diag_mul
+        squared_pearson_res *= diag_mul
 
-        del _hat_diag_nonzero
+        del diag_mul
+
+        if not self.quiet:
+            print(f"... done in {time.time()-start:.2f} seconds.\n", file=sys.stderr)
 
         self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["cooks"][:, self.varm["non_zero"]] = (
-            squared_pearson_res / num_vars * diag_mul
-        )
+        self.layers["cooks"][:, self.varm["non_zero"]] = squared_pearson_res
 
     def refit(self) -> None:
         """Refit Cook outliers.

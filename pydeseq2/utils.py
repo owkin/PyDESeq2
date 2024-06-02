@@ -1108,14 +1108,14 @@ def n_or_more_replicates(design_matrix: pd.DataFrame, min_replicates: int) -> pd
 def robust_method_of_moments_disp(
     normed_counts: np.ndarray,
     design_matrix: pd.DataFrame
-) -> pd.Series:
+) -> np.ndarray:
     """Perform dispersion estimation using a method of trimmed moments.
 
     Used for outlier detection based on Cook's distance.
 
     Parameters
     ----------
-    normed_counts : pandas.DataFrame
+    normed_counts : ndarray
         DF of deseq2-normalized read counts. Rows: samples, columns: genes.
 
     design_matrix : pandas.DataFrame
@@ -1124,7 +1124,7 @@ def robust_method_of_moments_disp(
 
     Returns
     -------
-    pandas.Series
+    ndarray
         Trimmed method of moment dispersion estimates.
         Used for outlier detection based on Cook's distance.
     """
@@ -1151,7 +1151,7 @@ def robust_method_of_moments_disp(
     # cannot use the typical min_disp = 1e-8 here or else all counts in the same
     # group as the outlier count will get an extreme Cook's distance
     minDisp = 0.04
-    alpha = np.maximum(alpha, minDisp)
+    np.maximum(alpha, minDisp, out=alpha)
     return alpha
 
 
