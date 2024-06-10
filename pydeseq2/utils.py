@@ -442,35 +442,6 @@ def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
     return -ll_part
 
 
-def irls_H(X, W, ridge_factor):
-    """
-    Calculate the diagonal of weighted hat matrix H
-
-    Parameters
-    ----------
-    X : ndarray
-        Design matrix
-
-    W : ndarray
-        Weights calculated from means and dispersion prior
-
-    ridge_factor : ndarray
-        Preallocated ridge factor (diagonal) array
-
-    Returns
-    -------
-    float
-        sqrt(W) * diag(X(XTWX)-1XT) * sqrt(W)
-    """
-    W_sq = np.sqrt(W)
-    XtWX = (X.T * W) @ X + ridge_factor
-
-    # Calculate only the diagonal for X(XTWX)-1X
-    H = np.einsum("ij,jk,ki->i", X, np.linalg.inv(XtWX), X.T)
-
-    return W_sq * H * W_sq
-
-
 def irls_solver(
     counts: np.ndarray,
     size_factors: np.ndarray,
@@ -622,8 +593,21 @@ def irls_solver(
         dev_ratio = np.abs(dev - old_dev) / (np.abs(dev) + 0.1)
 
     # Compute H diagonal (useful for Cook distance outlier filtering)
+    # Calculate only the diagonal for X(XTWX)-1XT using einsum
+    # This is numerically equivalent to the more expensive calculation
+    # np.diag(X @ (X^T @ np.inv(X^T @ np.diag(W) @ X + lambda) @ X^T)
     W = mu / (1.0 + mu * disp)
-    H = irls_H(X, W, ridge_factor)
+    H = np.einsum(
+        "ij,jk,ki->i",
+        X,
+        np.linalg.inv(
+            (X.T * W[None, :]) @ X + ridge_factor
+        ),
+        X.T
+    )
+
+    W_sq = np.sqrt(W)
+    H = W_sq * H * W_sq
 
     # Return an UNthresholded mu (as in the R code)
     # Previous quantities are estimated with a threshold though
