@@ -506,12 +506,12 @@ class DeseqDataSet(ad.AnnData):
         unless each gene has at least one sample with zero read counts, in which case it
         switches to the ``iterative`` method.
 
-        Also available is the 'poscounts' method implemented in DESeq2 for the single-cell
-        or metagenomics use case where there may be few or no features which have no zero
-        values. In this situation, size factors can depend on a very small number of features
-        (or only one feature) leading to incorrect inference. This method for calculating
-        size factors will only exclude genes which have all-0 values (and are not amenable
-        to inference anyway)
+        Also available is the 'poscounts' method implemented in DESeq2 for the
+        single-cell or metagenomics use case where there may be few or no features which
+        have no zero values. In this situation, size factors can depend on a very small
+        number of features (or only one feature) leading to incorrect inference. This
+        method for calculating size factors will only exclude genes which have all-0
+        values (and are not amenable to inference anyway)
 
         The "poscounts" method calculates the n-th root of the product of the non-zero
         (positive) counts
