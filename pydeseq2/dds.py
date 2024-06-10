@@ -534,15 +534,15 @@ class DeseqDataSet(ad.AnnData):
             # Calculate logcounts for x > 0 and take the mean for each gene
             log_counts = np.zeros_like(self.X, dtype=float)
             np.log(self.X, out=log_counts, where=self.X != 0)
-            self.logmeans = log_counts.mean(0)
+            logmeans = log_counts.mean(0)
 
             # Determine which genes are usable (finite logmeans)
-            self.filtered_genes = (~np.isinf(self.logmeans)) & (self.logmeans > 0)
+            self.filtered_genes = (~np.isinf(logmeans)) & (logmeans > 0)
 
             # Calculate size factor per sample
             def sizeFactor(x):
                 _mask = np.logical_and(self.filtered_genes, x > 0)
-                return np.exp(np.median(np.log(x[_mask]) - self.logmeans[_mask]))
+                return np.exp(np.median(np.log(x[_mask]) - logmeans[_mask]))
 
             sf = np.apply_along_axis(sizeFactor, 1, self.X)
             del log_counts
@@ -550,6 +550,7 @@ class DeseqDataSet(ad.AnnData):
             # Normalize size factors to a geometric mean of 1 to match DESeq
             self.obsm["size_factors"] = sf / (np.exp(np.mean(np.log(sf))))
             self.layers["normed_counts"] = self.X / self.obsm["size_factors"][:, None]
+            self.logmeans = logmeans
 
         # Test whether it is possible to use median-of-ratios.
         elif (self.X == 0).any(0).all():

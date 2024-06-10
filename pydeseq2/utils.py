@@ -887,7 +887,7 @@ def wald_test(
     design_matrix: np.ndarray,
     disp: float,
     lfc: np.ndarray,
-    mu: float,
+    mu: np.ndarray,
     ridge_factor: np.ndarray,
     contrast: np.ndarray,
     lfc_null: float,
@@ -909,7 +909,7 @@ def wald_test(
     lfc : ndarray
         Log-fold change estimate (in natural log scale).
 
-    mu : float
+    mu : ndarray
         Mean estimation for the NB model.
 
     ridge_factor : ndarray
