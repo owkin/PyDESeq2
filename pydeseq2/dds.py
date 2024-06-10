@@ -542,11 +542,7 @@ class DeseqDataSet(ad.AnnData):
             # Calculate size factor per sample
             def sizeFactor(x):
                 _mask = np.logical_and(self.filtered_genes, x > 0)
-                return np.exp(
-                    np.median(
-                        np.log(x[_mask]) - self.logmeans[_mask]
-                    )
-                )
+                return np.exp(np.median(np.log(x[_mask]) - self.logmeans[_mask]))
 
             sf = np.apply_along_axis(sizeFactor, 1, self.X)
             del log_counts

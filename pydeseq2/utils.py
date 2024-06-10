@@ -598,12 +598,7 @@ def irls_solver(
     # np.diag(X @ (X^T @ np.inv(X^T @ np.diag(W) @ X + lambda) @ X^T)
     W = mu / (1.0 + mu * disp)
     H = np.einsum(
-        "ij,jk,ki->i",
-        X,
-        np.linalg.inv(
-            (X.T * W[None, :]) @ X + ridge_factor
-        ),
-        X.T
+        "ij,jk,ki->i", X, np.linalg.inv((X.T * W[None, :]) @ X + ridge_factor), X.T
     )
 
     W_sq = np.sqrt(W)
