@@ -8,7 +8,6 @@ from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import Union
-from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -803,21 +802,17 @@ def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
 
     for lvl in cells.unique():
         cell_means = trimmed_mean(
-            counts[cells == lvl, :],
-            trim=trimratio[trimfn(ns[lvl])],
-            axis=0
+            counts[cells == lvl, :], trim=trimratio[trimfn(ns[lvl])], axis=0
         )
         sqerror[cells == lvl, :] = sqerror[cells == lvl, :] - cell_means[None, :]
-    
+
     sqerror **= 2
 
     varEst = np.zeros((len(ns), counts.shape[1]), dtype=float)
     for i, lvl in enumerate(cells.unique()):
         scale = [2.04, 1.86, 1.51][trimfn(ns[lvl])]
         varEst[i, :] = scale * trimmed_mean(
-            sqerror[cells == lvl, :],
-            trim=trimratio[trimfn(ns[lvl])],
-            axis=0
+            sqerror[cells == lvl, :], trim=trimratio[trimfn(ns[lvl])], axis=0
         )
 
     return varEst.max(axis=0)
@@ -1085,8 +1080,7 @@ def n_or_more_replicates(design_matrix: pd.DataFrame, min_replicates: int) -> pd
 
 
 def robust_method_of_moments_disp(
-    normed_counts: np.ndarray,
-    design_matrix: pd.DataFrame
+    normed_counts: np.ndarray, design_matrix: pd.DataFrame
 ) -> np.ndarray:
     """Perform dispersion estimation using a method of trimmed moments.
 

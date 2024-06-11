@@ -854,14 +854,14 @@ class DeseqDataSet(ad.AnnData):
 
         if not self.quiet:
             print("Calculating cook's distance...", file=sys.stderr)
-        
+
         start = time.time()
         num_vars = self.obsm["design_matrix"].shape[-1]
 
         # Calculate dispersion
         dispersions = robust_method_of_moments_disp(
             self.layers["normed_counts"][:, self.varm["non_zero"]],
-            self.obsm["design_matrix"]
+            self.obsm["design_matrix"],
         )
 
         # Calculate the squared pearson residuals for non-zero features
@@ -894,7 +894,6 @@ class DeseqDataSet(ad.AnnData):
 
         if not self.quiet:
             print(f"... done in {time.time()-start:.2f} seconds.\n", file=sys.stderr)
-
 
     def refit(self) -> None:
         """Refit Cook outliers.
