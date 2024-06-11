@@ -8,6 +8,7 @@ from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import Union
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -801,8 +802,11 @@ def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
     sqerror = np.zeros_like(counts)
 
     for lvl in cells.unique():
-        cell_means = trimmed_mean(
-            counts[cells == lvl, :], trim=trimratio[trimfn(ns[lvl])], axis=0
+        cell_means = cast(
+            np.ndarray,
+            trimmed_mean(
+                counts[cells == lvl, :], trim=trimratio[trimfn(ns[lvl])], axis=0
+            )
         )
         sqerror[cells == lvl, :] = counts[cells == lvl, :] - cell_means[None, :]
 
