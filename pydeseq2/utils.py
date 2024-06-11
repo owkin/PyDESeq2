@@ -735,11 +735,7 @@ def fit_alpha_mle(
         )
 
 
-def trimmed_mean(
-    x: np.ndarray,
-    trim: float = 0.1,
-    **kwargs
-) -> Union[float, np.ndarray]:
+def trimmed_mean(x: np.ndarray, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
     """Return trimmed mean.
 
     Compute the mean after trimming data of its smallest and largest quantiles.
