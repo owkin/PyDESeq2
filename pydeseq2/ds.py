@@ -260,16 +260,17 @@ class DeseqStats:
         self.results_df["pvalue"] = self.p_values
         self.results_df["padj"] = self.padj
 
-        if self.contrast[1] == self.contrast[2] == "":
-            # The factor is continuous
-            print(f"Log2 fold change & Wald test p-value: " f"{self.contrast[0]}")
-        else:
-            # The factor is categorical
-            print(
-                f"Log2 fold change & Wald test p-value: "
-                f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
-            )
-        print(self.results_df)
+        if not self.quiet:
+            if self.contrast[1] == self.contrast[2] == "":
+                # The factor is continuous
+                print(f"Log2 fold change & Wald test p-value: " f"{self.contrast[0]}")
+            else:
+                # The factor is categorical
+                print(
+                    f"Log2 fold change & Wald test p-value: "
+                    f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
+                )
+            print(self.results_df)
 
     def run_wald_test(self) -> None:
         """Perform a Wald test.
