@@ -858,34 +858,43 @@ class DeseqDataSet(ad.AnnData):
         start = time.time()
         num_vars = self.obsm["design_matrix"].shape[-1]
 
+        # Calculate dispersion
         dispersions = robust_method_of_moments_disp(
             self.layers["normed_counts"][:, self.varm["non_zero"]],
             self.obsm["design_matrix"]
         )
-        # Keep only non-zero genes
+
+        # Calculate the squared pearson residuals for non-zero features
+        squared_pearson_res = self.X[:, self.varm["non_zero"]] - self.obsm["_mu_LFC"]
+        squared_pearson_res **= 2
+
+        # Calculate the overdispersion parameter tau
         V = self.obsm["_mu_LFC"] ** 2
         V *= dispersions[None, :]
         V += self.obsm["_mu_LFC"]
 
-        squared_pearson_res = self.X[:, self.varm["non_zero"]] - self.obsm["_mu_LFC"]
-        squared_pearson_res **= 2
+        # Calculate r^2 / (tau * num_vars)
         squared_pearson_res /= V
         squared_pearson_res /= num_vars
 
         del V
 
+        # Calculate leverage modifier H / (1 - H)^2
         diag_mul = 1 - self.obsm["_hat_diagonals"]
         diag_mul **= 2
         diag_mul = self.obsm["_hat_diagonals"] / diag_mul
+
+        # Multiply r^2 / (tau * num_vars) by H / (1 - H)^2 to get cook's distance
         squared_pearson_res *= diag_mul
 
         del diag_mul
 
+        self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.nan)
+        self.layers["cooks"][:, self.varm["non_zero"]] = squared_pearson_res
+
         if not self.quiet:
             print(f"... done in {time.time()-start:.2f} seconds.\n", file=sys.stderr)
 
-        self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["cooks"][:, self.varm["non_zero"]] = squared_pearson_res
 
     def refit(self) -> None:
         """Refit Cook outliers.

@@ -1095,7 +1095,7 @@ def robust_method_of_moments_disp(
     Parameters
     ----------
     normed_counts : ndarray
-        DF of deseq2-normalized read counts. Rows: samples, columns: genes.
+        Array of deseq2-normalized read counts. Rows: samples, columns: genes.
 
     design_matrix : pandas.DataFrame
         A DataFrame with experiment design information (to split cohorts).
