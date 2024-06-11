@@ -735,14 +735,18 @@ def fit_alpha_mle(
         )
 
 
-def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
+def trimmed_mean(
+    x: np.ndarray,
+    trim: float = 0.1,
+    **kwargs
+) -> Union[float, np.ndarray]:
     """Return trimmed mean.
 
     Compute the mean after trimming data of its smallest and largest quantiles.
 
     Parameters
     ----------
-    features : ndarray
+    x : ndarray
         Data whose mean to compute.
 
     trim : float
@@ -779,7 +783,7 @@ def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
 
     Parameters
     ----------
-    counts : np.ndarray
+    counts : ndarray
         Sample-wise gene counts.
 
     cells : pandas.Series
@@ -787,7 +791,7 @@ def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
 
     Returns
     -------
-    np.ndarray :
+    ndarray :
         Gene-wise trimmed variance estimate.
     """
     # how much to trim at different n
@@ -798,13 +802,13 @@ def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
         return 2 if x >= 23.5 else 1 if x >= 3.5 else 0
 
     ns = cells.value_counts()
-    sqerror = counts.copy()
+    sqerror = np.zeros_like(counts)
 
     for lvl in cells.unique():
         cell_means = trimmed_mean(
             counts[cells == lvl, :], trim=trimratio[trimfn(ns[lvl])], axis=0
         )
-        sqerror[cells == lvl, :] = sqerror[cells == lvl, :] - cell_means[None, :]
+        sqerror[cells == lvl, :] = counts[cells == lvl, :] - cell_means[None, :]
 
     sqerror **= 2
 
