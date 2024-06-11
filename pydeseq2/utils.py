@@ -806,7 +806,7 @@ def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
             np.ndarray,
             trimmed_mean(
                 counts[cells == lvl, :], trim=trimratio[trimfn(ns[lvl])], axis=0
-            )
+            ),
         )
         sqerror[cells == lvl, :] = counts[cells == lvl, :] - cell_means[None, :]
 
