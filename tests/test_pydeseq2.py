@@ -35,6 +35,39 @@ def metadata():
     )
 
 
+def test_size_factors_ratio(counts_df, metadata):
+    """Test that the size_factors calcuation by ratio matches R."""
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    r_size_factors = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_size_factors.csv"),
+        index_col=0,
+    )["x"].values
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds.fit_size_factors()
+
+    np.testing.assert_almost_equal(
+        dds.obsm["size_factors"].ravel(), r_size_factors.ravel()
+    )
+
+
+def test_size_factors_poscounts(counts_df, metadata):
+    """Test that the size_factors calcuation by poscount matches R."""
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds.fit_size_factors("poscounts")
+
+    r_size_factors = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_size_factors_poscount.csv"),
+        index_col=0,
+    )["sizeFactor"].values
+
+    np.testing.assert_almost_equal(dds.obsm["size_factors"].ravel(), r_size_factors)
+
+
 def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.

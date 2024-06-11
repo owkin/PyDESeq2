@@ -593,10 +593,17 @@ def irls_solver(
         dev_ratio = np.abs(dev - old_dev) / (np.abs(dev) + 0.1)
 
     # Compute H diagonal (useful for Cook distance outlier filtering)
+    # Calculate only the diagonal for X(XTWX)-1XT using einsum
+    # This is numerically equivalent to the more expensive calculation
+    # np.diag(X @ (X^T @ np.inv(X^T @ np.diag(W) @ X + lambda) @ X^T)
     W = mu / (1.0 + mu * disp)
+    H = np.einsum(
+        "ij,jk,ki->i", X, np.linalg.inv((X.T * W[None, :]) @ X + ridge_factor), X.T
+    )
+
     W_sq = np.sqrt(W)
-    XtWX = (X.T * W) @ X + ridge_factor
-    H = W_sq * np.diag(X @ np.linalg.inv(XtWX) @ X.T) * W_sq
+    H = W_sq * H * W_sq
+
     # Return an UNthresholded mu (as in the R code)
     # Previous quantities are estimated with a threshold though
     mu = size_factors * np.exp(X @ beta)
@@ -880,7 +887,7 @@ def wald_test(
     design_matrix: np.ndarray,
     disp: float,
     lfc: np.ndarray,
-    mu: float,
+    mu: np.ndarray,
     ridge_factor: np.ndarray,
     contrast: np.ndarray,
     lfc_null: float,
@@ -902,7 +909,7 @@ def wald_test(
     lfc : ndarray
         Log-fold change estimate (in natural log scale).
 
-    mu : float
+    mu : ndarray
         Mean estimation for the NB model.
 
     ridge_factor : ndarray
@@ -929,8 +936,8 @@ def wald_test(
         Standard error of the Wald statistic.
     """
     # Build covariance matrix estimator
-    W = np.diag(mu / (1 + mu * disp))
-    M = design_matrix.T @ W @ design_matrix
+    W = mu / (1 + mu * disp)
+    M = (design_matrix.T * W[None, :]) @ design_matrix
     H = np.linalg.inv(M + ridge_factor)
     Hc = H @ contrast
     # Evaluate standard error and Wald statistic

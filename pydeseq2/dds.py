@@ -498,13 +498,23 @@ class DeseqDataSet(ad.AnnData):
             self.refit()
 
     def fit_size_factors(
-        self, fit_type: Literal["ratio", "iterative"] = "ratio"
+        self, fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio"
     ) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
         Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`,
         unless each gene has at least one sample with zero read counts, in which case it
         switches to the ``iterative`` method.
+
+        Also available is the 'poscounts' method implemented in DESeq2 for the
+        single-cell or metagenomics use case where there may be few or no features which
+        have no zero values. In this situation, size factors can depend on a very small
+        number of features (or only one feature) leading to incorrect inference. This
+        method for calculating size factors will only exclude genes which have all-0
+        values (and are not amenable to inference anyway)
+
+        The "poscounts" method calculates the n-th root of the product of the non-zero
+        (positive) counts
 
         Parameters
         ----------
@@ -513,9 +523,35 @@ class DeseqDataSet(ad.AnnData):
         """
         if not self.quiet:
             print("Fitting size factors...", file=sys.stderr)
+
         start = time.time()
+
         if fit_type == "iterative":
             self._fit_iterate_size_factors()
+
+        elif fit_type == "poscounts":
+
+            # Calculate logcounts for x > 0 and take the mean for each gene
+            log_counts = np.zeros_like(self.X, dtype=float)
+            np.log(self.X, out=log_counts, where=self.X != 0)
+            logmeans = log_counts.mean(0)
+
+            # Determine which genes are usable (finite logmeans)
+            self.filtered_genes = (~np.isinf(logmeans)) & (logmeans > 0)
+
+            # Calculate size factor per sample
+            def sizeFactor(x):
+                _mask = np.logical_and(self.filtered_genes, x > 0)
+                return np.exp(np.median(np.log(x[_mask]) - logmeans[_mask]))
+
+            sf = np.apply_along_axis(sizeFactor, 1, self.X)
+            del log_counts
+
+            # Normalize size factors to a geometric mean of 1 to match DESeq
+            self.obsm["size_factors"] = sf / (np.exp(np.mean(np.log(sf))))
+            self.layers["normed_counts"] = self.X / self.obsm["size_factors"][:, None]
+            self.logmeans = logmeans
+
         # Test whether it is possible to use median-of-ratios.
         elif (self.X == 0).any(0).all():
             # There is at least a zero for each gene
@@ -526,14 +562,15 @@ class DeseqDataSet(ad.AnnData):
                 stacklevel=2,
             )
             self._fit_iterate_size_factors()
+
         else:
             self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X)
             (
                 self.layers["normed_counts"],
                 self.obsm["size_factors"],
             ) = deseq2_norm_transform(self.X, self.logmeans, self.filtered_genes)
-        end = time.time()
 
+        end = time.time()
         self.varm["_normed_means"] = self.layers["normed_counts"].mean(0)
 
         if not self.quiet:
