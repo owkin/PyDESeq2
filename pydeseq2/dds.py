@@ -837,11 +837,8 @@ class DeseqDataSet(ad.AnnData):
             )
         )
 
-        self.layers["_mu_LFC"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["_mu_LFC"][:, self.varm["non_zero"]] = mu_
-
-        self.layers["_hat_diagonals"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["_hat_diagonals"][:, self.varm["non_zero"]] = hat_diagonals_
+        self.obsm["_mu_LFC"] = mu_
+        self.obsm["_hat_diagonals"] = hat_diagonals_
 
         self.varm["_LFC_converged"] = np.full(self.n_vars, np.nan)
         self.varm["_LFC_converged"][self.varm["non_zero"]] = converged_
@@ -855,34 +852,40 @@ class DeseqDataSet(ad.AnnData):
         if "dispersions" not in self.varm:
             self.fit_MAP_dispersions()
 
+        if not self.quiet:
+            print("Calculating cook's distance...", file=sys.stderr)
+        
+        start = time.time()
         num_vars = self.obsm["design_matrix"].shape[-1]
 
-        # Keep only non-zero genes
-        nonzero_data = self[:, self.non_zero_genes]
-        normed_counts = pd.DataFrame(
-            nonzero_data.X / self.obsm["size_factors"][:, None],
-            index=self.obs_names,
-            columns=self.non_zero_genes,
-        )
-
         dispersions = robust_method_of_moments_disp(
-            normed_counts, self.obsm["design_matrix"]
+            self.layers["normed_counts"][:, self.varm["non_zero"]],
+            self.obsm["design_matrix"]
         )
+        # Keep only non-zero genes
+        V = self.obsm["_mu_LFC"] ** 2
+        V *= dispersions[None, :]
+        V += self.obsm["_mu_LFC"]
 
-        V = (
-            nonzero_data.layers["_mu_LFC"]
-            + dispersions.values[None, :] * nonzero_data.layers["_mu_LFC"] ** 2
-        )
-        squared_pearson_res = (nonzero_data.X - nonzero_data.layers["_mu_LFC"]) ** 2 / V
-        diag_mul = (
-            nonzero_data.layers["_hat_diagonals"]
-            / (1 - nonzero_data.layers["_hat_diagonals"]) ** 2
-        )
+        squared_pearson_res = self.X[:, self.varm["non_zero"]] - self.obsm["_mu_LFC"]
+        squared_pearson_res **= 2
+        squared_pearson_res /= V
+        squared_pearson_res /= num_vars
+
+        del V
+
+        diag_mul = 1 - self.obsm["_hat_diagonals"]
+        diag_mul **= 2
+        diag_mul = self.obsm["_hat_diagonals"] / diag_mul
+        squared_pearson_res *= diag_mul
+
+        del diag_mul
+
+        if not self.quiet:
+            print(f"... done in {time.time()-start:.2f} seconds.\n", file=sys.stderr)
 
         self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["cooks"][:, self.varm["non_zero"]] = (
-            squared_pearson_res / num_vars * diag_mul
-        )
+        self.layers["cooks"][:, self.varm["non_zero"]] = squared_pearson_res
 
     def refit(self) -> None:
         """Refit Cook outliers.
