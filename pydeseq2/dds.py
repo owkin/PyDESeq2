@@ -284,7 +284,8 @@ class DeseqDataSet(ad.AnnData):
 
         if inference:
             if hasattr(inference, "n_cpus"):
-                inference.n_cpus = n_cpus
+                if n_cpus:
+                    inference.n_cpus = n_cpus
             else:
                 warnings.warn(
                     "The provided inference object does not have an n_cpus "
