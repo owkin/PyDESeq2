@@ -103,9 +103,9 @@ class DeseqDataSet(ad.AnnData):
 
     n_cpus : int
         Number of cpus to use.  If ``None`` and if ``inference`` is not provided, all
-        available cpus will be used by the ``DefaultInference``. If both are specified,
-        it will try to override the ``n_cpus`` attribute of the ``inference`` object.
-        (default: ``None``).
+        available cpus will be used by the ``DefaultInference``. If both are specified
+        (i.e., ``n_cpus`` and ``inference`` are not ``None``), it will try to override
+        the ``n_cpus`` attribute of the ``inference`` object. (default: ``None``).
 
     inference : Inference
         Implementation of inference routines object instance.
