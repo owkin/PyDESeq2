@@ -253,7 +253,7 @@ def build_design_matrix(
 
         if not expanded:
             # Add reference level as column name suffix
-            for factor in design_factors:
+            for factor in categorical_factors:
                 if ref_level is None or factor != ref_level[0]:
                     # The reference is the unique level that is no longer there
                     ref = next(
