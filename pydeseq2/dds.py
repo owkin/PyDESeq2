@@ -501,7 +501,7 @@ class DeseqDataSet(ad.AnnData):
     def fit_size_factors(
         self,
         fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
-        control_genes: Optional[np.ndarray | List[str] | List[int] | pd.Index] = None,
+        control_genes: Optional[Union[np.ndarray, List[str], List[int], pd.Index]] = None,
     ) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
