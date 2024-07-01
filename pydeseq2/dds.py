@@ -501,7 +501,7 @@ class DeseqDataSet(ad.AnnData):
     def fit_size_factors(
         self,
         fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
-        control_genes: Optional[np.ndarray | List[str] | List[int] | pd.Index] = None
+        control_genes: Optional[np.ndarray | List[str] | List[int] | pd.Index] = None,
     ) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
@@ -528,7 +528,7 @@ class DeseqDataSet(ad.AnnData):
         ----------
         fit_type : str
             The normalization method to use (default: ``"ratio"``).
-        control_genes : 
+        control_genes :
         """
         if not self.quiet:
             print("Fitting size factors...", file=sys.stderr)
@@ -541,9 +541,9 @@ class DeseqDataSet(ad.AnnData):
 
             # Use AnnData internal indexing to get gene index array
             # Allows bool/int/var_name to be provided
-            _control_mask[
-                self._normalize_indices((slice(None), control_genes))[1]
-            ] = True
+            _control_mask[self._normalize_indices((slice(None), control_genes))[1]] = (
+                True
+            )
 
         # Otherwise mask all genes to be True
         else:

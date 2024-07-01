@@ -71,40 +71,29 @@ def test_size_factors_poscounts(counts_df, metadata):
 def test_size_factors_control_genes(counts_df, metadata):
     """Test that the size_factors calculation properly takes control_genes"""
 
-    dds = DeseqDataSet(
-        counts=counts_df,
-        metadata=metadata,
-        design_factors="condition"
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
 
-    dds.fit_size_factors(
-        control_genes=['gene4']
-    )
+    dds.fit_size_factors(control_genes=["gene4"])
 
     np.testing.assert_almost_equal(
         dds.obsm["size_factors"].ravel(),
-        counts_df['gene4'] / np.exp(np.log(counts_df['gene4']).mean())
+        counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
     )
 
-    dds.fit_size_factors(
-        fit_type='poscounts',
-        control_genes=[3]
-    )
+    dds.fit_size_factors(fit_type="poscounts", control_genes=[3])
 
     np.testing.assert_almost_equal(
         dds.obsm["size_factors"].ravel(),
-        counts_df['gene4'] / np.exp(np.log(counts_df['gene4']).mean())
+        counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
     )
 
-    dds.fit_size_factors(
-        fit_type='poscounts'
-    )
+    dds.fit_size_factors(fit_type="poscounts")
 
     np.testing.assert_raises(
         AssertionError,
         np.testing.assert_array_equal,
         dds.obsm["size_factors"].ravel(),
-        counts_df['gene4'] / np.exp(np.log(counts_df['gene4']).mean())
+        counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
     )
 
 
