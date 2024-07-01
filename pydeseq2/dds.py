@@ -498,7 +498,9 @@ class DeseqDataSet(ad.AnnData):
             self.refit()
 
     def fit_size_factors(
-        self, fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio"
+        self,
+        fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
+        control_genes: Optional[np.ndarray | List[str] | List[int] | pd.Index] = None
     ) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
@@ -516,15 +518,35 @@ class DeseqDataSet(ad.AnnData):
         The "poscounts" method calculates the n-th root of the product of the non-zero
         (positive) counts
 
+        Control genes can be optionally provided; if so, size factors will be fit to
+        only the genes in this argument. This is the same functionality as controlGenes
+        in R DESeq2. Any valid AnnData indexer (bool, int position, var_name string) is
+        accepted.
+
         Parameters
         ----------
         fit_type : str
             The normalization method to use (default: ``"ratio"``).
+        control_genes : 
         """
         if not self.quiet:
             print("Fitting size factors...", file=sys.stderr)
 
         start = time.time()
+
+        # If control genes are provided, set a mask where those genes are True
+        if control_genes is not None:
+            _control_mask = np.zeros(self.X.shape[1], dtype=bool)
+
+            # Use AnnData internal indexing to get gene index array
+            # Allows bool/int/var_name to be provided
+            _control_mask[
+                self._normalize_indices((slice(None), control_genes))[1]
+            ] = True
+
+        # Otherwise mask all genes to be True
+        else:
+            _control_mask = np.ones(self.X.shape[1], dtype=bool)
 
         if fit_type == "iterative":
             self._fit_iterate_size_factors()
@@ -538,10 +560,11 @@ class DeseqDataSet(ad.AnnData):
 
             # Determine which genes are usable (finite logmeans)
             self.filtered_genes = (~np.isinf(logmeans)) & (logmeans > 0)
+            _control_mask &= self.filtered_genes
 
             # Calculate size factor per sample
             def sizeFactor(x):
-                _mask = np.logical_and(self.filtered_genes, x > 0)
+                _mask = np.logical_and(_control_mask, x > 0)
                 return np.exp(np.median(np.log(x[_mask]) - logmeans[_mask]))
 
             sf = np.apply_along_axis(sizeFactor, 1, self.X)
@@ -565,10 +588,12 @@ class DeseqDataSet(ad.AnnData):
 
         else:
             self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X)
+            _control_mask &= self.filtered_genes
+
             (
                 self.layers["normed_counts"],
                 self.obsm["size_factors"],
-            ) = deseq2_norm_transform(self.X, self.logmeans, self.filtered_genes)
+            ) = deseq2_norm_transform(self.X, self.logmeans, _control_mask)
 
         end = time.time()
         self.varm["_normed_means"] = self.layers["normed_counts"].mean(0)

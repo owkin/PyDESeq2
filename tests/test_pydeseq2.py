@@ -68,6 +68,46 @@ def test_size_factors_poscounts(counts_df, metadata):
     np.testing.assert_almost_equal(dds.obsm["size_factors"].ravel(), r_size_factors)
 
 
+def test_size_factors_control_genes(counts_df, metadata):
+    """Test that the size_factors calculation properly takes control_genes"""
+
+    dds = DeseqDataSet(
+        counts=counts_df,
+        metadata=metadata,
+        design_factors="condition"
+    )
+
+    dds.fit_size_factors(
+        control_genes=['gene4']
+    )
+
+    np.testing.assert_almost_equal(
+        dds.obsm["size_factors"].ravel(),
+        counts_df['gene4'] / np.exp(np.log(counts_df['gene4']).mean())
+    )
+
+    dds.fit_size_factors(
+        fit_type='poscounts',
+        control_genes=[3]
+    )
+
+    np.testing.assert_almost_equal(
+        dds.obsm["size_factors"].ravel(),
+        counts_df['gene4'] / np.exp(np.log(counts_df['gene4']).mean())
+    )
+
+    dds.fit_size_factors(
+        fit_type='poscounts'
+    )
+
+    np.testing.assert_raises(
+        AssertionError,
+        np.testing.assert_array_equal,
+        dds.obsm["size_factors"].ravel(),
+        counts_df['gene4'] / np.exp(np.log(counts_df['gene4']).mean())
+    )
+
+
 def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.
