@@ -40,7 +40,7 @@ class DeseqStats:
         to 'condition A'.
         For continuous variables, the last two strings should be left empty, e.g.
         ``['measurement', '', '']``.
-        If None, the last variable from the design matrix is chosen
+        If ``None``, the last variable from the design matrix is chosen
         as the variable of interest, and the reference level is picked alphabetically.
         (default: ``None``).
 
