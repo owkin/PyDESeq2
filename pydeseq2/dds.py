@@ -531,7 +531,7 @@ class DeseqDataSet(ad.AnnData):
         fit_type : str
             The normalization method to use: "ratio", "poscounts" or "iterative".
             (default: ``"ratio"``).
-        control_genes : ndarray, list, pd.Index, or None
+        control_genes : ndarray, list, pandas.Index, or None
             Genes to use as control genes for size factor fitting. If None, all genes
             are used. (default: ``None``).
         """
