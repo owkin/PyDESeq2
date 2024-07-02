@@ -208,6 +208,8 @@ class DeseqDataSet(ad.AnnData):
             test_valid_counts(adata.X)
             # Copy fields from original AnnData
             self.__dict__.update(adata.__dict__)
+            # Cast counts to ints to avoid any issue
+            self.X = adata.X.astype(int)
         elif counts is not None and metadata is not None:
             # Test counts before going further
             test_valid_counts(counts)
