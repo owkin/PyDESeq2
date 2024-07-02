@@ -499,7 +499,11 @@ class DeseqDataSet(ad.AnnData):
             self.refit()
 
     def fit_size_factors(
-        self, fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio"
+        self,
+        fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
+        control_genes: Optional[
+            Union[np.ndarray, List[str], List[int], pd.Index]
+        ] = None,
     ) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
@@ -512,20 +516,43 @@ class DeseqDataSet(ad.AnnData):
         have no zero values. In this situation, size factors can depend on a very small
         number of features (or only one feature) leading to incorrect inference. This
         method for calculating size factors will only exclude genes which have all-0
-        values (and are not amenable to inference anyway)
+        values (and are not amenable to inference anyway).
 
         The "poscounts" method calculates the n-th root of the product of the non-zero
-        (positive) counts
+        (positive) counts.
+
+        Control genes can be optionally provided; if so, size factors will be fit to
+        only the genes in this argument. This is the same functionality as controlGenes
+        in R DESeq2. Any valid AnnData indexer (bool, int position, var_name string) is
+        accepted.
 
         Parameters
         ----------
         fit_type : str
-            The normalization method to use (default: ``"ratio"``).
+            The normalization method to use: "ratio", "poscounts" or "iterative".
+            (default: ``"ratio"``).
+        control_genes : ndarray, list, pandas.Index, or None
+            Genes to use as control genes for size factor fitting. If None, all genes
+            are used. (default: ``None``).
         """
         if not self.quiet:
             print("Fitting size factors...", file=sys.stderr)
 
         start = time.time()
+
+        # If control genes are provided, set a mask where those genes are True
+        if control_genes is not None:
+            _control_mask = np.zeros(self.X.shape[1], dtype=bool)
+
+            # Use AnnData internal indexing to get gene index array
+            # Allows bool/int/var_name to be provided
+            _control_mask[self._normalize_indices((slice(None), control_genes))[1]] = (
+                True
+            )
+
+        # Otherwise mask all genes to be True
+        else:
+            _control_mask = np.ones(self.X.shape[1], dtype=bool)
 
         if fit_type == "iterative":
             self._fit_iterate_size_factors()
@@ -539,10 +566,11 @@ class DeseqDataSet(ad.AnnData):
 
             # Determine which genes are usable (finite logmeans)
             self.filtered_genes = (~np.isinf(logmeans)) & (logmeans > 0)
+            _control_mask &= self.filtered_genes
 
             # Calculate size factor per sample
             def sizeFactor(x):
-                _mask = np.logical_and(self.filtered_genes, x > 0)
+                _mask = np.logical_and(_control_mask, x > 0)
                 return np.exp(np.median(np.log(x[_mask]) - logmeans[_mask]))
 
             sf = np.apply_along_axis(sizeFactor, 1, self.X)
@@ -566,10 +594,12 @@ class DeseqDataSet(ad.AnnData):
 
         else:
             self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X)
+            _control_mask &= self.filtered_genes
+
             (
                 self.layers["normed_counts"],
                 self.obsm["size_factors"],
-            ) = deseq2_norm_transform(self.X, self.logmeans, self.filtered_genes)
+            ) = deseq2_norm_transform(self.X, self.logmeans, _control_mask)
 
         end = time.time()
         self.varm["_normed_means"] = self.layers["normed_counts"].mean(0)
@@ -838,11 +868,8 @@ class DeseqDataSet(ad.AnnData):
             )
         )
 
-        self.layers["_mu_LFC"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["_mu_LFC"][:, self.varm["non_zero"]] = mu_
-
-        self.layers["_hat_diagonals"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["_hat_diagonals"][:, self.varm["non_zero"]] = hat_diagonals_
+        self.obsm["_mu_LFC"] = mu_
+        self.obsm["_hat_diagonals"] = hat_diagonals_
 
         self.varm["_LFC_converged"] = np.full(self.n_vars, np.nan)
         self.varm["_LFC_converged"][self.varm["non_zero"]] = converged_
@@ -856,34 +883,48 @@ class DeseqDataSet(ad.AnnData):
         if "dispersions" not in self.varm:
             self.fit_MAP_dispersions()
 
+        if not self.quiet:
+            print("Calculating cook's distance...", file=sys.stderr)
+
+        start = time.time()
         num_vars = self.obsm["design_matrix"].shape[-1]
 
-        # Keep only non-zero genes
-        nonzero_data = self[:, self.non_zero_genes]
-        normed_counts = pd.DataFrame(
-            nonzero_data.X / self.obsm["size_factors"][:, None],
-            index=self.obs_names,
-            columns=self.non_zero_genes,
-        )
-
+        # Calculate dispersion
         dispersions = robust_method_of_moments_disp(
-            normed_counts, self.obsm["design_matrix"]
+            self.layers["normed_counts"][:, self.varm["non_zero"]],
+            self.obsm["design_matrix"],
         )
 
-        V = (
-            nonzero_data.layers["_mu_LFC"]
-            + dispersions.values[None, :] * nonzero_data.layers["_mu_LFC"] ** 2
-        )
-        squared_pearson_res = (nonzero_data.X - nonzero_data.layers["_mu_LFC"]) ** 2 / V
-        diag_mul = (
-            nonzero_data.layers["_hat_diagonals"]
-            / (1 - nonzero_data.layers["_hat_diagonals"]) ** 2
-        )
+        # Calculate the squared pearson residuals for non-zero features
+        squared_pearson_res = self.X[:, self.varm["non_zero"]] - self.obsm["_mu_LFC"]
+        squared_pearson_res **= 2
+
+        # Calculate the overdispersion parameter tau
+        V = self.obsm["_mu_LFC"] ** 2
+        V *= dispersions[None, :]
+        V += self.obsm["_mu_LFC"]
+
+        # Calculate r^2 / (tau * num_vars)
+        squared_pearson_res /= V
+        squared_pearson_res /= num_vars
+
+        del V
+
+        # Calculate leverage modifier H / (1 - H)^2
+        diag_mul = 1 - self.obsm["_hat_diagonals"]
+        diag_mul **= 2
+        diag_mul = self.obsm["_hat_diagonals"] / diag_mul
+
+        # Multiply r^2 / (tau * num_vars) by H / (1 - H)^2 to get cook's distance
+        squared_pearson_res *= diag_mul
+
+        del diag_mul
 
         self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.nan)
-        self.layers["cooks"][:, self.varm["non_zero"]] = (
-            squared_pearson_res / num_vars * diag_mul
-        )
+        self.layers["cooks"][:, self.varm["non_zero"]] = squared_pearson_res
+
+        if not self.quiet:
+            print(f"... done in {time.time()-start:.2f} seconds.\n", file=sys.stderr)
 
     def refit(self) -> None:
         """Refit Cook outliers.
