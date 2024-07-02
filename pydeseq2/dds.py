@@ -516,10 +516,10 @@ class DeseqDataSet(ad.AnnData):
         have no zero values. In this situation, size factors can depend on a very small
         number of features (or only one feature) leading to incorrect inference. This
         method for calculating size factors will only exclude genes which have all-0
-        values (and are not amenable to inference anyway)
+        values (and are not amenable to inference anyway).
 
         The "poscounts" method calculates the n-th root of the product of the non-zero
-        (positive) counts
+        (positive) counts.
 
         Control genes can be optionally provided; if so, size factors will be fit to
         only the genes in this argument. This is the same functionality as controlGenes
@@ -529,8 +529,11 @@ class DeseqDataSet(ad.AnnData):
         Parameters
         ----------
         fit_type : str
-            The normalization method to use (default: ``"ratio"``).
-        control_genes :
+            The normalization method to use: "ratio", "poscounts" or "iterative".
+            (default: ``"ratio"``).
+        control_genes : ndarray, list, pd.Index, or None
+            Genes to use as control genes for size factor fitting. If None, all genes
+            are used. (default: ``None``).
         """
         if not self.quiet:
             print("Fitting size factors...", file=sys.stderr)
