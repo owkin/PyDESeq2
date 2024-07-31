@@ -454,10 +454,10 @@ class DeseqStats:
             split_coeff = coeff.split("_")
             # Categorical coeffs are of the form "factor_A_vs_B", and continuous coeffs
             # of the form "factor".
-            if len(split_coeff) == 1:
+            if len(split_coeff) == 1 and not self.quiet:
                 # The factor is continuous
                 print(f"Shrunk log2 fold change & Wald test p-value: " f"{coeff}")
-            else:
+            elif not self.quiet:
                 # The factor is categorical
                 # Categorical coeffs are of the form "factor_A_vs_B", hence "factor"
                 # is split_coeff[0], "A" is split_coeff[1] and "B" split_coeff[3]
@@ -466,7 +466,8 @@ class DeseqStats:
                     f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}"
                 )
 
-            print(self.results_df)
+            if not self.quiet:
+                print(self.results_df)
 
     def plot_MA(self, log: bool = True, save_path: Optional[str] = None, **kwargs):
         """
