@@ -373,7 +373,7 @@ class DeseqDataSet(ad.AnnData):
             # Reduce the design matrix to an intercept and reconstruct at the end
             self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
             self.obsm["design_matrix"] = pd.DataFrame(
-                1, index=self.obs_names, columns=[["intercept"]]
+                1, index=self.obs_names, columns=["intercept"]
             )
             # Fit the trend curve with an intercept design
             self.fit_genewise_dispersions(vst=True)
@@ -1291,7 +1291,7 @@ class DeseqDataSet(ad.AnnData):
         # Reduce the design matrix to an intercept and reconstruct at the end
         self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
         self.obsm["design_matrix"] = pd.DataFrame(
-            1, index=self.obs_names, columns=[["intercept"]]
+            1, index=self.obs_names, columns=["intercept"]
         )
 
         # Fit size factors using MLE
