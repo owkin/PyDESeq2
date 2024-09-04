@@ -373,7 +373,7 @@ class DeseqDataSet(ad.AnnData):
             # Reduce the design matrix to an intercept and reconstruct at the end
             self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
             self.obsm["design_matrix"] = pd.DataFrame(
-                1, index=self.obs_names, columns=[["intercept"]]
+                1, index=self.obs_names, columns=["intercept"]
             )
             # Fit the trend curve with an intercept design
             self.fit_genewise_dispersions(vst=True)
@@ -560,7 +560,6 @@ class DeseqDataSet(ad.AnnData):
             self._fit_iterate_size_factors()
 
         elif fit_type == "poscounts":
-
             # Calculate logcounts for x > 0 and take the mean for each gene
             log_counts = np.zeros_like(self.X, dtype=float)
             np.log(self.X, out=log_counts, where=self.X != 0)
@@ -1125,7 +1124,10 @@ class DeseqDataSet(ad.AnnData):
 
         if self.obsm["replaceable"].sum() == 0:
             # No sample can be replaced. Set self.replaced to False and exit.
-            self.varm["replaced"] = pd.Series(False, index=self.var_names)
+            self.varm["replaced"] = np.full(
+                self.n_vars,
+                False,
+            )
             return
 
         # Get positions of counts with cooks above threshold
@@ -1289,7 +1291,7 @@ class DeseqDataSet(ad.AnnData):
         # Reduce the design matrix to an intercept and reconstruct at the end
         self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
         self.obsm["design_matrix"] = pd.DataFrame(
-            1, index=self.obs_names, columns=[["intercept"]]
+            1, index=self.obs_names, columns=["intercept"]
         )
 
         # Fit size factors using MLE
