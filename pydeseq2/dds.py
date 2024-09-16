@@ -1098,7 +1098,6 @@ class DeseqDataSet(ad.AnnData):
             Whether the dispersion trend curve is being fitted as part of the VST
             pipeline. (default: ``False``).
         """
-
         disp_param_name = "vst_genewise_dispersions" if vst else "genewise_dispersions"
 
         self.uns["mean_disp"] = trim_mean(
