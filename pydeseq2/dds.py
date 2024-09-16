@@ -1105,7 +1105,10 @@ class DeseqDataSet(ad.AnnData):
             proportiontocut=0.001,
         )
 
-        self.uns["disp_function_type"] = "mean"
+        if vst:
+            self.vst_fit_type = "mean"
+        else:
+            self.uns["disp_function_type"] = "mean"
         self.varm["fitted_dispersions"] = np.full(self.n_vars, self.uns["mean_disp"])
 
     def _replace_outliers(self) -> None:
