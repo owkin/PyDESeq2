@@ -1098,6 +1098,7 @@ class DeseqDataSet(ad.AnnData):
             Whether the dispersion trend curve is being fitted as part of the VST
             pipeline. (default: ``False``).
         """
+
         disp_param_name = "vst_genewise_dispersions" if vst else "genewise_dispersions"
 
         self.uns["mean_disp"] = trim_mean(
@@ -1105,7 +1106,10 @@ class DeseqDataSet(ad.AnnData):
             proportiontocut=0.001,
         )
 
-        self.uns["disp_function_type"] = "mean"
+        if vst:
+            self.vst_fit_type = "mean"
+        else:
+            self.uns["disp_function_type"] = "mean"
         self.varm["fitted_dispersions"] = np.full(self.n_vars, self.uns["mean_disp"])
 
     def _replace_outliers(self) -> None:
