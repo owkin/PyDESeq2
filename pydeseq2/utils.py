@@ -12,6 +12,8 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
+from adjustText import adjust_text  # type: ignore
 from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
@@ -1535,6 +1537,97 @@ def make_MA_plot(
 
     if save_path is not None:
         plt.savefig(save_path, bbox_inches="tight")
+
+    # Adapted from https://github.com/mousepixels/sanbomics_scripts/blob/main/high_quality_volcano_plots.ipynb # noqa: E501
+
+
+def make_volcano_plot(
+    results_df: pd.DataFrame,
+    LFC_threshold: float = 0.25,
+    pval_threshold: float = 0.05,
+    annotate_genes: bool = True,
+    write_legend: bool = True,
+    save_path: Optional[str] = None,
+    figsize=(6, 6),
+):
+    # TODO: Add docstring
+
+    plt.figure(figsize=figsize)
+
+    nlgo10_pval_threshold = -np.log10(pval_threshold)
+
+    def map_DE(a):
+        log2FoldChange, nlog10 = a
+        if nlog10 > nlgo10_pval_threshold:
+            if log2FoldChange > LFC_threshold:
+                return "positive"
+            elif log2FoldChange < -LFC_threshold:
+                return "negative"
+        return "none"
+
+    df = results_df.copy()
+    df["nlog10"] = -df["padj"].apply(lambda x: np.log10(x))
+    df["DE"] = df[["log2FoldChange", "nlog10"]].apply(map_DE, axis=1)
+
+    ax = sns.scatterplot(
+        data=df,
+        x="log2FoldChange",
+        y="nlog10",
+        hue="DE",
+        hue_order=["none", "positive", "negative"],
+        palette=["lightgrey", "indianred", "cornflowerblue"],
+        size="baseMean",
+        sizes=(40, 400),
+    )
+
+    ax.axhline(nlgo10_pval_threshold, zorder=0, c="k", lw=2, ls="--")
+    ax.axvline(LFC_threshold, zorder=0, c="k", lw=2, ls="--")
+    ax.axvline(-LFC_threshold, zorder=0, c="k", lw=2, ls="--")
+
+    if annotate_genes:
+        texts = []
+        for i in range(len(df)):
+            if (
+                df.iloc[i].nlog10 > nlgo10_pval_threshold
+                and abs(df.iloc[i].log2FoldChange) > LFC_threshold
+            ):
+                texts.append(
+                    plt.text(
+                        x=df.iloc[i].log2FoldChange,
+                        y=df.iloc[i].nlog10,
+                        s=df.index[i],
+                        fontsize=12,
+                        weight="bold",
+                    )
+                )
+
+        adjust_text(texts, arrowprops={"arrowstyle": "-", "color": "k"})
+
+    if write_legend:
+        plt.legend(
+            loc=1, bbox_to_anchor=(1.4, 1), frameon=False, prop={"weight": "bold"}
+        )
+    else:
+        ax.get_legend().remove()
+
+    for axis in ["bottom", "left"]:
+        ax.spines[axis].set_linewidth(2)
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    ax.tick_params(width=2)
+
+    plt.xticks(size=12, weight="bold")
+    plt.yticks(size=12, weight="bold")
+
+    plt.xlabel("$log_{2}$ fold change", size=15)
+    plt.ylabel("-$log_{10}$ FDR", size=15)
+
+    if save_path is not None:
+        plt.savefig(save_path=save_path, bbox_inches="tight")
+
+    plt.show()
 
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>

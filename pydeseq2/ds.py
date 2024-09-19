@@ -16,6 +16,7 @@ from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.utils import lowess
 from pydeseq2.utils import make_MA_plot
+from pydeseq2.utils import make_volcano_plot
 from pydeseq2.utils import n_or_more_replicates
 
 
@@ -504,6 +505,26 @@ class DeseqStats:
             lfc_null=self.lfc_null,
             alt_hypothesis=self.alt_hypothesis,
             **kwargs,
+        )
+
+    def plot_volcano(
+        self,
+        LFC_threshold=0.25,
+        pval_threshold=0.05,
+        annotate_genes=True,
+        write_legend=False,
+        save_path=None,
+        figsize=(6, 6),
+    ):
+        # TODO : Add docstring
+        make_volcano_plot(
+            self.results_df,
+            LFC_threshold,
+            pval_threshold,
+            annotate_genes,
+            write_legend,
+            save_path,
+            figsize,
         )
 
     def _independent_filtering(self) -> None:
