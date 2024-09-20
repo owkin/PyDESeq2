@@ -522,8 +522,8 @@ def test_zero_inflated():
 
 def test_plot_MA():
     """
-    Test that a KeyError is thrown when attempting to run plot_MA without running the
-    statistical analysis first.
+    Test that an AttributeError is thrown when attempting to run plot_MA without running
+    the statistical analysis first.
     """
 
     counts_df = load_example_data(
@@ -551,3 +551,36 @@ def test_plot_MA():
     res.summary()
     # Now this shouldn't throw an error
     res.plot_MA()
+
+
+def test_plot_volcano():
+    """
+    Test that an AttributeError is thrown when attempting to run plot_volcano() without
+    running the statistical analysis first.
+    """
+
+    counts_df = load_example_data(
+        modality="raw_counts",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    metadata = load_example_data(
+        modality="metadata",
+        dataset="synthetic",
+        debug=False,
+    )
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata)
+    dds.deseq2()
+
+    # Initialize a DeseqStats object without runnning the analysis
+    ds = DeseqStats(dds)
+
+    with pytest.raises(AttributeError):
+        ds.plot_volcano()
+
+    # Run the analysis
+    ds.summary()
+    # Now this shouldn't throw an error
+    ds.plot_volcano()
