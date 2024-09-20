@@ -509,14 +509,50 @@ class DeseqStats:
 
     def plot_volcano(
         self,
-        LFC_threshold=0.25,
+        LFC_threshold=2.0,
         pval_threshold=0.05,
         annotate_genes=True,
         write_legend=False,
         save_path=None,
         figsize=(6, 6),
     ):
-        # TODO : Add docstring
+        """
+        Create a volcano plot using matplotlib.
+
+        Summarizes the results of a differential expression analysis by plotting
+        the negative log10-transformed adjusted p-values against the log2 fold change.
+
+        Parameters
+        ----------
+        LFC_threshold : float
+            Log2 fold change threshold above which genes are considered differentially
+            expressed. (default: ``2.``).
+
+        pval_threshold : float
+            P-value threshold below which genes are considered differentially expressed.
+            (default: ``0.05``).
+
+        annotate_genes : bool
+            Whether or not to annotate genes that pass the LFC and p-value thresholds.
+            (default: ``True``).
+
+        write_legend : bool
+            Whether or not to write the legend on the plot. (default: ``True``).
+
+        save_path : str or None
+            The path where to save the plot. If left None, the plot won't be saved
+            (``default=None``).
+
+        figsize : tuple
+            The size of the figure. (default: ``(6, 6)``).
+        """
+        # Raise an error if results_df are missing
+        if not hasattr(self, "results_df"):
+            raise AttributeError(
+                "Trying to make a volcano plot but p-values were not computed yet. "
+                "Please run the summary() method first."
+            )
+
         make_volcano_plot(
             self.results_df,
             LFC_threshold,

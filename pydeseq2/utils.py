@@ -1543,15 +1543,47 @@ def make_MA_plot(
 
 def make_volcano_plot(
     results_df: pd.DataFrame,
-    LFC_threshold: float = 0.25,
+    LFC_threshold: float = 2,
     pval_threshold: float = 0.05,
     annotate_genes: bool = True,
     write_legend: bool = True,
     save_path: Optional[str] = None,
-    figsize=(6, 6),
+    figsize: tuple = (6, 6),
 ):
-    # TODO: Add docstring
+    """
+    Create a volcano plot using matplotlib.
 
+    Summarizes the results of a differential expression analysis by plotting
+    the negative log10-transformed adjusted p-values against the log2 fold change.
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        Dataframe obtained after running DeseqStats.summary() (the
+        ``results_df`` attribute).
+
+    LFC_threshold : float
+        Log2 fold change threshold above which genes are considered differentially
+        expressed. (default: ``2.``).
+
+    pval_threshold : float
+        P-value threshold below which genes are considered differentially expressed.
+        (default: ``0.05``).
+
+    annotate_genes : bool
+        Whether or not to annotate genes that pass the LFC and p-value thresholds.
+        (default: ``True``).
+
+    write_legend : bool
+        Whether or not to write the legend on the plot. (default: ``True``).
+
+    save_path : str or None
+        The path where to save the plot. If left None, the plot won't be saved
+        (``default=None``).
+
+    figsize : tuple
+        The size of the figure. (default: ``(6, 6)``).
+    """
     plt.figure(figsize=figsize)
 
     nlgo10_pval_threshold = -np.log10(pval_threshold)
