@@ -1,7 +1,7 @@
-[tool.black]
+[tool.linting.black]
 line-length = 89
 
-[tool.ruff]
+[tool.linting.ruff]
 line-length = 89
 select = [
     "F",  # Errors detected by Pyflakes
