@@ -509,12 +509,13 @@ class DeseqStats:
 
     def plot_volcano(
         self,
-        LFC_threshold=2.0,
-        pval_threshold=0.05,
-        annotate_genes=True,
-        write_legend=False,
-        save_path=None,
-        figsize=(6, 6),
+        LFC_threshold: float = 2.0,
+        pval_threshold: float = 0.05,
+        annotate_genes: bool = True,
+        write_legend: bool = False,
+        save_path: Optional[str] = None,
+        figsize: tuple = (6, 6),
+        varying_marker_size: bool = True,
     ):
         """
         Create a volcano plot using matplotlib.
@@ -545,6 +546,9 @@ class DeseqStats:
 
         figsize : tuple
             The size of the figure. (default: ``(6, 6)``).
+
+        varying_marker_size: bool
+            Whether to vary the marker size based on the base mean. (default: ``True``).
         """
         # Raise an error if results_df are missing
         if not hasattr(self, "results_df"):
@@ -561,6 +565,7 @@ class DeseqStats:
             write_legend,
             save_path,
             figsize,
+            varying_marker_size,
         )
 
     def _independent_filtering(self) -> None:

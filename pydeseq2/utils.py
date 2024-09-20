@@ -1549,6 +1549,7 @@ def make_volcano_plot(
     write_legend: bool = True,
     save_path: Optional[str] = None,
     figsize: tuple = (6, 6),
+    varying_marker_size: bool = True,
 ):
     """
     Create a volcano plot using matplotlib.
@@ -1583,6 +1584,10 @@ def make_volcano_plot(
 
     figsize : tuple
         The size of the figure. (default: ``(6, 6)``).
+
+    varying_marker_size : bool
+        Whether or not to vary the marker size based on the base mean.
+        (default: ``True``)
     """
     plt.figure(figsize=figsize)
 
@@ -1608,8 +1613,8 @@ def make_volcano_plot(
         hue="DE",
         hue_order=["none", "positive", "negative"],
         palette=["lightgrey", "indianred", "cornflowerblue"],
-        size="baseMean",
-        sizes=(40, 400),
+        size="baseMean" if varying_marker_size else 40,
+        sizes=(40, 400) if varying_marker_size else None,
     )
 
     ax.axhline(nlgo10_pval_threshold, zorder=0, c="k", lw=2, ls="--")
