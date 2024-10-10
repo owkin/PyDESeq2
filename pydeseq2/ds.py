@@ -16,6 +16,7 @@ from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.utils import lowess
 from pydeseq2.utils import make_MA_plot
+from pydeseq2.utils import make_volcano_plot
 from pydeseq2.utils import n_or_more_replicates
 
 
@@ -504,6 +505,67 @@ class DeseqStats:
             lfc_null=self.lfc_null,
             alt_hypothesis=self.alt_hypothesis,
             **kwargs,
+        )
+
+    def plot_volcano(
+        self,
+        LFC_threshold: float = 2.0,
+        pval_threshold: float = 0.05,
+        annotate_genes: bool = True,
+        write_legend: bool = False,
+        save_path: Optional[str] = None,
+        figsize: tuple = (6, 6),
+        varying_marker_size: bool = True,
+    ):
+        """
+        Create a volcano plot using matplotlib.
+
+        Summarizes the results of a differential expression analysis by plotting
+        the negative log10-transformed adjusted p-values against the log2 fold change.
+
+        Parameters
+        ----------
+        LFC_threshold : float
+            Log2 fold change threshold above which genes are considered differentially
+            expressed. (default: ``2.``).
+
+        pval_threshold : float
+            P-value threshold below which genes are considered differentially expressed.
+            (default: ``0.05``).
+
+        annotate_genes : bool
+            Whether or not to annotate genes that pass the LFC and p-value thresholds.
+            (default: ``True``).
+
+        write_legend : bool
+            Whether or not to write the legend on the plot. (default: ``True``).
+
+        save_path : str or None
+            The path where to save the plot. If left None, the plot won't be saved
+            (``default=None``).
+
+        figsize : tuple
+            The size of the figure. (default: ``(6, 6)``).
+
+        varying_marker_size: bool
+            Whether to vary the marker size based on the base mean. (default: ``True``).
+        """
+        # Raise an error if results_df are missing
+        if not hasattr(self, "results_df"):
+            raise AttributeError(
+                "Trying to make a volcano plot but p-values were not computed yet. "
+                "Please run the summary() method first."
+            )
+
+        make_volcano_plot(
+            self.results_df,
+            LFC_threshold,
+            pval_threshold,
+            annotate_genes,
+            write_legend,
+            save_path,
+            figsize,
+            varying_marker_size,
         )
 
     def _independent_filtering(self) -> None:

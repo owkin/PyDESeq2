@@ -34,6 +34,8 @@ setup(
         "scikit-learn>=1.1.0",
         "scipy>=1.11.0",
         "matplotlib>=3.6.2",  # not sure why sphinx_gallery does not work without it
+        "seaborn",
+        "adjustText",
     ],  # external packages as dependencies
     extras_require={
         "dev": [

@@ -12,6 +12,8 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
+from adjustText import adjust_text  # type: ignore
 from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
@@ -1535,6 +1537,134 @@ def make_MA_plot(
 
     if save_path is not None:
         plt.savefig(save_path, bbox_inches="tight")
+
+    # Adapted from https://github.com/mousepixels/sanbomics_scripts/blob/main/high_quality_volcano_plots.ipynb # noqa: E501
+
+
+def make_volcano_plot(
+    results_df: pd.DataFrame,
+    LFC_threshold: float = 2,
+    pval_threshold: float = 0.05,
+    annotate_genes: bool = True,
+    write_legend: bool = True,
+    save_path: Optional[str] = None,
+    figsize: tuple = (6, 6),
+    varying_marker_size: bool = True,
+):
+    """
+    Create a volcano plot using matplotlib.
+
+    Summarizes the results of a differential expression analysis by plotting
+    the negative log10-transformed adjusted p-values against the log2 fold change.
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        Dataframe obtained after running DeseqStats.summary() (the
+        ``results_df`` attribute).
+
+    LFC_threshold : float
+        Log2 fold change threshold above which genes are considered differentially
+        expressed. (default: ``2.``).
+
+    pval_threshold : float
+        P-value threshold below which genes are considered differentially expressed.
+        (default: ``0.05``).
+
+    annotate_genes : bool
+        Whether or not to annotate genes that pass the LFC and p-value thresholds.
+        (default: ``True``).
+
+    write_legend : bool
+        Whether or not to write the legend on the plot. (default: ``True``).
+
+    save_path : str or None
+        The path where to save the plot. If left None, the plot won't be saved
+        (``default=None``).
+
+    figsize : tuple
+        The size of the figure. (default: ``(6, 6)``).
+
+    varying_marker_size : bool
+        Whether or not to vary the marker size based on the base mean.
+        (default: ``True``)
+    """
+    plt.figure(figsize=figsize)
+
+    nlgo10_pval_threshold = -np.log10(pval_threshold)
+
+    def map_DE(a):
+        log2FoldChange, nlog10 = a
+        if nlog10 > nlgo10_pval_threshold:
+            if log2FoldChange > LFC_threshold:
+                return "positive"
+            elif log2FoldChange < -LFC_threshold:
+                return "negative"
+        return "none"
+
+    df = results_df.copy()
+    df["nlog10"] = -df["padj"].apply(lambda x: np.log10(x))
+    df["DE"] = df[["log2FoldChange", "nlog10"]].apply(map_DE, axis=1)
+
+    ax = sns.scatterplot(
+        data=df,
+        x="log2FoldChange",
+        y="nlog10",
+        hue="DE",
+        hue_order=["none", "positive", "negative"],
+        palette=["lightgrey", "indianred", "cornflowerblue"],
+        size="baseMean" if varying_marker_size else 40,
+        sizes=(40, 400) if varying_marker_size else None,
+    )
+
+    ax.axhline(nlgo10_pval_threshold, zorder=0, c="k", lw=2, ls="--")
+    ax.axvline(LFC_threshold, zorder=0, c="k", lw=2, ls="--")
+    ax.axvline(-LFC_threshold, zorder=0, c="k", lw=2, ls="--")
+
+    if annotate_genes:
+        texts = []
+        for i in range(len(df)):
+            if (
+                df.iloc[i].nlog10 > nlgo10_pval_threshold
+                and abs(df.iloc[i].log2FoldChange) > LFC_threshold
+            ):
+                texts.append(
+                    plt.text(
+                        x=df.iloc[i].log2FoldChange,
+                        y=df.iloc[i].nlog10,
+                        s=df.index[i],
+                        fontsize=12,
+                        weight="bold",
+                    )
+                )
+
+        adjust_text(texts, arrowprops={"arrowstyle": "-", "color": "k"})
+
+    if write_legend:
+        plt.legend(
+            loc=1, bbox_to_anchor=(1.4, 1), frameon=False, prop={"weight": "bold"}
+        )
+    else:
+        ax.get_legend().remove()
+
+    for axis in ["bottom", "left"]:
+        ax.spines[axis].set_linewidth(2)
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    ax.tick_params(width=2)
+
+    plt.xticks(size=12, weight="bold")
+    plt.yticks(size=12, weight="bold")
+
+    plt.xlabel("$log_{2}$ fold change", size=15)
+    plt.ylabel("-$log_{10}$ FDR", size=15)
+
+    if save_path is not None:
+        plt.savefig(save_path=save_path, bbox_inches="tight")
+
+    plt.show()
 
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
