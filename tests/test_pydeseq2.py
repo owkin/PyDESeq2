@@ -564,7 +564,9 @@ def test_continuous_lfc_shrinkage(tol=0.02):
     ).max() < tol
 
 
+@pytest.mark.parametrize("low_memory", [True, False])
 def test_wide_deseq(
+    low_memory,
     tol=0.02,
 ):
     """Test that the outputs of the DESeq2 function match those of the original R
@@ -589,6 +591,7 @@ def test_wide_deseq(
         counts=counts_df,
         metadata=metadata,
         design_factors=["group", "condition"],
+        low_memory=low_memory
     )
     dds.deseq2()
 

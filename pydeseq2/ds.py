@@ -570,40 +570,7 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        num_samples = self.dds.n_obs
-        num_vars = self.design_matrix.shape[-1]
-        cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
-
-        # As in DESeq2, only take samples with 3 or more replicates when looking for
-        # max cooks.
-        use_for_max = n_or_more_replicates(self.design_matrix, 3)
-
-        # If for a gene there are 3 samples or more that have more counts than the
-        # maximum cooks sample, don't count this gene as an outlier.
-
-        # Take into account whether we already replaced outliers
-        if self.dds.refit_cooks and self.dds.varm["refitted"].sum() > 0:
-            cooks_outlier = (
-                (self.dds[use_for_max, :].layers["replace_cooks"] > cooks_cutoff)
-                .any(axis=0)
-                .copy()
-            )
-
-        else:
-            cooks_outlier = (
-                (self.dds[use_for_max, :].layers["cooks"] > cooks_cutoff)
-                .any(axis=0)
-                .copy()
-            )
-
-        pos = self.dds[:, cooks_outlier].layers["cooks"].argmax(0)
-
-        cooks_outlier[cooks_outlier] = (
-            self.dds[:, cooks_outlier].X
-            > self.dds[:, cooks_outlier].X[pos, np.arange(len(pos))]
-        ).sum(0) < 3
-
-        self.p_values[cooks_outlier] = np.nan
+        self.p_values[self.dds.cooks_outlier()] = np.nan
 
     def _fit_prior_var(
         self, coeff_idx: str, min_var: float = 1e-6, max_var: float = 400.0
