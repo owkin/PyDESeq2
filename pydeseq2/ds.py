@@ -8,7 +8,6 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from scipy.optimize import root_scalar  # type: ignore
-from scipy.stats import f  # type: ignore
 from scipy.stats import false_discovery_control  # type: ignore
 
 from pydeseq2.dds import DeseqDataSet
@@ -16,7 +15,6 @@ from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.utils import lowess
 from pydeseq2.utils import make_MA_plot
-from pydeseq2.utils import n_or_more_replicates
 
 
 class DeseqStats:

@@ -591,7 +591,7 @@ def test_wide_deseq(
         counts=counts_df,
         metadata=metadata,
         design_factors=["group", "condition"],
-        low_memory=low_memory
+        low_memory=low_memory,
     )
     dds.deseq2()
 

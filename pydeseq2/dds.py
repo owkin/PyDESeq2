@@ -197,7 +197,7 @@ class DeseqDataSet(ad.AnnData):
         n_cpus: Optional[int] = None,
         inference: Optional[Inference] = None,
         quiet: bool = False,
-        low_memory: bool = False
+        low_memory: bool = False,
     ) -> None:
         # Initialize the AnnData part
         if adata is not None:
@@ -292,7 +292,7 @@ class DeseqDataSet(ad.AnnData):
 
         # Cooks outliers
         self._cooks_outlier = None
-        
+
         if inference:
             if hasattr(inference, "n_cpus"):
                 if n_cpus:
@@ -508,7 +508,7 @@ class DeseqDataSet(ad.AnnData):
             # Replace outlier counts, and refit dispersions and LFCs
             # for genes that had outliers replaced
             self.refit()
-        
+
         # Compute gene mask for cooks outliers
         self.cooks_outlier()
 
@@ -843,7 +843,6 @@ class DeseqDataSet(ad.AnnData):
         if self.low_memory:
             del self.layers["_mu_hat"]
 
-
     def fit_LFC(self) -> None:
         """Fit log fold change (LFC) coefficients.
 
@@ -975,7 +974,6 @@ class DeseqDataSet(ad.AnnData):
 
     def cooks_outlier(self):
         """Filter p-values based on Cooks outliers."""
-
         if self._cooks_outlier is not None:
             return self._cooks_outlier
 
@@ -992,31 +990,30 @@ class DeseqDataSet(ad.AnnData):
 
         # Take into account whether we already replaced outliers
         if (
-            self.refit_cooks and
-            (self.varm["refitted"].sum() > 0) and
-            'replace_cooks' in self.layers.keys()
+            self.refit_cooks
+            and (self.varm["refitted"].sum() > 0)
+            and "replace_cooks" in self.layers.keys()
         ):
             cooks_outlier = (
                 self.layers["replace_cooks"][use_for_max, :] > cooks_cutoff
             ).any(axis=0)
 
         else:
-            cooks_outlier = (
-                self.layers["cooks"][use_for_max, :] > cooks_cutoff
-            ).any(axis=0)
+            cooks_outlier = (self.layers["cooks"][use_for_max, :] > cooks_cutoff).any(
+                axis=0
+            )
 
         pos = self.layers["cooks"][:, cooks_outlier].argmax(0)
 
         cooks_outlier[cooks_outlier] = (
-            self.X[:, cooks_outlier]
-            > self.X[:, cooks_outlier][pos, np.arange(len(pos))]
+            self.X[:, cooks_outlier] > self.X[:, cooks_outlier][pos, np.arange(len(pos))]
         ).sum(0) < 3
 
         if self.low_memory:
-            del self.layers['cooks']
+            del self.layers["cooks"]
 
-        if self.low_memory and 'replace_cooks' in self.layers.keys():
-            del self.layers['replace_cooks']
+        if self.low_memory and "replace_cooks" in self.layers.keys():
+            del self.layers["replace_cooks"]
 
         self._cooks_outlier = cooks_outlier
         return self._cooks_outlier
@@ -1339,7 +1336,7 @@ class DeseqDataSet(ad.AnnData):
         self.layers["replace_cooks"] = self.layers["cooks"].copy()
 
         for col in np.where(self.varm["refitted"])[0]:
-            self.layers["replace_cooks"][self.obsm["replaceable"], col] = 0.
+            self.layers["replace_cooks"][self.obsm["replaceable"], col] = 0.0
 
     def _fit_iterate_size_factors(self, niter: int = 10, quant: float = 0.95) -> None:
         """
