@@ -115,6 +115,10 @@ class DeseqDataSet(ad.AnnData):
     quiet : bool
         Suppress deseq2 status updates during fit.
 
+    low_memory : bool
+        Remove intermediate data structures from .layers and from .obsm that are no
+        longer necessary after they are used during deseq2 run. (default: False)
+
     Attributes
     ----------
     X
