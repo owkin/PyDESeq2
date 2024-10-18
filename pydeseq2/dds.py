@@ -971,8 +971,8 @@ class DeseqDataSet(ad.AnnData):
 
     def cooks_outlier(self):
         """Filter p-values based on Cooks outliers."""
-        if '_pvalue_cooks_outlier' in self.varm.keys():
-            return self.varm['_pvalue_cooks_outlier']
+        if "_pvalue_cooks_outlier" in self.varm.keys():
+            return self.varm["_pvalue_cooks_outlier"]
 
         num_samples = self.n_obs
         num_vars = self.obsm["design_matrix"].shape[-1]
@@ -1012,8 +1012,8 @@ class DeseqDataSet(ad.AnnData):
         if self.low_memory and "replace_cooks" in self.layers.keys():
             del self.layers["replace_cooks"]
 
-        self.varm['_pvalue_cooks_outlier'] = cooks_outlier
-        return self.varm['_pvalue_cooks_outlier']
+        self.varm["_pvalue_cooks_outlier"] = cooks_outlier
+        return self.varm["_pvalue_cooks_outlier"]
 
     def _fit_MoM_dispersions(self) -> None:
         """Rough method of moments initial dispersions fit.
