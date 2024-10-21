@@ -115,6 +115,11 @@ class DeseqDataSet(ad.AnnData):
     quiet : bool
         Suppress deseq2 status updates during fit.
 
+    low_memory : bool
+        Remove intermediate data structures from .layers and from .obsm that are no
+        longer necessary after they are used during deseq2 run, such as Cook's
+        distances. (default: False)
+
     Attributes
     ----------
     X
@@ -193,6 +198,7 @@ class DeseqDataSet(ad.AnnData):
         n_cpus: Optional[int] = None,
         inference: Optional[Inference] = None,
         quiet: bool = False,
+        low_memory: bool = False,
     ) -> None:
         # Initialize the AnnData part
         if adata is not None:
@@ -281,6 +287,7 @@ class DeseqDataSet(ad.AnnData):
         self.min_replicates = min_replicates
         self.beta_tol = beta_tol
         self.quiet = quiet
+        self.low_memory = low_memory
         self.logmeans = None
         self.filtered_genes = None
 
@@ -500,6 +507,9 @@ class DeseqDataSet(ad.AnnData):
             # for genes that had outliers replaced
             self.refit()
 
+        # Compute gene mask for cooks outliers
+        self.cooks_outlier()
+
     def fit_size_factors(
         self,
         fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
@@ -667,6 +677,8 @@ class DeseqDataSet(ad.AnnData):
         self.layers[mu_param_name] = np.full((self.n_obs, self.n_vars), np.nan)
         self.layers[mu_param_name][:, self.varm["non_zero"]] = mu_hat_
 
+        del mu_hat_
+
         if not self.quiet:
             print("Fitting dispersions...", file=sys.stderr)
         start = time.time()
@@ -826,6 +838,9 @@ class DeseqDataSet(ad.AnnData):
             "genewise_dispersions"
         ][self.varm["_outlier_genes"]]
 
+        if self.low_memory:
+            del self.layers["_mu_hat"]
+
     def fit_LFC(self) -> None:
         """Fit log fold change (LFC) coefficients.
 
@@ -921,6 +936,10 @@ class DeseqDataSet(ad.AnnData):
 
         del diag_mul
 
+        if self.low_memory:
+            del self.obsm["_mu_LFC"]
+            del self.obsm["_hat_diagonals"]
+
         self.layers["cooks"] = np.full((self.n_obs, self.n_vars), np.nan)
         self.layers["cooks"][:, self.varm["non_zero"]] = squared_pearson_res
 
@@ -950,6 +969,52 @@ class DeseqDataSet(ad.AnnData):
                 self.n_vars,
                 False,
             )
+
+    def cooks_outlier(self):
+        """Filter p-values based on Cooks outliers."""
+        if "_pvalue_cooks_outlier" in self.varm.keys():
+            return self.varm["_pvalue_cooks_outlier"]
+
+        num_samples = self.n_obs
+        num_vars = self.obsm["design_matrix"].shape[-1]
+        cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
+
+        # As in DESeq2, only take samples with 3 or more replicates when looking for
+        # max cooks.
+        use_for_max = n_or_more_replicates(self.obsm["design_matrix"], 3)
+
+        # If for a gene there are 3 samples or more that have more counts than the
+        # maximum cooks sample, don't count this gene as an outlier.
+
+        # Take into account whether we already replaced outliers
+        if (
+            self.refit_cooks
+            and (self.varm["refitted"].sum() > 0)
+            and "replace_cooks" in self.layers.keys()
+        ):
+            cooks_outlier = (
+                self.layers["replace_cooks"][use_for_max, :] > cooks_cutoff
+            ).any(axis=0)
+
+        else:
+            cooks_outlier = (self.layers["cooks"][use_for_max, :] > cooks_cutoff).any(
+                axis=0
+            )
+
+        pos = self.layers["cooks"][:, cooks_outlier].argmax(0)
+
+        cooks_outlier[cooks_outlier] = (
+            self.X[:, cooks_outlier] > self.X[:, cooks_outlier][pos, np.arange(len(pos))]
+        ).sum(0) < 3
+
+        if self.low_memory:
+            del self.layers["cooks"]
+
+        if self.low_memory and "replace_cooks" in self.layers.keys():
+            del self.layers["replace_cooks"]
+
+        self.varm["_pvalue_cooks_outlier"] = cooks_outlier
+        return self.varm["_pvalue_cooks_outlier"]
 
     def _fit_MoM_dispersions(self) -> None:
         """Rough method of moments initial dispersions fit.
@@ -1266,10 +1331,10 @@ class DeseqDataSet(ad.AnnData):
         ]
         self.varm["dispersions"][self.varm["refitted"]] = sub_dds.varm["dispersions"]
 
-        replace_cooks = pd.DataFrame(self.layers["cooks"].copy())
-        replace_cooks.loc[self.obsm["replaceable"], self.varm["refitted"]] = 0.0
+        self.layers["replace_cooks"] = self.layers["cooks"].copy()
 
-        self.layers["replace_cooks"] = replace_cooks
+        for col in np.where(self.varm["refitted"])[0]:
+            self.layers["replace_cooks"][self.obsm["replaceable"], col] = 0.0
 
     def _fit_iterate_size_factors(self, niter: int = 10, quant: float = 0.95) -> None:
         """
