@@ -35,6 +35,68 @@ def metadata():
     )
 
 
+def test_size_factors_ratio(counts_df, metadata):
+    """Test that the size_factors calcuation by ratio matches R."""
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    r_size_factors = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_size_factors.csv"),
+        index_col=0,
+    )["x"].values
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds.fit_size_factors()
+
+    np.testing.assert_almost_equal(
+        dds.obsm["size_factors"].ravel(), r_size_factors.ravel()
+    )
+
+
+def test_size_factors_poscounts(counts_df, metadata):
+    """Test that the size_factors calcuation by poscount matches R."""
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds.fit_size_factors("poscounts")
+
+    r_size_factors = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_size_factors_poscount.csv"),
+        index_col=0,
+    )["sizeFactor"].values
+
+    np.testing.assert_almost_equal(dds.obsm["size_factors"].ravel(), r_size_factors)
+
+
+def test_size_factors_control_genes(counts_df, metadata):
+    """Test that the size_factors calculation properly takes control_genes"""
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+
+    dds.fit_size_factors(control_genes=["gene4"])
+
+    np.testing.assert_almost_equal(
+        dds.obsm["size_factors"].ravel(),
+        counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
+    )
+
+    dds.fit_size_factors(fit_type="poscounts", control_genes=[3])
+
+    np.testing.assert_almost_equal(
+        dds.obsm["size_factors"].ravel(),
+        counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
+    )
+
+    dds.fit_size_factors(fit_type="poscounts")
+
+    np.testing.assert_raises(
+        AssertionError,
+        np.testing.assert_array_equal,
+        dds.obsm["size_factors"].ravel(),
+        counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
+    )
+
+
 def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.02):
     """Test that the outputs of the DESeq2 function match those of the original R
     package, up to a tolerance in relative error.
@@ -51,7 +113,7 @@ def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.0
         counts=counts_df,
         metadata=metadata,
         design_factors="condition",
-        trend_fit_type="parametric",
+        fit_type="parametric",
     )
     dds.deseq2()
 
@@ -79,7 +141,7 @@ def test_deseq_independent_filtering_mean_fit(counts_df, metadata, tol=0.02):
         counts=counts_df,
         metadata=metadata,
         design_factors="condition",
-        trend_fit_type="mean",
+        fit_type="mean",
     )
     dds.deseq2()
 
@@ -112,7 +174,7 @@ def test_deseq_without_independent_filtering_parametric_fit(
         counts=counts_df,
         metadata=metadata,
         design_factors="condition",
-        trend_fit_type="parametric",
+        fit_type="parametric",
     )
     dds.deseq2()
 
@@ -233,6 +295,51 @@ def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
     res.summary()
     res.SE = r_res.lfcSE * np.log(2)
     res.lfc_shrink(coeff="condition_B_vs_A")
+    shrunk_res = res.results_df
+
+    # Check that the same LFC are found (up to tol)
+    assert (
+        abs(r_shrunk_res.log2FoldChange - shrunk_res.log2FoldChange)
+        / abs(r_shrunk_res.log2FoldChange)
+    ).max() < tol
+
+
+def test_lfc_shrinkage_no_apeAdapt(counts_df, metadata, tol=0.02):
+    """Test that the outputs of the lfc_shrink function match those of the original
+    R package (starting from the same inputs), up to a tolerance in relative error.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_res = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
+    )
+    r_shrunk_res = pd.read_csv(
+        os.path.join(
+            test_path, "data/single_factor/r_test_lfc_shrink_no_apeAdapt_res.csv"
+        ),
+        index_col=0,
+    )
+
+    r_size_factors = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_size_factors.csv"),
+        index_col=0,
+    ).squeeze()
+
+    r_dispersions = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_dispersions.csv"),
+        index_col=0,
+    ).squeeze()
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds.deseq2()
+    dds.obsm["size_factors"] = r_size_factors.values
+    dds.varm["dispersions"] = r_dispersions.values
+    dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
+
+    res = DeseqStats(dds)
+    res.summary()
+    res.SE = r_res.lfcSE * np.log(2)
+    res.lfc_shrink(coeff="condition_B_vs_A", adapt=False)
     shrunk_res = res.results_df
 
     # Check that the same LFC are found (up to tol)
@@ -466,7 +573,9 @@ def test_continuous_lfc_shrinkage(tol=0.02):
     ).max() < tol
 
 
+@pytest.mark.parametrize("low_memory", [True, False])
 def test_wide_deseq(
+    low_memory,
     tol=0.02,
 ):
     """Test that the outputs of the DESeq2 function match those of the original R
@@ -491,6 +600,7 @@ def test_wide_deseq(
         counts=counts_df,
         metadata=metadata,
         design_factors=["group", "condition"],
+        low_memory=low_memory,
     )
     dds.deseq2()
 
@@ -635,7 +745,7 @@ def test_ref_level(counts_df, metadata):
     assert (
         dds.obsm["design_matrix"]["group_X_vs_Y"]
         == metadata["group"].apply(
-            lambda x: 1 if x == "X" else 0 if x == "Y" else np.NaN
+            lambda x: 1 if x == "X" else 0 if x == "Y" else np.nan
         )
     ).all()
 
@@ -708,7 +818,7 @@ def test_vst_fit(train_dds):
     train_dds.vst_fit()
 
     # the correct attributes are fit
-    assert "trend_coeffs" in train_dds.uns
+    assert "vst_trend_coeffs" in train_dds.uns
     assert "normed_counts" in train_dds.layers
     assert "size_factors" in train_dds.obsm
 
@@ -721,6 +831,49 @@ def test_vst_transform(train_dds, test_counts):
     assert isinstance(result, np.ndarray)
     # 25 samples, 10 genes
     assert result.shape == (25, 10)
+
+
+@pytest.mark.parametrize(
+    ("dea_fit_type", "vst_fit_type"),
+    [
+        ("mean", "parametric"),
+        ("parametric", "mean"),
+        ("parametric", "parametric"),
+        ("mean", "mean"),
+    ],
+)
+def test_vst_blind(train_counts, train_metadata, dea_fit_type, vst_fit_type):
+    """Test vst with combinatory dea dea_fit_type and fit_type"""
+    train_dds = DeseqDataSet(
+        counts=train_counts,
+        metadata=train_metadata,
+        design_factors="condition",
+        fit_type=dea_fit_type,
+    )
+    train_dds.deseq2()
+    if dea_fit_type == "parametric":
+        assert "trend_coeffs" in train_dds.uns
+    else:
+        assert "mean_disp" in train_dds.uns
+    assert "normed_counts" in train_dds.layers
+    assert "size_factors" in train_dds.obsm
+    assert train_dds.fit_type == dea_fit_type
+
+    train_dds.vst(use_design=False, fit_type=vst_fit_type)
+    # Check that the dea fit type hasn't changed
+    assert train_dds.fit_type == dea_fit_type
+
+
+def test_vst_transform_no_fit(train_counts, train_metadata, test_counts):
+    """Test vst_transform without calling vst_fit()"""
+    train_dds = DeseqDataSet(
+        counts=train_counts,
+        metadata=train_metadata,
+        design_factors="condition",
+        fit_type="parametric",
+    )
+    with pytest.raises(RuntimeError):
+        train_dds.vst_transform(test_counts.to_numpy())
 
 
 def assert_res_almost_equal(py_res, r_res, tol=0.02):

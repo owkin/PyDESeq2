@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 from scipy.optimize import root_scalar  # type: ignore
-from scipy.stats import f  # type: ignore
 from scipy.stats import false_discovery_control  # type: ignore
 
 from pydeseq2.dds import DeseqDataSet
@@ -18,7 +17,6 @@ from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.utils import lowess
 from pydeseq2.utils import make_MA_plot
-from pydeseq2.utils import n_or_more_replicates
 
 
 class DeseqStats:
@@ -41,8 +39,8 @@ class DeseqStats:
         E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared
         to 'condition A'.
         For continuous variables, the last two strings should be left empty, e.g.
-        ``['measurement', '', ''].
-        If None, the last variable from the design matrix is chosen
+        ``['measurement', '', '']``.
+        If ``None``, the last variable from the design matrix is chosen
         as the variable of interest, and the reference level is picked alphabetically.
         (default: ``None``).
 
@@ -262,16 +260,17 @@ class DeseqStats:
         self.results_df["pvalue"] = self.p_values
         self.results_df["padj"] = self.padj
 
-        if self.contrast[1] == self.contrast[2] == "":
-            # The factor is continuous
-            print(f"Log2 fold change & Wald test p-value: " f"{self.contrast[0]}")
-        else:
-            # The factor is categorical
-            print(
-                f"Log2 fold change & Wald test p-value: "
-                f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
-            )
-        print(self.results_df)
+        if not self.quiet:
+            if self.contrast[1] == self.contrast[2] == "":
+                # The factor is continuous
+                print(f"Log2 fold change & Wald test p-value: " f"{self.contrast[0]}")
+            else:
+                # The factor is categorical
+                print(
+                    f"Log2 fold change & Wald test p-value: "
+                    f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
+                )
+            print(self.results_df)
 
     def run_wald_test(self) -> None:
         """Perform a Wald test.
@@ -332,7 +331,7 @@ class DeseqStats:
             self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
 
-    def lfc_shrink(self, coeff: Optional[str] = None) -> None:
+    def lfc_shrink(self, coeff: Optional[str] = None, adapt: bool = True) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
@@ -345,6 +344,9 @@ class DeseqStats:
             If the desired coefficient is not available, it may be set from the
             :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
             (default: ``None``).
+        adapt: bool
+            Whether to use the MLE estimates of LFC to adapt the prior. If False, the
+            prior scale is set to 1. (``default=True``)
         """
         if self.contrast[1] == self.contrast[2] == "":
             # The factor being tested is continuous
@@ -392,8 +394,10 @@ class DeseqStats:
 
         # Set priors
         prior_no_shrink_scale = 15
-        prior_var = self._fit_prior_var(coeff_idx=coeff_idx)
-        prior_scale = np.minimum(np.sqrt(prior_var), 1)
+        prior_scale = 1
+        if adapt:
+            prior_var = self._fit_prior_var(coeff_idx=coeff_idx)
+            prior_scale = np.minimum(np.sqrt(prior_var), 1)
 
         design_matrix = self.design_matrix.values
 
@@ -433,7 +437,7 @@ class DeseqStats:
             )
         )
 
-        self._LFC_shrink_converged = pd.Series(np.NaN, index=self.dds.var_names)
+        self._LFC_shrink_converged = pd.Series(np.nan, index=self.dds.var_names)
         self._LFC_shrink_converged.update(
             pd.Series(l_bfgs_b_converged_, index=self.dds.non_zero_genes)
         )
@@ -450,10 +454,10 @@ class DeseqStats:
             split_coeff = coeff.split("_")
             # Categorical coeffs are of the form "factor_A_vs_B", and continuous coeffs
             # of the form "factor".
-            if len(split_coeff) == 1:
+            if len(split_coeff) == 1 and not self.quiet:
                 # The factor is continuous
                 print(f"Shrunk log2 fold change & Wald test p-value: " f"{coeff}")
-            else:
+            elif not self.quiet:
                 # The factor is categorical
                 # Categorical coeffs are of the form "factor_A_vs_B", hence "factor"
                 # is split_coeff[0], "A" is split_coeff[1] and "B" split_coeff[3]
@@ -462,7 +466,8 @@ class DeseqStats:
                     f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}"
                 )
 
-            print(self.results_df)
+            if not self.quiet:
+                print(self.results_df)
 
     def plot_MA(self, log: bool = True, save_path: Optional[str] = None, **kwargs):
         """
@@ -565,40 +570,7 @@ class DeseqStats:
         if not hasattr(self, "p_values"):
             self.run_wald_test()
 
-        num_samples = self.dds.n_obs
-        num_vars = self.design_matrix.shape[-1]
-        cooks_cutoff = f.ppf(0.99, num_vars, num_samples - num_vars)
-
-        # As in DESeq2, only take samples with 3 or more replicates when looking for
-        # max cooks.
-        use_for_max = n_or_more_replicates(self.design_matrix, 3)
-
-        # If for a gene there are 3 samples or more that have more counts than the
-        # maximum cooks sample, don't count this gene as an outlier.
-
-        # Take into account whether we already replaced outliers
-        if self.dds.refit_cooks and self.dds.varm["refitted"].sum() > 0:
-            cooks_outlier = (
-                (self.dds[use_for_max, :].layers["replace_cooks"] > cooks_cutoff)
-                .any(axis=0)
-                .copy()
-            )
-
-        else:
-            cooks_outlier = (
-                (self.dds[use_for_max, :].layers["cooks"] > cooks_cutoff)
-                .any(axis=0)
-                .copy()
-            )
-
-        pos = self.dds[:, cooks_outlier].layers["cooks"].argmax(0)
-
-        cooks_outlier[cooks_outlier] = (
-            self.dds[:, cooks_outlier].X
-            > self.dds[:, cooks_outlier].X[pos, np.arange(len(pos))]
-        ).sum(0) < 3
-
-        self.p_values[cooks_outlier] = np.nan
+        self.p_values[self.dds.cooks_outlier()] = np.nan
 
     def _fit_prior_var(
         self, coeff_idx: str, min_var: float = 1e-6, max_var: float = 400.0

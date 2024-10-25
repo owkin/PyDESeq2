@@ -584,8 +584,9 @@ def irls_solver(
         beta_init = solve(R, Q.T @ y)
         beta = beta_init
     else:  # Initialise intercept with log base mean
-        beta = np.zeros(num_vars)
-        beta[0] = np.log(counts / size_factors).mean()
+        beta_init = np.zeros(num_vars)
+        beta_init[0] = np.log(counts / size_factors).mean()
+        beta = beta_init
 
     dev = 1000.0
     dev_ratio = 1.0
@@ -652,10 +653,17 @@ def irls_solver(
         dev_ratio = np.abs(dev - old_dev) / (np.abs(dev) + 0.1)
 
     # Compute H diagonal (useful for Cook distance outlier filtering)
+    # Calculate only the diagonal for X(XTWX)-1XT using einsum
+    # This is numerically equivalent to the more expensive calculation
+    # np.diag(X @ (X^T @ np.inv(X^T @ np.diag(W) @ X + lambda) @ X^T)
     W = mu / (1.0 + mu * disp)
+    H = np.einsum(
+        "ij,jk,ki->i", X, np.linalg.inv((X.T * W[None, :]) @ X + ridge_factor), X.T
+    )
+
     W_sq = np.sqrt(W)
-    XtWX = (X.T * W) @ X + ridge_factor
-    H = W_sq * np.diag(X @ np.linalg.inv(XtWX) @ X.T) * W_sq
+    H = W_sq * H * W_sq
+
     # Return an UNthresholded mu (as in the R code)
     # Previous quantities are estimated with a threshold though
     mu = size_factors * np.exp(X @ beta)
@@ -788,14 +796,14 @@ def fit_alpha_mle(
         )
 
 
-def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
+def trimmed_mean(x: np.ndarray, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
     """Return trimmed mean.
 
     Compute the mean after trimming data of its smallest and largest quantiles.
 
     Parameters
     ----------
-    features : ndarray
+    x : ndarray
         Data whose mean to compute.
 
     trim : float
@@ -823,7 +831,7 @@ def trimmed_mean(x, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
         return s[ntrim : n - ntrim].mean()
 
 
-def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
+def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
     """Return trimmed variance of counts according to condition.
 
     Compute the variance after trimming data of its smallest and largest elements,
@@ -832,7 +840,7 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
 
     Parameters
     ----------
-    counts : pandas.DataFrame
+    counts : ndarray
         Sample-wise gene counts.
 
     cells : pandas.Series
@@ -840,7 +848,7 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
 
     Returns
     -------
-    pandas.Series :
+    ndarray :
         Gene-wise trimmed variance estimate.
     """
     # how much to trim at different n
@@ -851,23 +859,27 @@ def trimmed_cell_variance(counts: pd.DataFrame, cells: pd.Series) -> pd.Series:
         return 2 if x >= 23.5 else 1 if x >= 3.5 else 0
 
     ns = cells.value_counts()
-    cell_means = pd.DataFrame(index=counts.columns)
-    for lvl in cells.unique():
-        cell_means[lvl] = trimmed_mean(
-            counts.loc[cells == lvl], trim=trimratio[trimfn(ns[lvl])], axis=0
-        )
-    qmat = cell_means[cells].T
-    qmat.index = cells.index
-    sqerror = (counts - qmat) ** 2
+    sqerror = np.zeros_like(counts)
 
-    varEst = pd.DataFrame(index=counts.columns)
     for lvl in cells.unique():
+        cell_means = cast(
+            np.ndarray,
+            trimmed_mean(
+                counts[cells == lvl, :], trim=trimratio[trimfn(ns[lvl])], axis=0
+            ),
+        )
+        sqerror[cells == lvl, :] = counts[cells == lvl, :] - cell_means[None, :]
+
+    sqerror **= 2
+
+    varEst = np.zeros((len(ns), counts.shape[1]), dtype=float)
+    for i, lvl in enumerate(cells.unique()):
         scale = [2.04, 1.86, 1.51][trimfn(ns[lvl])]
-        varEst[lvl] = scale * trimmed_mean(
-            sqerror[cells == lvl], trim=trimratio[trimfn(ns[lvl])], axis=0
+        varEst[i, :] = scale * trimmed_mean(
+            sqerror[cells == lvl, :], trim=trimratio[trimfn(ns[lvl])], axis=0
         )
 
-    return varEst.max(axis=1)
+    return varEst.max(axis=0)
 
 
 def trimmed_variance(
@@ -939,7 +951,7 @@ def wald_test(
     design_matrix: np.ndarray,
     disp: float,
     lfc: np.ndarray,
-    mu: float,
+    mu: np.ndarray,
     ridge_factor: np.ndarray,
     contrast: np.ndarray,
     lfc_null: float,
@@ -961,7 +973,7 @@ def wald_test(
     lfc : ndarray
         Log-fold change estimate (in natural log scale).
 
-    mu : float
+    mu : ndarray
         Mean estimation for the NB model.
 
     ridge_factor : ndarray
@@ -988,8 +1000,8 @@ def wald_test(
         Standard error of the Wald statistic.
     """
     # Build covariance matrix estimator
-    W = np.diag(mu / (1 + mu * disp))
-    M = design_matrix.T @ W @ design_matrix
+    W = mu / (1 + mu * disp)
+    M = (design_matrix.T * W[None, :]) @ design_matrix
     H = np.linalg.inv(M + ridge_factor)
     Hc = H @ contrast
     # Evaluate standard error and Wald statistic
@@ -1132,16 +1144,16 @@ def n_or_more_replicates(design_matrix: pd.DataFrame, min_replicates: int) -> pd
 
 
 def robust_method_of_moments_disp(
-    normed_counts: pd.DataFrame, design_matrix: pd.DataFrame
-) -> pd.Series:
+    normed_counts: np.ndarray, design_matrix: pd.DataFrame
+) -> np.ndarray:
     """Perform dispersion estimation using a method of trimmed moments.
 
     Used for outlier detection based on Cook's distance.
 
     Parameters
     ----------
-    normed_counts : pandas.DataFrame
-        DF of deseq2-normalized read counts. Rows: samples, columns: genes.
+    normed_counts : ndarray
+        Array of deseq2-normalized read counts. Rows: samples, columns: genes.
 
     design_matrix : pandas.DataFrame
         A DataFrame with experiment design information (to split cohorts).
@@ -1149,7 +1161,7 @@ def robust_method_of_moments_disp(
 
     Returns
     -------
-    pandas.Series
+    ndarray
         Trimmed method of moment dispersion estimates.
         Used for outlier detection based on Cook's distance.
     """
@@ -1159,7 +1171,7 @@ def robust_method_of_moments_disp(
         # 1 - group rows by unique combinations of design factors
         # 2 - keep only groups with 3 or more replicates
         # 3 - filter the counts matrix to only keep rows in those groups
-        filtered_counts = normed_counts.loc[three_or_more, :]
+        filtered_counts = normed_counts[three_or_more.values, :]
         filtered_design = design_matrix.loc[three_or_more, :]
         cell_id = pd.Series(
             filtered_design.groupby(
@@ -1169,15 +1181,14 @@ def robust_method_of_moments_disp(
         )
         v = trimmed_cell_variance(filtered_counts, cell_id)
     else:
-        v = pd.Series(
-            trimmed_variance(normed_counts.values), index=normed_counts.columns
-        )
+        v = trimmed_variance(normed_counts)
+
     m = normed_counts.mean(0)
     alpha = (v - m) / m**2
     # cannot use the typical min_disp = 1e-8 here or else all counts in the same
     # group as the outlier count will get an extreme Cook's distance
     minDisp = 0.04
-    alpha = cast(pd.Series, np.maximum(alpha, minDisp))
+    np.maximum(alpha, minDisp, out=alpha)
     return alpha
 
 

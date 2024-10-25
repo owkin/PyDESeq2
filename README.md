@@ -92,7 +92,7 @@ Please go to the dedicated [README.md](https://github.com/owkin/PyDESeq2/blob/ma
 
 The quick start examples use synthetic data, provided in this repo (see [datasets](https://github.com/owkin/PyDESeq2/blob/main/datasets/README.md).)
 
-The experiments described in our [preprint](https://www.biorxiv.org/content/10.1101/2022.12.14.520412v1) rely on data
+The experiments described in the [PyDESeq2 article](https://academic.oup.com/bioinformatics/article/39/9/btad547/7260507) rely on data
 from [The Cancer Genome Atlas](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga),
 which may be obtained from this [portal](https://portal.gdc.cancer.gov/).
 

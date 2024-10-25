@@ -108,7 +108,7 @@ def test_nan_factors():
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
-    metadata = pd.DataFrame({"condition": [0, np.NaN]}, index=["sample1", "sample2"])
+    metadata = pd.DataFrame({"condition": [0, np.nan]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
         DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
