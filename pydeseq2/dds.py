@@ -29,6 +29,7 @@ from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import n_or_more_replicates
 from pydeseq2.utils import nb_nll
+from pydeseq2.utils import parse_column_name
 from pydeseq2.utils import replace_underscores
 from pydeseq2.utils import robust_method_of_moments_disp
 from pydeseq2.utils import test_valid_counts
@@ -402,8 +403,8 @@ class DeseqDataSet(ad.AnnData):
             self.design_factors = self.design_factors_list
         else:
             warnings.warn(
-                """Design matrix was given; ignoring design_factors, continuous factors
-                and ref_level""",
+                """Design matrix was given; ignoring design_factors, continuous_factors
+                and ref_level argumetns""",
                 UserWarning,
                 stacklevel=2,
             )
@@ -423,24 +424,10 @@ class DeseqDataSet(ad.AnnData):
                     "'intercept' column is not all ones.", UserWarning, stacklevel=2
                 )
 
-            def col_name_parser(colname, split_interactions=True):
-                # There can be either 0 or one vs
-                colname = colname.split("_vs_")
-                assert len(colname) in {1, 2}, "There should be 0 or 1 _vs_ in the name"
-                if len(colname) == 1:
-                    return [colname[0]]
-                else:
-                    # Left part before the underscore is an interaction term
-                    name_with_interaction = colname[0].split("_")[0]
-                    if not split_interactions:
-                        return name_with_interaction
-                    else:
-                        return name_with_interaction.split(":")
-
             extracted_single_factors = list(
                 itertools.chain(
                     *[
-                        col_name_parser(col)
+                        parse_column_name(col)
                         for col in design_matrix
                         if col != "intercept"
                     ]
@@ -475,7 +462,7 @@ class DeseqDataSet(ad.AnnData):
 
             # We store design factors as a list for later reuse in contrast
             self.design_factors = [
-                col_name_parser(col, split_interactions=False)
+                parse_column_name(col, split_interactions=False)
                 for col in design_matrix
                 if col != "intercept"
             ]

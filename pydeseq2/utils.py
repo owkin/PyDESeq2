@@ -336,7 +336,7 @@ def build_design_matrix(
 
 
 def replace_underscores(
-    factors: Union[str, List[str], tuple[str, str], List[tuple[str, str]]]
+    factors: Union[str, List[str], tuple[str, str], List[tuple[str, str]]],
 ):
     """Replace all underscores from strings in a list by hyphens.
 
@@ -1668,3 +1668,33 @@ def lowess(
         delta = (1 - delta**2) ** 2
 
     return yest
+
+
+def parse_column_name(colname: str, split_interactions: bool = True):
+    """Parse factors from the column names of a design matrix.
+
+    Parameters
+    ----------
+    colname : str
+        Column name to parse.
+    split_interactions : bool
+        Whether to split interactions terms (of the form "var1:var2").
+        (default: ``True``).
+
+    Returns
+    -------
+    str or list
+        Parsed factor(s).
+    """
+    # There can be either 0 or one vs
+    factors = colname.split("_vs_")
+    assert len(factors) in {1, 2}, f"Invalid column name: {colname}."
+    if len(factors) == 1:
+        return [factors[0]]
+    else:
+        # Left part before the underscore is an interaction term
+        name_with_interaction = factors[0].split("_")[0]
+        if not split_interactions:
+            return name_with_interaction
+        else:
+            return name_with_interaction.split(":")
