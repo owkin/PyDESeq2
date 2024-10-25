@@ -636,7 +636,7 @@ class DeseqStats:
         if contrast is not None:  # Test contrast if provided
             if len(contrast) != 3:
                 raise ValueError("The contrast should contain three strings.")
-            if contrast[0] not in self.dds.design_factors:
+            if contrast[0] not in self.dds.design_factors_list:
                 raise KeyError(
                     f"The contrast variable ('{contrast[0]}') should be one "
                     f"of the design factors."
@@ -684,7 +684,7 @@ class DeseqStats:
                     )
             self.contrast = contrast
         else:  # Build contrast if None
-            factor = self.dds.design_factors[-1]
+            factor = self.dds.design_factors_list[-1]
             # Check whether this factor is categorical or continuous.
             if (
                 self.dds.continuous_factors is not None

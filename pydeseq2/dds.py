@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import copy
-import itertools
-import re
 import sys
 import time
 import warnings
@@ -29,7 +26,7 @@ from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import n_or_more_replicates
 from pydeseq2.utils import nb_nll
-from pydeseq2.utils import parse_column_name
+from pydeseq2.utils import process_design_factors
 from pydeseq2.utils import replace_underscores
 from pydeseq2.utils import robust_method_of_moments_disp
 from pydeseq2.utils import test_valid_counts
@@ -253,131 +250,45 @@ class DeseqDataSet(ad.AnnData):
 
         self.fit_type = fit_type
 
-        self.design_factors = design_factors
-        self.continuous_factors = (
-            continuous_factors if continuous_factors is not None else []
+        design_factors = design_factors
+        continuous_factors = continuous_factors if continuous_factors is not None else []
+
+        (
+            self.design_factors,  # TODO: rename to design_formula
+            self.design_factors_list,
+            self.single_design_factors,
+            self.continuous_factors,
+            self.ref_level,
+        ) = process_design_factors(
+            design_factors,
+            self.obs.columns,
+            continuous_factors,
+            ref_level,
+            design_matrix,
         )
 
-        # If design factors is provided as a list, convert it to a formulaic string
-        if isinstance(self.design_factors, list):
-            # TODO: add a DeprecationWarning for the list input
-            # Little bit of careful formating as below to remove space around : symbols
-            self.design_factors = [
-                re.sub(r"(?:(?<=\:) +| +(?=\:))", "", factor)
-                for factor in self.design_factors
-            ]
-            # Extract single factors
-            extracted_single_factors = list(
-                itertools.chain(*[factor.split(":") for factor in self.design_factors])
-            )
+        # Replace underscores in column names with hyphens
+        replace_dict = {
+            col: col.replace("_", "-")
+            for col in self.obs.columns
+            if col.replace("_", "-") in self.single_design_factors
+        }
+        self.obs.rename(
+            columns=replace_dict,
+            inplace=True,
+        )
 
-            self.single_design_factors = extracted_single_factors
-            # Store design factors as a list for later reuse in contrast
-            self.design_factors_list = copy.deepcopy(self.design_factors)
-            self.design_factors = "~" + "+".join(self.design_factors)
-
-        # Handle the case where the user provides a formula
-        # of the type formulaic can recognize, or a single column.
-        # Everything will be converted to formulaic formulas as in the first case.
-        elif isinstance(self.design_factors, str):
-            # TODO uncomment when we support all of formulaic grammar
-            # try:
-            #     Formula(self.design_factors)
-            # except FormulaInvalidError as err:
-            #     raise (
-            #         f"Design factor {self.design_factors} is not a valid formula"
-            #     ) from err
-            # Remove potential spaces around +,: or ~ signs for easier parsing
-            # of individual factor
-            if not self.design_factors.startswith("~"):
-                self.design_factors = "~" + self.design_factors
-
-            self.design_factors = re.sub(
-                r"(?:(?<=\+) +| +(?=\+))", "", self.design_factors
-            )
-            self.design_factors = re.sub(
-                r"(?:(?<=\:) +| +(?=\:))", "", self.design_factors
-            )
-            self.design_factors = re.sub(
-                r"(?:(?<=\~) +| +(?=\~))", "", self.design_factors
-            )
-            # Now we should have something of the form '~a+b+a:b:c:d'
-            # We also support the fact of passing only one factor such as 'a' by
-            # converting it to the corresponding formula '~a'
-            # Thanks to the previous reformatting we can do easily single-factor
-            # extraction
-            extracted_single_factors = list(
-                set(
-                    itertools.chain(
-                        *[term.split(":") for term in self.design_factors[1:].split("+")]
-                    )
-                )
-            )
-            # Remove non unique characters while keeping the apparition order
-            factors_dict: dict[str, None] = {}
-            for factor in extracted_single_factors:
-                factors_dict[factor] = None
-            extracted_single_factors = list(factors_dict.keys())
-            self.single_design_factors = extracted_single_factors
-
-        else:
-            raise ValueError(
-                "Design factors should be a string or a list of strings, but "
-                f"received {type(self.design_factors)}"
-            )
-
-        # We check all single factors extracted were indeed in the columns
         for factor in self.single_design_factors:
-            if factor not in self.obs.columns:
-                raise ValueError(
-                    f"Formula contains the unknown extracted factor {factor}"
-                )
-
-        # Check that design factors don't contain underscores. If so, convert them to
-        # hyphens.
-        # Modify only in .obs.
-        if np.any(["_" in factor for factor in self.single_design_factors]):
-            warnings.warn(
-                """Some factor names in the design contain underscores ('_').
-                They will be converted to hyphens ('-').""",
-                UserWarning,
-                stacklevel=2,
-            )
-            new_factors = replace_underscores(self.single_design_factors)
-            self.obs.rename(
-                columns=dict(zip(self.single_design_factors, new_factors)),
-                inplace=True,
-            )
-            self.single_design_factors = new_factors
-            # Also check continuous factors
-            if continuous_factors is not None:
-                self.continuous_factors = replace_underscores(continuous_factors)
-
-        # If ref_level has underscores, convert them to hyphens
-        # Don't raise a warning: it will be raised by build_design_matrix()
-        if ref_level is not None:
-            ref_level = replace_underscores(ref_level)
-
-        self.design_factors = replace_underscores(self.design_factors)
-        # We need it for the contrast
-        assert isinstance(self.design_factors, str)
-        self.design_factors_list = self.design_factors[1:].split("+")
-
-        if self.obs[self.single_design_factors].isna().any().any():
-            raise ValueError("NaNs are not allowed in the design factors.")
-
-        # We convert every factor in the design_factors to string type
-        assert isinstance(
-            self.single_design_factors, list
-        ), "Could not extract any single factor"
-        for factor in self.single_design_factors:
+            if self.obs[factor].isna().any():
+                raise ValueError("NaNs are not allowed in the design factors.")
             if factor not in self.continuous_factors:
                 self.obs[factor] = Categorical(self.obs[factor].astype(str))
                 levels = self.obs[factor].unique()
                 if "_" in "".join(levels):
                     warnings.warn(
-                        f"""Some category in the design of factor {factor} contain
-                        underscores ('_'). They will be converted to hyphens ('-').""",
+                        f"""Some categories in the design of factor {factor} contain
+                            underscores ('_'). They will be converted to hyphens
+                            ('-').""",
                         UserWarning,
                         stacklevel=2,
                     )
@@ -388,84 +299,17 @@ class DeseqDataSet(ad.AnnData):
             else:
                 self.obs[factor] = to_numeric(self.obs[factor])
 
-        # Build the design matrix or use given one
-        # Stored in the obsm attribute of the dataset
-        if design_matrix is None:
-            assert isinstance(
-                self.design_factors, str
-            ), "By now design_factors should be a string"
+        if design_matrix is not None:
+            self.obsm["design_matrix"] = design_matrix
+        else:
             self.obsm["design_matrix"] = build_design_matrix(
                 metadata=self.obs,
                 design_factors=self.design_factors,
-                ref_level=ref_level,
+                ref_level=self.ref_level,
             )
-            # Now tthat formulaic preprocessed the formula we need it as a list
-            self.design_factors = self.design_factors_list
-        else:
-            warnings.warn(
-                """Design matrix was given; ignoring design_factors, continuous_factors
-                and ref_level argumetns""",
-                UserWarning,
-                stacklevel=2,
-            )
-            if len(design_matrix.index) != len(self.obs.index):
-                raise ValueError("Design matrix and metadata have different lengths")
-            if "intercept" not in design_matrix.columns:
-                warnings.warn(
-                    "Careful provided design matrix doesn't have intercept",
-                    UserWarning,
-                    stacklevel=2,
-                )
 
-            if not design_matrix["intercept"].equals(
-                pd.Series(1.0, index=design_matrix.index)
-            ):
-                warnings.warn(
-                    "'intercept' column is not all ones.", UserWarning, stacklevel=2
-                )
-
-            extracted_single_factors = list(
-                itertools.chain(
-                    *[
-                        parse_column_name(col)
-                        for col in design_matrix
-                        if col != "intercept"
-                    ]
-                )
-            )
-            # Remove non unique characters while keeping the apparition orde
-            factors_dict = {}
-            for factor in extracted_single_factors:
-                factors_dict[factor] = None
-            extracted_single_factors = list(factors_dict.keys())
-
-            # We extract all individual factors from the design matrix following
-            # pydeseq2 naming conventions containing potentially _vs_
-            for individual_factor in extracted_single_factors:
-                if individual_factor not in self.obs.columns:
-                    raise ValueError(
-                        "The design matrix contains an unknown factor. Note that if"
-                        " there were underscores in the column names they were"
-                        " automatically converted to underscores"
-                        " in the obs matrix."
-                        f"Could not match extracted factor: {individual_factor}"
-                        f" with the list of factors found in the observation:"
-                        f" {self.obs.columns}, make sure the name of the columns"
-                        " of your design matrix respects pydeseq2 conventions:"
-                        "colname = 'factor1:...:factorN_val1...val3_vs_ref1...ref2ref3'"
-                    )
-
-            # With some luck here design_matrix is valid all the time
-            self.obsm["design_matrix"] = design_matrix
-
-            self.single_design_factors = extracted_single_factors
-
-            # We store design factors as a list for later reuse in contrast
-            self.design_factors = [
-                parse_column_name(col, split_interactions=False)
-                for col in design_matrix
-                if col != "intercept"
-            ]
+        if self.obs[self.single_design_factors].isna().any().any():
+            raise ValueError("NaNs are not allowed in the design factors.")
 
         if len(self.single_design_factors) == 1:
             if self.obs[self.single_design_factors[0]].nunique() == 1:
@@ -1622,6 +1466,9 @@ class DeseqDataSet(ad.AnnData):
         """Check that the design matrix has full column rank."""
         rank = np.linalg.matrix_rank(self.obsm["design_matrix"])
         num_vars = self.obsm["design_matrix"].shape[1]
+
+        if len(self.obsm["design_matrix"]) != self.n_obs:
+            raise ValueError("Design matrix and metadata have different lengths")
 
         if rank < num_vars:
             warnings.warn(

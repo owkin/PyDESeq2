@@ -1,3 +1,5 @@
+import copy
+import itertools
 import multiprocessing
 import re
 import warnings
@@ -14,6 +16,7 @@ from typing import cast
 import formulaic
 import numpy as np
 import pandas as pd
+from formulaic import Formula
 from formulaic import model_matrix
 from matplotlib import pyplot as plt
 from pandas.api.types import is_numeric_dtype
@@ -159,9 +162,8 @@ def build_design_matrix(
         Must be indexed by sample barcodes.
 
     design_factors : str
-        Name of the columns of metadata to be used as design variables.
-        or formula with interaction terms. Careful, unlike in dds, interaction
-        terms cannot be provided as a list only as a formula.
+        Design formula. NB: unlike in dds, the design
+        cannot be provided as a list, only as a formula.
         (default: ``"condition"``).
 
     ref_level : List or None
@@ -1698,3 +1700,197 @@ def parse_column_name(colname: str, split_interactions: bool = True):
             return name_with_interaction
         else:
             return name_with_interaction.split(":")
+
+
+def process_design_factors(
+    design_factors: str | list,
+    metadata_columns: pd.Index,
+    continuous_factors: list[str] | None = None,
+    ref_level: list[tuple[str, str]] | None = None,
+    design_matrix: pd.DataFrame | None = None,
+):
+    """Process design factors.
+
+    Convert design factors to a formulaic string and check validity.
+
+    Parameters
+    ----------
+    design_factors : str | list
+        Design factors to process. If a list, it will be converted to a formulaic
+        string. If a string, it will be checked for validity.
+
+    metadata_columns : pd.Index
+        Metadata columns to check against (obtained from .obs).
+
+    continuous_factors : list of str, optional
+        List of continuous factors. If provided, underscores will be replaced by
+        hyphens.
+
+    ref_level : str, optional
+        Reference level. If provided, underscores will be replaced by hyphens.
+
+    design_matrix : pd.DataFrame, optional
+        Design matrix. If provided, design factors will be extracted from it.
+
+    Returns
+    -------
+    design_factors : str
+        Formulaic string of design factors.
+
+    design_factors_list : list
+        List of design factors. May contain interaction terms.
+
+    single_design_factors : list
+        List of individual design factors.
+
+    continuous_factors : list of str | None
+        List of continuous factors with underscores replaced by hyphens.
+
+    ref_level : str | None
+        Reference level with underscores replaced by hyphens.
+
+    """
+    # If design factors is provided as a list, convert it to a formulaic string
+    if isinstance(design_factors, list):
+        # TODO: add a DeprecationWarning for the list input
+        # Little bit of careful formating as below to remove space around : symbols
+        design_factors = [
+            re.sub(r"(?:(?<=\:) +| +(?=\:))", "", factor) for factor in design_factors
+        ]
+        # Extract single factors
+        extracted_single_factors = list(
+            itertools.chain(*[factor.split(":") for factor in design_factors])
+        )
+
+        single_design_factors = extracted_single_factors
+        # Store design factors as a list for later reuse in contrast
+        design_factors_list = copy.deepcopy(design_factors)
+        design_factors = "~" + "+".join(design_factors)
+
+    # Handle the case where the user provides a formula or a single column.
+    # Everything will be converted to formulaic formulas as in the first case.
+    elif isinstance(design_factors, str):
+        if not design_factors.startswith("~"):
+            design_factors = "~" + design_factors
+
+        # Check that the formula is valid
+        Formula(design_factors)
+
+        # Remove potential spaces around +,: or ~ signs to parse individual factors.
+        design_factors = re.sub(r"(?:(?<=\+) +| +(?=\+))", "", design_factors)
+        design_factors = re.sub(r"(?:(?<=\:) +| +(?=\:))", "", design_factors)
+        design_factors = re.sub(r"(?:(?<=\~) +| +(?=\~))", "", design_factors)
+        # Now we should have something of the form '~a+b+a:b:c:d'
+        # We also support the fact of passing only one factor such as 'a' by
+        # converting it to the corresponding formula '~a'
+        # Thanks to the previous reformatting we can do easily single-factor
+        # extraction
+        extracted_single_factors = list(
+            set(
+                itertools.chain(
+                    *[term.split(":") for term in design_factors[1:].split("+")]
+                )
+            )
+        )
+        # Remove non unique characters while keeping the apparition order
+        single_design_factors = []
+        for factor in extracted_single_factors:
+            if factor not in single_design_factors:
+                single_design_factors.append(factor)
+
+    else:
+        raise ValueError(
+            "Design factors should be a string or a list of strings, but "
+            f"received {type(design_factors)}"
+        )
+
+    # We check all single factors extracted were indeed in the columns
+    for factor in single_design_factors:
+        if factor not in metadata_columns:
+            raise ValueError(f"Formula contains the unknown extracted factor {factor}")
+
+    # Check that design factors don't contain underscores. If so, convert them to
+    # hyphens.
+    if np.any(["_" in factor for factor in single_design_factors]):
+        warnings.warn(
+            """Some factor names in the design contain underscores ('_').
+                They will be converted to hyphens ('-').""",
+            UserWarning,
+            stacklevel=2,
+        )
+
+        single_design_factors = replace_underscores(single_design_factors)
+        # Also check continuous factors
+        if continuous_factors is not None:
+            continuous_factors = replace_underscores(continuous_factors)
+
+    # If ref_level has underscores, convert them to hyphens
+    # Don't raise a warning: it will be raised by build_design_matrix()
+    if ref_level is not None:
+        ref_level = replace_underscores(ref_level)
+
+    design_factors = replace_underscores(design_factors)
+    # We need it for the contrast
+    assert isinstance(design_factors, str)
+    design_factors_list = design_factors[1:].split("+")
+
+    if design_matrix is not None:
+        warnings.warn(
+            """Design matrix was given; ignoring design_factors, continuous_factors
+                and ref_level argumetns""",
+            UserWarning,
+            stacklevel=2,
+        )
+        if "intercept" not in design_matrix.columns:
+            warnings.warn(
+                "Careful provided design matrix doesn't have intercept",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        elif not design_matrix["intercept"].equals(
+            pd.Series(1.0, index=design_matrix.index)
+        ):
+            warnings.warn(
+                "'intercept' column is not all ones.", UserWarning, stacklevel=2
+            )
+
+        extracted_single_factors = list(
+            itertools.chain(
+                *[parse_column_name(col) for col in design_matrix if col != "intercept"]
+            )
+        )
+        # Remove non unique characters while keeping the apparition order
+        single_design_factors = []
+        for factor in extracted_single_factors:
+            if factor not in single_design_factors:
+                single_design_factors.append(factor)
+
+        # We extract all individual factors from the design matrix following
+        # pydeseq2 naming conventions containing potentially _vs_
+        for individual_factor in extracted_single_factors:
+            if individual_factor not in metadata_columns:
+                raise ValueError(
+                    "The design matrix contains an unknown factor. Note that if"
+                    " there were underscores in the column names they were"
+                    " automatically converted to underscores"
+                    " in the obs matrix."
+                    f"Could not match extracted factor: {individual_factor}"
+                    f" with the list of factors found in the observation:"
+                    f" {metadata_columns}, make sure the name of the columns"
+                    " of your design matrix respects pydeseq2 conventions:"
+                    "colname = 'factor1:...:factorN_val1...val3_vs_ref1...ref2ref3'"
+                )
+
+        design_factors = [
+            parse_column_name(col, split_interactions=False)
+            for col in design_matrix
+            if col != "intercept"
+        ]
+    return (
+        design_factors,
+        design_factors_list,
+        single_design_factors,
+        continuous_factors,
+        ref_level,
+    )
