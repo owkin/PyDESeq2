@@ -1,3 +1,4 @@
+import copy
 import sys
 import time
 import warnings
@@ -10,6 +11,7 @@ from typing import cast
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
+from formulaic import Formula
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
@@ -19,13 +21,11 @@ from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
-from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import n_or_more_replicates
 from pydeseq2.utils import nb_nll
-from pydeseq2.utils import replace_underscores
 from pydeseq2.utils import robust_method_of_moments_disp
 from pydeseq2.utils import test_valid_counts
 from pydeseq2.utils import trimmed_mean
@@ -58,9 +58,10 @@ class DeseqDataSet(ad.AnnData):
         DataFrame containing sample metadata.
         Must be indexed by sample barcodes.
 
-    design_factors : str or list
-        Name of the columns of metadata to be used as design variables.
-        (default: ``'condition'``).
+    design : str or pandas.DataFrame
+        design: Model design. Can be either a design matrix, or a
+        formula.Formulaic formula in the format 'x + z' or '~x+z'.
+        (Default: '~condition').
 
     continuous_factors : list or None
         An optional list of continuous (as opposed to categorical) factors. Any factor
@@ -185,7 +186,7 @@ class DeseqDataSet(ad.AnnData):
         adata: Optional[ad.AnnData] = None,
         counts: Optional[pd.DataFrame] = None,
         metadata: Optional[pd.DataFrame] = None,
-        design_factors: Union[str, List[str]] = "condition",
+        design: str | pd.DataFrame = "~condition",
         continuous_factors: Optional[List[str]] = None,
         ref_level: Optional[List[str]] = None,
         fit_type: Literal["parametric", "mean"] = "parametric",
@@ -226,55 +227,64 @@ class DeseqDataSet(ad.AnnData):
             )
 
         self.fit_type = fit_type
+        self.design = design
 
-        # Convert design_factors to list if a single string was provided.
-        self.design_factors = (
-            [design_factors] if isinstance(design_factors, str) else design_factors
-        )
+        if isinstance(design, str):
+            # Build from formulaic
+            # TODO : need to track categorical and continuous variables ?
+            self.obs["design_matrix"] = Formula(design).model_matrix(design, metadata)
+
+        if isinstance(design, pd.DataFrame):
+            # TODO run some checks
+            # TODO will we need a formula at some point ?
+            self.obs["design_matrix"] = copy.deepcopy(design)
+
+        # Convert design to list if a single string was provided.
+        self.design = [design] if isinstance(design, str) else design
         self.continuous_factors = continuous_factors
 
-        if self.obs[self.design_factors].isna().any().any():
+        if self.obs[self.design].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
-        self.obs[self.design_factors] = self.obs[self.design_factors].astype(str)
+        self.obs[self.design] = self.obs[self.design].astype(str)
 
-        # Check that design factors don't contain underscores. If so, convert them to
-        # hyphens.
-        if np.any(["_" in factor for factor in self.design_factors]):
-            warnings.warn(
-                """Same factor names in the design contain underscores ('_'). They will
-                be converted to hyphens ('-').""",
-                UserWarning,
-                stacklevel=2,
-            )
+        # # Check that design factors don't contain underscores. If so, convert them to
+        # # hyphens.
+        # if np.any(["_" in factor for factor in self.design]):
+        #     warnings.warn(
+        #         """Same factor names in the design contain underscores ('_'). They will
+        #         be converted to hyphens ('-').""",
+        #         UserWarning,
+        #         stacklevel=2,
+        #     )
 
-            new_factors = replace_underscores(self.design_factors)
+        #     new_factors = replace_underscores(self.design)
 
-            self.obs.rename(
-                columns=dict(zip(self.design_factors, new_factors)),
-                inplace=True,
-            )
+        #     self.obs.rename(
+        #         columns=dict(zip(self.design, new_factors)),
+        #         inplace=True,
+        #     )
 
-            self.design_factors = new_factors
+        #     self.design = new_factors
 
-            # Also check continuous factors
-            if self.continuous_factors is not None:
-                self.continuous_factors = replace_underscores(self.continuous_factors)
+        #     # Also check continuous factors
+        #     if self.continuous_factors is not None:
+        #         self.continuous_factors = replace_underscores(self.continuous_factors)
 
-        # If ref_level has underscores, covert them to hyphens
-        # Don't raise a warning: it will be raised by build_design_matrix()
-        if ref_level is not None:
-            ref_level = replace_underscores(ref_level)
+        # # If ref_level has underscores, covert them to hyphens
+        # # Don't raise a warning: it will be raised by build_design_matrix()
+        # if ref_level is not None:
+        #     ref_level = replace_underscores(ref_level)
 
-        # Build the design matrix
-        # Stored in the obsm attribute of the dataset
-        self.obsm["design_matrix"] = build_design_matrix(
-            metadata=self.obs,
-            design_factors=self.design_factors,
-            continuous_factors=self.continuous_factors,
-            ref_level=ref_level,
-            expanded=False,
-            intercept=True,
-        )
+        # # Build the design matrix
+        # # Stored in the obsm attribute of the dataset
+        # self.obsm["design_matrix"] = build_design_matrix(
+        #     metadata=self.obs,
+        #     design=self.design,
+        #     continuous_factors=self.continuous_factors,
+        #     ref_level=ref_level,
+        #     expanded=False,
+        #     intercept=True,
+        # )
 
         # Check that the design matrix has full rank
         self._check_full_rank_design()
@@ -1276,7 +1286,7 @@ class DeseqDataSet(ad.AnnData):
                 columns=self.counts_to_refit.var_names,
             ),
             metadata=self.obs,
-            design_factors=self.design_factors,
+            design=self.design,
             continuous_factors=self.continuous_factors,
             ref_level=self.ref_level,
             min_mu=self.min_mu,
