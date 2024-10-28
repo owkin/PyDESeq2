@@ -1715,11 +1715,11 @@ def process_design_factors(
 
     Parameters
     ----------
-    design_factors : str | list
+    design_factors : str or list
         Design factors to process. If a list, it will be converted to a formulaic
         string. If a string, it will be checked for validity.
 
-    metadata_columns : pd.Index
+    metadata_columns : pandas.Index
         Metadata columns to check against (obtained from .obs).
 
     continuous_factors : list of str, optional
@@ -1743,10 +1743,10 @@ def process_design_factors(
     single_design_factors : list
         List of individual design factors.
 
-    continuous_factors : list of str | None
+    continuous_factors : list of str or None
         List of continuous factors with underscores replaced by hyphens.
 
-    ref_level : str | None
+    ref_level : str or None
         Reference level with underscores replaced by hyphens.
 
     """
