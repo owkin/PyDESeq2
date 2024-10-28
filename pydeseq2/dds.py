@@ -255,7 +255,7 @@ class DeseqDataSet(ad.AnnData):
             warnings.warn(
                 """Starting from version 0.5.0, PyDESeq2 will no longer accept lists as
                 design factors, only strings representing wilkinson formulae
-                (e.g., '~ condition + treatment + condition:treatmen') .""",
+                (e.g., '~ condition + treatment + condition:treatment') .""",
                 DeprecationWarning,
                 stacklevel=2,
             )
