@@ -80,9 +80,9 @@ class DeseqDataSet(ad.AnnData):
         not in ``continuous_factors`` will be considered categorical (default: ``None``).
 
     design_matrix: pd.DataFrame or None
-        If given will take precedence over design_factors and ref_level.
-        (default: ``None``).
-        TODO: Add more details about the format of the design matrix.
+        If given will take precedence over design_factors and ref_level. The columns
+        must be one-hot encoded and follow the "covariate_test_vs_ref" format. The
+        index must be the sample names. (default: ``None``).
 
     ref_level : list or None
         An optional list of tuples each with two strings of the form
@@ -254,7 +254,7 @@ class DeseqDataSet(ad.AnnData):
         continuous_factors = continuous_factors if continuous_factors is not None else []
 
         (
-            self.design_formula,  # TODO: rename to design_formula
+            self.design_formula,
             self.design_factors_list,
             self.single_design_factors,
             self.continuous_factors,
