@@ -11,7 +11,7 @@ from typing import cast
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
-from formulaic import Formula
+from formulaic import model_matrix
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
@@ -232,20 +232,18 @@ class DeseqDataSet(ad.AnnData):
         if isinstance(design, str):
             # Build from formulaic
             # TODO : need to track categorical and continuous variables ?
-            self.obs["design_matrix"] = Formula(design).model_matrix(design, metadata)
+            self.obsm["design_matrix"] = model_matrix(design, metadata)
 
         if isinstance(design, pd.DataFrame):
             # TODO run some checks
             # TODO will we need a formula at some point ?
-            self.obs["design_matrix"] = copy.deepcopy(design)
+            self.obsm["design_matrix"] = copy.deepcopy(design)
 
         # Convert design to list if a single string was provided.
-        self.design = [design] if isinstance(design, str) else design
         self.continuous_factors = continuous_factors
 
         if self.obs[self.design].isna().any().any():
             raise ValueError("NaNs are not allowed in the design factors.")
-        self.obs[self.design] = self.obs[self.design].astype(str)
 
         # # Check that design factors don't contain underscores. If so, convert them to
         # # hyphens.
