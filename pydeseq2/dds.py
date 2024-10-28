@@ -254,7 +254,7 @@ class DeseqDataSet(ad.AnnData):
         continuous_factors = continuous_factors if continuous_factors is not None else []
 
         (
-            self.design_factors,  # TODO: rename to design_formula
+            self.design_formula,  # TODO: rename to design_formula
             self.design_factors_list,
             self.single_design_factors,
             self.continuous_factors,
@@ -304,7 +304,7 @@ class DeseqDataSet(ad.AnnData):
         else:
             self.obsm["design_matrix"] = build_design_matrix(
                 metadata=self.obs,
-                design_factors=self.design_factors,
+                design_factors=self.design_formula,
                 ref_level=self.ref_level,
             )
 
@@ -1313,7 +1313,7 @@ class DeseqDataSet(ad.AnnData):
                 columns=self.counts_to_refit.var_names,
             ),
             metadata=self.obs,
-            design_factors=self.design_factors,
+            design_factors=self.design_formula,
             continuous_factors=self.continuous_factors,
             ref_level=self.ref_level,
             min_mu=self.min_mu,
