@@ -148,7 +148,7 @@ def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
 
 def build_design_matrix(
     metadata: pd.DataFrame,
-    design_factors: str = "condition",
+    design_factors: str = "~condition",
     ref_level: Optional[List[Tuple[str, str]]] = None,
 ) -> pd.DataFrame:
     """Build design_matrix matrix for DEA.
@@ -164,7 +164,7 @@ def build_design_matrix(
     design_factors : str
         Design formula. NB: unlike in dds, the design
         cannot be provided as a list, only as a formula.
-        (default: ``"condition"``).
+        (default: ``~condition"``).
 
     ref_level : List or None
         An optional list of tuples each with two strings: ``("factor", "ref_level")``
@@ -236,11 +236,8 @@ def build_design_matrix(
     try:
         design_matrix = model_matrix(design_factors, metadata)
     except formulaic.errors.FactorEvaluationError:
-        # It is a design choice due to the fact that forumalaic doesn't handle
-        # well expressions with hyphens
         warnings.warn(
-            "It seems one of the factor of the formula could not be"
-            "well parsed by formulaic trying to fix it",
+            "One of the factors could not be parsed, we will try to rewrite it.",
             UserWarning,
             stacklevel=2,
         )
@@ -273,11 +270,10 @@ def build_design_matrix(
     for col in design_matrix.columns:
         if col != "intercept":
             for new_pattern, old_value in patterns_to_reverse.items():
-                # This should not happen a column should be affected twice
                 if col in replacement_names:
                     raise ValueError(
-                        "Cannot revert formatting please open an issue"
-                        " on github with your data"
+                        "Cannot revert formatting. Please open an issue"
+                        " on github: www.github.com/owkin/pydeseq2."
                     )
                 regexp_from_new_pattern = r""
                 for char in new_pattern:
