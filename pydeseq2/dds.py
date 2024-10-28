@@ -242,8 +242,8 @@ class DeseqDataSet(ad.AnnData):
         # Convert design to list if a single string was provided.
         self.continuous_factors = continuous_factors
 
-        if self.obs[self.design].isna().any().any():
-            raise ValueError("NaNs are not allowed in the design factors.")
+        if self.obsm["design_matrix"].isna().any().any():
+            raise ValueError("NaNs are not allowed in the design.")
 
         # # Check that design factors don't contain underscores. If so, convert them to
         # # hyphens.
