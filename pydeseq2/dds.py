@@ -250,8 +250,15 @@ class DeseqDataSet(ad.AnnData):
 
         self.fit_type = fit_type
 
-        design_factors = design_factors
         continuous_factors = continuous_factors if continuous_factors is not None else []
+        if type(design_factors) is list:
+            warnings.warn(
+                """Starting from version 0.5.0, PyDESeq2 will no longer accept lists as
+                design factors, only strings representing wilkinson formulae
+                (e.g., '~ condition + treatment + condition:treatmen') .""",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         (
             self.design_formula,

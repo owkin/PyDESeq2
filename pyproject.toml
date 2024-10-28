@@ -49,5 +49,7 @@ filterwarnings = [
     "error",
     '''ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning''',
     # ignore Pyarrow deprecation warnings
-    "ignore::FutureWarning", # Ignore AnnData FutureWarning about implicit conversion
+    "ignore::FutureWarning", # Ignore AnnData FutureWarning about implicit conversion,
+    # ignore internal pydeseq2 warning about design factors as lists
+    "ignore:.*Starting from version 0.5.0, PyDESeq2.*:DeprecationWarning"
 ]
