@@ -1752,8 +1752,7 @@ def process_design_factors(
     """
     # If design factors is provided as a list, convert it to a formulaic string
     if isinstance(design_factors, list):
-        # TODO: add a DeprecationWarning for the list input
-        # Little bit of careful formating as below to remove space around : symbols
+        # Remove space around colons
         design_factors = [
             re.sub(r"(?:(?<=\:) +| +(?=\:))", "", factor) for factor in design_factors
         ]
@@ -1836,14 +1835,14 @@ def process_design_factors(
 
     if design_matrix is not None:
         warnings.warn(
-            """Design matrix was given; ignoring design_factors, continuous_factors
-                and ref_level argumetns""",
+            """The design matrix was passed as an argument. Ignoring design_factors,
+            continuous_factors and ref_level arguments""",
             UserWarning,
             stacklevel=2,
         )
         if "intercept" not in design_matrix.columns:
             warnings.warn(
-                "Careful provided design matrix doesn't have intercept",
+                "The design matrix does not contain an 'intercept' column.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -1852,7 +1851,7 @@ def process_design_factors(
             pd.Series(1.0, index=design_matrix.index)
         ):
             warnings.warn(
-                "'intercept' column is not all ones.", UserWarning, stacklevel=2
+                "The 'intercept' column is not all ones.", UserWarning, stacklevel=2
             )
 
         extracted_single_factors = list(
@@ -1879,7 +1878,7 @@ def process_design_factors(
                     f" with the list of factors found in the observation:"
                     f" {metadata_columns}, make sure the name of the columns"
                     " of your design matrix respects pydeseq2 conventions:"
-                    "colname = 'factor1:...:factorN_val1...val3_vs_ref1...ref2ref3'"
+                    "colname = 'factor_testlevel_vs_reflevel'."
                 )
 
         design_factors = [
