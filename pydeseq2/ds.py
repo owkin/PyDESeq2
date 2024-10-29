@@ -30,14 +30,15 @@ class DeseqStats:
     dds : DeseqDataSet
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
-    contrast : list
-        A list of three strings, in the following format:
+    contrast : list or ndarray
+        Either a list of three strings or a numpy array.
+        IF a list of three strings, it must be in the following format:
         ``['variable_of_interest', 'tested_level', 'ref_level']``.
         Names must correspond to the metadata data passed to the DeseqDataSet.
         E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared
         to 'condition A'.
-        For continuous variables, the last two strings should be left empty, e.g.
-        ``['measurement', '', '']``.
+        If a numpy array, it must be a contrast vector of the same length as the design
+        matrix.
 
     alpha : float
         P-value and adjusted p-value significance threshold (usually 0.05).
@@ -131,7 +132,7 @@ class DeseqStats:
     def __init__(
         self,
         dds: DeseqDataSet,
-        contrast: List[str] | None = None,
+        contrast: List[str] | np.ndarray,
         alpha: float = 0.05,
         cooks_filter: bool = True,
         independent_filter: bool = True,
@@ -163,22 +164,26 @@ class DeseqStats:
         self.lfc_null = lfc_null
         self.alt_hypothesis = alt_hypothesis
 
-        # Check the validity of the contrast (if provided) or build it.
-        if contrast is None:
-            raise ValueError(
-                """Default contrasts are no longer supported.
-                             The "contrast" argument must be provided."""
-            )
-        else:
-            self.contrast = contrast
-
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
         self.design_matrix = self.dds.obsm["design_matrix"].copy()
         self.LFC = self.dds.varm["LFC"].copy()
 
-        # Build a contrast vector corresponding to the variable and levels of interest
-        self._build_contrast_vector()
+        # Check the validity of the contrast (if provided) or build it.
+        if contrast is None:
+            raise ValueError(
+                """Default contrasts are no longer supported.
+                The "contrast" argument must be provided."""
+            )
+        elif isinstance(contrast, np.ndarray):
+            assert (
+                contrast.shape[0] == self.dds.obsm["design_matrix"].shape[1]
+            ), "The contrast vector must have the same length as the design matrix."
+            self.contrast = contrast
+            self.contrast_vector = contrast
+        else:
+            self.contrast = contrast
+            self._build_contrast_vector()
 
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
@@ -268,9 +273,9 @@ class DeseqStats:
         self.results_df["padj"] = self.padj
 
         if not self.quiet:
-            if self.contrast[1] == self.contrast[2] == "":
-                # The factor is continuous
-                print(f"Log2 fold change & Wald test p-value: " f"{self.contrast[0]}")
+            if isinstance(self.contrast, np.ndarray):
+                # The contrast vector was directly provided
+                print(f"Log2 fold change & Wald test p-value: " f"{self.contrast}")
             else:
                 # The factor is categorical
                 print(
@@ -634,9 +639,6 @@ class DeseqStats:
         )
 
     # Everything below is copied from pertpy. TODO : get a MWE, then clean up
-
-    # TODO : we should allow the user to provide their own contrast vector
-
     def _contrast(self, column: str, baseline: str, group_to_compare: str) -> np.ndarray:
         """Build a simple contrast for pairwise comparisons.
 
