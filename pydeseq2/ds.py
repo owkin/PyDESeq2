@@ -32,7 +32,7 @@ class DeseqStats:
 
     contrast : list or ndarray
         Either a list of three strings or a numpy array.
-        IF a list of three strings, it must be in the following format:
+        If a list of three strings, it must be in the following format:
         ``['variable_of_interest', 'tested_level', 'ref_level']``.
         Names must correspond to the metadata data passed to the DeseqDataSet.
         E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared
@@ -576,7 +576,6 @@ class DeseqStats:
         else:
             return root_scalar(objective, bracket=[min_var, max_var]).root
 
-    # TODO throw errors if the contrast is not valid
     def _build_contrast_vector(self) -> None:
         """
         Build a vector corresponding to the desired contrast.
@@ -599,6 +598,20 @@ class DeseqStats:
         ```
         model.cond(<column> = baseline) - model.cond(<column> = group_to_compare)
         ```
+
+        Parameters
+        ----------
+        column: str
+            The column to contrast.
+        baseline: str
+            The baseline group.
+        group_to_compare: str
+            The group to compare to the baseline.
+
+        Returns
+        -------
+        np.ndarray
+            The contrast vector.
         """
         return self.cond(**{column: baseline}) - self.cond(**{column: group_to_compare})
 
@@ -606,11 +619,14 @@ class DeseqStats:
         """
         Get a contrast vector representing a specific condition.
 
-        Args:
-            **kwargs: column/value pairs.
+        Parameters
+        ----------
+        **kwargs
+            Column/value pairs.
 
         Returns
         -------
+        ndarray
             A contrast vector that aligns to the columns of the design matrix.
         """
         cond_dict = kwargs
