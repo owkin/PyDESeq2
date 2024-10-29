@@ -384,4 +384,4 @@ ds_Y_vs_X.summary()
 # only shrink the LFCs of a :class:`DeseqStats` object based on its
 # ``contrast`` argument.
 
-ds_B_vs_A.lfc_shrink(coeff="condtion[T.B]")
+ds_B_vs_A.lfc_shrink(coeff="condition[T.B]")
