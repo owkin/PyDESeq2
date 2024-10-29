@@ -275,7 +275,10 @@ class DeseqStats:
         if not self.quiet:
             if isinstance(self.contrast, np.ndarray):
                 # The contrast vector was directly provided
-                print(f"Log2 fold change & Wald test p-value: " f"{self.contrast}")
+                print(
+                    f"Log2 fold change & Wald test p-value, contrast vector: "
+                    f"{self.contrast}"
+                )
             else:
                 # The factor is categorical
                 print(
