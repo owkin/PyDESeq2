@@ -66,15 +66,19 @@ class DeseqDataSet(ad.AnnData):
         Must be indexed by sample barcodes.
 
     design : str or pandas.DataFrame
-        design: Model design. Can be either a design matrix, or a
+        Model design. Can be either a design matrix, or a
         formula.Formulaic formula in the format 'x + z' or '~x+z'.
         (Default: '~condition').
 
-    continuous_factors : list or None
+    design_factors : str or list, optional
+        Depecated. An optional list of factors to include in the design matrix.
+        Will be removed in a future release. (default: ``None``).
+
+    continuous_factors : list, optional
         An optional list of continuous (as opposed to categorical) factors. Any factor
         not in ``continuous_factors`` will be considered categorical (default: ``None``).
 
-    ref_level : list or None
+    ref_level : list, optional
         An optional list of two strings of the form ``["factor", "test_level"]``
         specifying the factor of interest and the reference (control) level against which
         we're testing, e.g. ``["condition", "A"]``. (default: ``None``).
@@ -195,8 +199,8 @@ class DeseqDataSet(ad.AnnData):
         metadata: Optional[pd.DataFrame] = None,
         design: str | pd.DataFrame = "~condition",
         design_factors: str | list[str] | None = None,
-        continuous_factors: Optional[List[str]] = None,  # TODO stale
-        ref_level: Optional[List[str]] = None,
+        continuous_factors: list[str] | None = None,
+        ref_level: Optional[List[str]] | None = None,
         fit_type: Literal["parametric", "mean"] = "parametric",
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
