@@ -1,7 +1,7 @@
-import copy
 import sys
 import time
 import warnings
+from itertools import chain
 from typing import List
 from typing import Literal
 from typing import Optional
@@ -11,12 +11,16 @@ from typing import cast
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
-from formulaic import model_matrix
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
 
+from pydeseq2._formulaic import Factor
+
+# TODO this is from pertpy, if we keep it we shoud acknoledge it or import it directly
+from pydeseq2._formulaic import get_factor_storage_and_materializer
+from pydeseq2._formulaic import resolve_ambiguous
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.preprocessing import deseq2_norm_fit
@@ -32,6 +36,9 @@ from pydeseq2.utils import trimmed_mean
 
 # Ignore AnnData's FutureWarning about implicit data conversion.
 warnings.simplefilter("ignore", FutureWarning)
+
+
+# TODO should this also inherit from pertpy's LinearBase class ?
 
 
 class DeseqDataSet(ad.AnnData):
@@ -187,7 +194,7 @@ class DeseqDataSet(ad.AnnData):
         counts: Optional[pd.DataFrame] = None,
         metadata: Optional[pd.DataFrame] = None,
         design: str | pd.DataFrame = "~condition",
-        continuous_factors: Optional[List[str]] = None,
+        continuous_factors: Optional[List[str]] = None,  # TODO stale
         ref_level: Optional[List[str]] = None,
         fit_type: Literal["parametric", "mean"] = "parametric",
         min_mu: float = 0.5,
@@ -229,15 +236,28 @@ class DeseqDataSet(ad.AnnData):
         self.fit_type = fit_type
         self.design = design
 
-        if isinstance(design, str):
-            # Build from formulaic
-            # TODO : need to track categorical and continuous variables ?
-            self.obsm["design_matrix"] = model_matrix(design, metadata)
+        # if isinstance(design, str):
+        #     # Build from formulaic
+        #     # TODO : need to track categorical and continuous variables ?
+        #     self.obsm["design_matrix"] = model_matrix(design, metadata)
 
-        if isinstance(design, pd.DataFrame):
-            # TODO run some checks
-            # TODO will we need a formula at some point ?
-            self.obsm["design_matrix"] = copy.deepcopy(design)
+        # if isinstance(design, pd.DataFrame):
+        #     # TODO run some checks
+        #     # TODO will we need a formula at some point ?
+        #     self.obsm["design_matrix"] = copy.deepcopy(design)
+
+        self.factor_storage = None
+        self.variable_to_factors = None
+
+        if isinstance(design, str):
+            self.factor_storage, self.variable_to_factors, materializer_class = (
+                get_factor_storage_and_materializer()
+            )
+            self.obsm["design_matrix"] = materializer_class(
+                self.obs, record_factor_metadata=True
+            ).get_model_matrix(design)
+        else:
+            self.design = self.obsm["design_matrix"]
 
         # Convert design to list if a single string was provided.
         self.continuous_factors = continuous_factors
@@ -312,6 +332,17 @@ class DeseqDataSet(ad.AnnData):
                 )
         # Initialize the inference object.
         self.inference = inference or DefaultInference(n_cpus=n_cpus)
+
+    @property
+    def variables(self):
+        """Get the names of the variables used in the model definition."""
+        try:
+            return self.obsm["design_matrix"].model_spec.variables_by_source["data"]
+        except AttributeError:
+            raise ValueError(
+                """Retrieving variables is only possible if the model was initialized
+                using a formula."""
+            ) from None
 
     def vst(
         self,
@@ -388,7 +419,7 @@ class DeseqDataSet(ad.AnnData):
             # Reduce the design matrix to an intercept and reconstruct at the end
             self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
             self.obsm["design_matrix"] = pd.DataFrame(
-                1, index=self.obs_names, columns=["intercept"]
+                1, index=self.obs_names, columns=["Intercept"]
             )
             # Fit the trend curve with an intercept design
             self.fit_genewise_dispersions(vst=True)
@@ -1367,7 +1398,7 @@ class DeseqDataSet(ad.AnnData):
         # Reduce the design matrix to an intercept and reconstruct at the end
         self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
         self.obsm["design_matrix"] = pd.DataFrame(
-            1, index=self.obs_names, columns=["intercept"]
+            1, index=self.obs_names, columns=["Intercept"]
         )
 
         # Fit size factors using MLE
@@ -1447,3 +1478,35 @@ class DeseqDataSet(ad.AnnData):
                 UserWarning,
                 stacklevel=2,
             )
+
+    ### Methods below are taken and adapted from pertpy's LinearModelBase ###
+
+    def _check_category(self, var, value):
+        factor_metadata = self._get_factor_metadata_for_variable(var)
+        tmp_categories = resolve_ambiguous(factor_metadata, "categories")
+        if (
+            resolve_ambiguous(factor_metadata, "kind") == Factor.Kind.CATEGORICAL
+            and value not in tmp_categories
+        ):
+            raise ValueError(
+                f"""You specified a non-existant category for {var}.
+                Possible categories: {', '.join(tmp_categories)}"""
+            )
+
+    def _get_factor_metadata_for_variable(self, var):
+        factors = self.variable_to_factors[var]
+        return list(chain.from_iterable(self.factor_storage[f] for f in factors))
+
+    def _get_default_value(self, var):
+        factor_metadata = self._get_factor_metadata_for_variable(var)
+        if resolve_ambiguous(factor_metadata, "kind") == Factor.Kind.CATEGORICAL:
+            try:
+                tmp_base = resolve_ambiguous(factor_metadata, "base")
+            except ValueError as e:
+                raise ValueError(
+                    f"""Could not automatically resolve base category for variable {var}.
+                    Please specify it explicity in `model.cond`."""
+                ) from e
+            return tmp_base if tmp_base is not None else "\0"
+        else:
+            return 0

@@ -30,7 +30,7 @@ class DeseqStats:
     dds : DeseqDataSet
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
-    contrast : list or None
+    contrast : list
         A list of three strings, in the following format:
         ``['variable_of_interest', 'tested_level', 'ref_level']``.
         Names must correspond to the metadata data passed to the DeseqDataSet.
@@ -38,9 +38,6 @@ class DeseqStats:
         to 'condition A'.
         For continuous variables, the last two strings should be left empty, e.g.
         ``['measurement', '', '']``.
-        If ``None``, the last variable from the design matrix is chosen
-        as the variable of interest, and the reference level is picked alphabetically.
-        (default: ``None``).
 
     alpha : float
         P-value and adjusted p-value significance threshold (usually 0.05).
@@ -134,7 +131,7 @@ class DeseqStats:
     def __init__(
         self,
         dds: DeseqDataSet,
-        contrast: Optional[List[str]] = None,
+        contrast: List[str] | None = None,
         alpha: float = 0.05,
         cooks_filter: bool = True,
         independent_filter: bool = True,
@@ -167,7 +164,13 @@ class DeseqStats:
         self.alt_hypothesis = alt_hypothesis
 
         # Check the validity of the contrast (if provided) or build it.
-        self._build_contrast(contrast)
+        if contrast is None:
+            raise ValueError(
+                """Default contrasts are no longer supported.
+                             The "contrast" argument must be provided."""
+            )
+        else:
+            self.contrast = contrast
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
@@ -193,6 +196,12 @@ class DeseqStats:
                 "to False."
             )
 
+    @property
+    def variables(self):
+        """Get the names of the variables used in the model definition."""
+        return self.dds.variables
+
+    # TODO handle continuous variables and general contrasts
     def summary(
         self,
         **kwargs,
@@ -329,6 +338,7 @@ class DeseqStats:
             self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
 
+    # TODO update this to reflect the new contrast format
     def lfc_shrink(self, coeff: Optional[str] = None, adapt: bool = True) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
@@ -456,6 +466,7 @@ class DeseqStats:
                 # The factor is continuous
                 print(f"Shrunk log2 fold change & Wald test p-value: " f"{coeff}")
             elif not self.quiet:
+                # TODO update this to reflect the new contrast format
                 # The factor is categorical
                 # Categorical coeffs are of the form "factor_A_vs_B", hence "factor"
                 # is split_coeff[0], "A" is split_coeff[1] and "B" split_coeff[3]
@@ -608,70 +619,7 @@ class DeseqStats:
         else:
             return root_scalar(objective, bracket=[min_var, max_var]).root
 
-    def _build_contrast(self, contrast: Optional[List[str]] = None) -> None:
-        """Check the validity of the contrast (if provided).
-
-        If not, build a default
-        contrast, corresponding to the last column of the design matrix.
-        A contrast should be a list of three strings, in the following format:
-        ``['variable_of_interest', 'tested_level', 'reference_level']``.
-        Names must correspond to the metadata data passed to the DeseqDataSet.
-        E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B'
-        compared to 'condition A'.
-        For continuous variables, the last two strings will be left empty, e.g.
-        ``['measurement', '', ''].
-        If None, the last variable from the design matrix
-        is chosen as the variable of interest, and the reference level is picked
-        alphabetically.
-
-        Parameters
-        ----------
-        contrast : list or None
-            A list of three strings, in the following format:
-            ``['variable_of_interest', 'tested_level', 'reference_level']``.
-            (default: ``None``).
-        """
-        if contrast is not None:  # Test contrast if provided
-            if len(contrast) != 3:
-                raise ValueError("The contrast should contain three strings.")
-            if contrast[0] not in self.dds.design_factors:
-                raise KeyError(
-                    f"The contrast variable ('{contrast[0]}') should be one "
-                    f"of the design factors."
-                )
-            if not (contrast[1] == contrast[2] == ""):
-                # The contrast factor is categorical, so we should check that the tested
-                # and reference levels are valid.
-                if contrast[1] not in self.dds.obs[contrast[0]].values:
-                    raise KeyError(
-                        f"The tested level ('{contrast[1]}') should correspond to "
-                        f"one of the levels of '{contrast[0]}'"
-                    )
-                if contrast[2] not in self.dds.obs[contrast[0]].values:
-                    raise KeyError(
-                        f"The reference level ('{contrast[2]}') should correspond to "
-                        f"one of the levels of '{contrast[0]}'"
-                    )
-            self.contrast = contrast
-        else:  # Build contrast if None
-            factor = self.dds.design_factors[-1]
-            # Check whether this factor is categorical or continuous.
-            if (
-                self.dds.continuous_factors is not None
-                and factor in self.dds.continuous_factors
-            ):
-                # The factor is continuous
-                self.contrast = [factor, "", ""]
-            else:
-                # The factor is categorical
-                factor_col = next(
-                    col
-                    for col in self.dds.obsm["design_matrix"].columns
-                    if col.startswith(factor)
-                )
-                split_col = factor_col.split("_")
-                self.contrast = [split_col[0], split_col[1], split_col[-1]]
-
+    # TODO throw errors if the contrast is not valid
     def _build_contrast_vector(self) -> None:
         """
         Build a vector corresponding to the desired contrast.
@@ -681,31 +629,47 @@ class DeseqStats:
         factor = self.contrast[0]
         alternative = self.contrast[1]
         ref = self.contrast[2]
-        if ref == alternative == "":
-            # "factor" is a continuous variable
-            contrast_level = factor
-        else:
-            contrast_level = f"{factor}_{alternative}_vs_{ref}"
+        self.contrast_vector = self._contrast(
+            column=factor, baseline=ref, group_to_compare=alternative
+        )
 
-        self.contrast_vector = np.zeros(self.LFC.shape[-1])
-        if contrast_level in self.design_matrix.columns:
-            self.contrast_idx = self.LFC.columns.get_loc(contrast_level)
-            self.contrast_vector[self.contrast_idx] = 1
-        elif f"{factor}_{ref}_vs_{alternative}" in self.design_matrix.columns:
-            # Reference and alternative are inverted
-            self.contrast_idx = self.LFC.columns.get_loc(
-                f"{factor}_{ref}_vs_{alternative}"
+    # Everything below is copied from pertpy. TODO : get a MWE, then clean up
+
+    # TODO : we should allow the user to provide their own contrast vector
+
+    def _contrast(self, column: str, baseline: str, group_to_compare: str) -> np.ndarray:
+        """Build a simple contrast for pairwise comparisons.
+
+        This is equivalent to
+
+        ```
+        model.cond(<column> = baseline) - model.cond(<column> = group_to_compare)
+        ```
+        """
+        return self.cond(**{column: baseline}) - self.cond(**{column: group_to_compare})
+
+    def cond(self, **kwargs):
+        """
+        Get a contrast vector representing a specific condition.
+
+        Args:
+            **kwargs: column/value pairs.
+
+        Returns
+        -------
+            A contrast vector that aligns to the columns of the design matrix.
+        """
+        cond_dict = kwargs
+        if not set(cond_dict.keys()).issubset(self.dds.variables):
+            raise ValueError(
+                """You specified a variable that is not part of the model. Available
+                variables: """
+                + ",".join(self.dds.variables)
             )
-            self.contrast_vector[self.contrast_idx] = -1
-        else:
-            # Need to change reference
-            # Get any column corresponding to the desired factor and extract old ref
-            old_ref = next(
-                col for col in self.LFC.columns if col.startswith(factor)
-            ).split("_vs_")[-1]
-            new_alternative_idx = self.LFC.columns.get_loc(
-                f"{factor}_{alternative}_vs_{old_ref}"
-            )
-            new_ref_idx = self.LFC.columns.get_loc(f"{factor}_{ref}_vs_{old_ref}")
-            self.contrast_vector[new_alternative_idx] = 1
-            self.contrast_vector[new_ref_idx] = -1
+        for var in self.dds.variables:
+            if var in cond_dict:
+                self.dds._check_category(var, cond_dict[var])
+            else:
+                cond_dict[var] = self.dds._get_default_value(var)
+        df = pd.DataFrame([kwargs])
+        return self.dds.obsm["design_matrix"].model_spec.get_model_matrix(df).iloc[0]
