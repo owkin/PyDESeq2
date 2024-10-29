@@ -242,6 +242,8 @@ def build_design_matrix(
             stacklevel=2,
         )
         # We rewrite the formula with quotes
+        # we assume that the formula contains only 1) factors, which are put into quotes
+        # , 2) : signs indicating interactions and 3) + signs
         design_factors = design_factors.strip()
         assert design_factors.startswith("~"), "The formula should start with a ~"
         design_factors = design_factors[1:]
