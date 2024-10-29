@@ -1,4 +1,3 @@
-import copy
 import itertools
 import multiprocessing
 import re
@@ -1830,7 +1829,6 @@ def process_design_factors(
 
         single_design_factors = list(dict.fromkeys(extracted_single_factors))
         # Store design factors as a list for later reuse in contrast
-        design_factors_list = copy.deepcopy(design_factors)
         design_factors = "~" + "+".join(design_factors)
 
     # Handle the case where the user provides a formula or a single column.
