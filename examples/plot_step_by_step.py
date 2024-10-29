@@ -21,6 +21,8 @@ results.
 import os
 import pickle as pkl
 
+import numpy as np
+
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.ds import DeseqStats
@@ -80,8 +82,9 @@ metadata = load_example_data(
 # arguments, ``counts`` and
 # ``metadata``, as well as a set of optional keyword arguments, among which:
 #
-# - ``design_factor``: the name of the column of metadata to be used as a design
-#   variable
+# - ``design``: a string representing a
+#   [formulaic](https://matthewwardrop.github.io/formulaic/) formula, or a design
+#   matrix (ndarray), that will be used to model the data.
 # - ``refit_cooks``: whether to refit cooks outliers – this is advised, in general.
 #
 # .. note::
@@ -92,7 +95,7 @@ inference = DefaultInference(n_cpus=8)
 dds = DeseqDataSet(
     counts=counts_df,
     metadata=metadata,
-    design_factors="condition",  # compare samples based on the "condition"
+    design="~condition",  # compare samples based on the "condition"
     # column ("B" vs "A")
     refit_cooks=True,
     inference=inference,
@@ -177,8 +180,10 @@ if SAVE:
 # 2. Statistical analysis
 # -----------------------
 # Statistical analysis with the :class:`DeseqStats <ds.DeseqStats>` class.
-# The `DeseqDataSet` class has a unique mandatory arguments, `dds`, which should
-# be a *fitted* `DeseqDataSet` object, as well as a set of optional keyword
+# The `DeseqDataSet` class has two unique mandatory arguments, `dds`, which should
+# be a *fitted* `DeseqDataSet` object, and ``contrast``, which should be a list
+# of 3 strings of the form ``["factor", "tested_level", "reference_level"]`` or a
+# numerical contrast vector, as well as a set of optional keyword
 # arguments, among which:
 #
 # - `alpha`: the p-value and adjusted p-value significance threshold
@@ -186,14 +191,20 @@ if SAVE:
 # - `independent_filter`: whether to perform independent filtering to correct
 #   p-value trends.
 
-stat_res = DeseqStats(dds, alpha=0.05, cooks_filter=True, independent_filter=True)
+ds = DeseqStats(
+    dds,
+    contrast=np.array([0, 1]),
+    alpha=0.05,
+    cooks_filter=True,
+    independent_filter=True,
+)
 
 # %%
 # Wald tests
 # ^^^^^^^^^^
 
-stat_res.run_wald_test()
-stat_res.p_values
+ds.run_wald_test()
+ds.p_values
 
 # %%
 # Cooks filtering
@@ -204,20 +215,20 @@ stat_res.p_values
 #   Note: in the case of the provided synthetic data, there won't be any
 #   outliers.
 
-if stat_res.cooks_filter:
-    stat_res._cooks_filtering()
-stat_res.p_values
+if ds.cooks_filter:
+    ds._cooks_filtering()
+ds.p_values
 
 # %%
 # P-value adjustment
 # ^^^^^^^^^^^^^^^^^^
 
-if stat_res.independent_filter:
-    stat_res._independent_filtering()
+if ds.independent_filter:
+    ds._independent_filtering()
 else:
-    stat_res._p_value_adjustment()
+    ds._p_value_adjustment()
 
-stat_res.padj
+ds.padj
 
 # %%
 # Building a results dataframe
@@ -225,14 +236,14 @@ stat_res.padj
 # This dataframe is stored in the `results_df` attribute of the `DeseqStats`
 # class.
 
-stat_res.summary()
+ds.summary()
 
 # %%
 # Save everything if SAVE is set to True
 
 if SAVE:
     with open(os.path.join(OUTPUT_PATH, "stat_results_detailed_pipe.pkl"), "wb") as f:
-        pkl.dump(stat_res, f)
+        pkl.dump(ds, f)
 
 # %%
 # LFC Shrinkage
@@ -240,14 +251,12 @@ if SAVE:
 # For visualization or post-processing purposes, it might be suitable to perform
 # LFC shrinkage. This is implemented by the `lfc_shrink` method.
 
-stat_res.lfc_shrink(coeff="condition_B_vs_A")
+ds.lfc_shrink(coeff="condition[T.B]")
 
 
 # %%
 # Save everything
 
 if SAVE:
-    with open(
-        os.path.join(OUTPUT_PATH, "shrunk_stat_results_detailed_pipe.pkl"), "wb"
-    ) as f:
-        pkl.dump(stat_res, f)
+    with open(os.path.join(OUTPUT_PATH, "shrunk_results_detailed_pipe.pkl"), "wb") as f:
+        pkl.dump(ds, f)
