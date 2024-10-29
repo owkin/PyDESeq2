@@ -266,16 +266,25 @@ def build_design_matrix(
         columns=lambda x: x.replace("Intercept", "intercept"), inplace=True
     )
     # If ref_level was not None we remove the verbose:
-    # 'C(condition, contr.treatment(base="A"))' from the columns
+    # 'C(condition, contr.treatment(base="A"))' from the columns' names
+    # So we are doing that because we first converted ref_level to
+    # formulaic syntac 'C(condition, contr.treatment(base="A"))``
+    # Now that it has allowed formulaic to build a design matrix
+    # formulaic built the design_matrix with its naming convention
+    # we have to revert this formatting. Fortunately we stored
+    # the original levels and reference levels so this is doable.
+    # Obviously this kind of back and forth is suboptimal and will
+    # be removed as we move into replacing legacy pydeseq2 syntax
+    # with formulaic syntax entirely.
     replacement_names = {}
     for col in design_matrix.columns:
         if col != "intercept":
             for new_pattern, old_value in patterns_to_reverse.items():
-                if col in replacement_names:
-                    raise ValueError(
-                        "Cannot revert formatting. Please open an issue"
-                        " on github: www.github.com/owkin/pydeseq2."
-                    )
+                # This regexp replaces the name given by formulaic:
+                # C(`condition`, contr.treatment(base=`A`))[T.A]
+                # with the simpler, less redundant: condition[T.A]
+                # This small loop just adds escaping characters when needed
+                # for the regexp to work properly
                 regexp_from_new_pattern = r""
                 for char in new_pattern:
                     if char in ["(", ")", "=", " ", "'"]:
