@@ -346,62 +346,26 @@ class DeseqStats:
             self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
 
     # TODO update this to reflect the new contrast format
-    def lfc_shrink(self, coeff: Optional[str] = None, adapt: bool = True) -> None:
+    def lfc_shrink(self, coeff: str, adapt: bool = True) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
 
         Parameters
         ----------
-        coeff : str or None
-            The LFC coefficient to shrink. If set to ``None``, the method will try to
-            shrink the coefficient corresponding to the ``contrast`` attribute.
-            If the desired coefficient is not available, it may be set from the
-            :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
+        coeff : str
+            The LFC coefficient to shrink. Must be one of the columns of the LFC matrix.
             (default: ``None``).
 
         adapt: bool
             Whether to use the MLE estimates of LFC to adapt the prior. If False, the
             prior scale is set to 1. (``default=True``)
         """
-        if self.contrast[1] == self.contrast[2] == "":
-            # The factor being tested is continuous
-            contrast_level = self.contrast[0]
-        else:
-            # The factor being tested is categorical
-            contrast_level = (
-                f"{self.contrast[0]}_{self.contrast[1]}_vs_{self.contrast[2]}"
-            )
-
-        if coeff is not None:
-            if coeff not in self.LFC.columns:
-                split_coeff = coeff.split("_")
-                if len(split_coeff) == 4:
-                    raise KeyError(
-                        f"The coeff argument '{coeff}' should be one the LFC columns. "
-                        f"The available LFC coeffs are {self.LFC.columns[1:]}. "
-                        f"If the desired coefficient is not available, please set "
-                        f"`ref_level = [{split_coeff[0]}, {split_coeff[3]}]` "
-                        f"in DeseqDataSet and rerun."
-                    )
-                else:
-                    raise KeyError(
-                        f"The coeff argument '{coeff}' should be one the LFC columns. "
-                        f"The available LFC coeffs are {self.LFC.columns[1:]}. "
-                        f"If the desired coefficient is not available, please set the "
-                        f"appropriate`ref_level` in DeseqDataSet and rerun."
-                    )
-        elif contrast_level not in self.LFC.columns:
+        if coeff not in self.LFC.columns:
             raise KeyError(
-                f"lfc_shrink's coeff argument was set to None, but the coefficient "
-                f"corresponding to the contrast {self.contrast} is not available."
-                f"The available LFC coeffs are {self.LFC.columns[1:]}. "
-                f"If the desired coefficient is not available, please set "
-                f"`ref_level = [{self.contrast[0]}, {self.contrast[2]}]` "
-                f"in DeseqDataSet and rerun."
+                f"The coeff argument '{coeff}' should be one the LFC columns. "
+                f"The available LFC coeffs are {self.LFC.columns[1:]}."
             )
-        else:
-            coeff = contrast_level
 
         coeff_idx = self.LFC.columns.get_loc(coeff)
 
@@ -465,24 +429,9 @@ class DeseqStats:
         if hasattr(self, "results_df"):
             self.results_df["log2FoldChange"] = self.LFC.iloc[:, coeff_idx] / np.log(2)
             self.results_df["lfcSE"] = self.SE / np.log(2)
-            # Get the corresponding factor, tested and reference levels of the shrunk
-            # coefficient
-            split_coeff = coeff.split("_")
-            # Categorical coeffs are of the form "factor_A_vs_B", and continuous coeffs
-            # of the form "factor".
-            if len(split_coeff) == 1 and not self.quiet:
+            if not self.quiet:
                 # The factor is continuous
                 print(f"Shrunk log2 fold change & Wald test p-value: " f"{coeff}")
-            elif not self.quiet:
-                # TODO update this to reflect the new contrast format
-                # The factor is categorical
-                # Categorical coeffs are of the form "factor_A_vs_B", hence "factor"
-                # is split_coeff[0], "A" is split_coeff[1] and "B" split_coeff[3]
-                print(
-                    f"Shrunk log2 fold change & Wald test p-value: "
-                    f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}"
-                )
-
             if not self.quiet:
                 print(self.results_df)
 
