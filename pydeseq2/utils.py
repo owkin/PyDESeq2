@@ -180,7 +180,7 @@ def build_design_matrix(
     Raises
     ------
     ValueError
-        If design_factors is not a list.
+        If design_factors is not a string.
     ValueError
         If a factor has only one level.
     KeyError
