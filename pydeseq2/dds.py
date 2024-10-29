@@ -194,6 +194,7 @@ class DeseqDataSet(ad.AnnData):
         counts: Optional[pd.DataFrame] = None,
         metadata: Optional[pd.DataFrame] = None,
         design: str | pd.DataFrame = "~condition",
+        design_factors: str | list[str] | None = None,
         continuous_factors: Optional[List[str]] = None,  # TODO stale
         ref_level: Optional[List[str]] = None,
         fit_type: Literal["parametric", "mean"] = "parametric",
@@ -235,21 +236,28 @@ class DeseqDataSet(ad.AnnData):
 
         self.fit_type = fit_type
         self.design = design
-
-        # if isinstance(design, str):
-        #     # Build from formulaic
-        #     # TODO : need to track categorical and continuous variables ?
-        #     self.obsm["design_matrix"] = model_matrix(design, metadata)
-
-        # if isinstance(design, pd.DataFrame):
-        #     # TODO run some checks
-        #     # TODO will we need a formula at some point ?
-        #     self.obsm["design_matrix"] = copy.deepcopy(design)
-
         self.factor_storage = None
         self.variable_to_factors = None
 
-        if isinstance(design, str):
+        if design_factors is not None:
+            warnings.warn(
+                "design_factors is deprecated and will soon be removed."
+                "Please consider providing a formulaic formula using the design argument"
+                "instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            design_factors = (
+                design_factors if isinstance(design_factors, list) else [design_factors]
+            )
+            self.design = "~" + " + ".join(design_factors)
+
+        assert isinstance(self.design, (str, pd.DataFrame)) or isinstance(
+            self.design, str
+        ), "design must be a string representing a formulaic formula,"
+        "or a pandas DataFrame."
+
+        if isinstance(self.design, str):
             self.factor_storage, self.variable_to_factors, materializer_class = (
                 get_factor_storage_and_materializer()
             )
@@ -264,45 +272,6 @@ class DeseqDataSet(ad.AnnData):
 
         if self.obsm["design_matrix"].isna().any().any():
             raise ValueError("NaNs are not allowed in the design.")
-
-        # # Check that design factors don't contain underscores. If so, convert them to
-        # # hyphens.
-        # if np.any(["_" in factor for factor in self.design]):
-        #     warnings.warn(
-        #         """Same factor names in the design contain underscores ('_'). They will
-        #         be converted to hyphens ('-').""",
-        #         UserWarning,
-        #         stacklevel=2,
-        #     )
-
-        #     new_factors = replace_underscores(self.design)
-
-        #     self.obs.rename(
-        #         columns=dict(zip(self.design, new_factors)),
-        #         inplace=True,
-        #     )
-
-        #     self.design = new_factors
-
-        #     # Also check continuous factors
-        #     if self.continuous_factors is not None:
-        #         self.continuous_factors = replace_underscores(self.continuous_factors)
-
-        # # If ref_level has underscores, covert them to hyphens
-        # # Don't raise a warning: it will be raised by build_design_matrix()
-        # if ref_level is not None:
-        #     ref_level = replace_underscores(ref_level)
-
-        # # Build the design matrix
-        # # Stored in the obsm attribute of the dataset
-        # self.obsm["design_matrix"] = build_design_matrix(
-        #     metadata=self.obs,
-        #     design=self.design,
-        #     continuous_factors=self.continuous_factors,
-        #     ref_level=ref_level,
-        #     expanded=False,
-        #     intercept=True,
-        # )
 
         # Check that the design matrix has full rank
         self._check_full_rank_design()
