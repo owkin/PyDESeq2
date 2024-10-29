@@ -38,9 +38,6 @@ from pydeseq2.utils import trimmed_mean
 warnings.simplefilter("ignore", FutureWarning)
 
 
-# TODO should this also inherit from pertpy's LinearBase class ?
-
-
 class DeseqDataSet(ad.AnnData):
     r"""A class to implement dispersion and log fold-change (LFC) estimation.
 
@@ -75,8 +72,9 @@ class DeseqDataSet(ad.AnnData):
         Will be removed in a future release. (default: ``None``).
 
     continuous_factors : list, optional
-        An optional list of continuous (as opposed to categorical) factors. Any factor
-        not in ``continuous_factors`` will be considered categorical (default: ``None``).
+        Deprecated. Continuous factors are now automatically detected from the design,
+        or cast to categorical using the C() operator in the formula.
+        (default: ``None``).
 
     ref_level : list, optional
         Deprecated.
@@ -241,6 +239,15 @@ class DeseqDataSet(ad.AnnData):
         self.factor_storage = None
         self.variable_to_factors = None
 
+        if continuous_factors is not None:
+            warnings.warn(
+                "continuous_factors is deprecated and will soon be removed."
+                "Continuous factors are now automatically detected from the design,"
+                "or can be cast to categorical using the C() operator in the formula",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if ref_level is not None:
             warnings.warn(
                 "ref_level is deprecated and no longer has any effect. It will be"
@@ -273,12 +280,9 @@ class DeseqDataSet(ad.AnnData):
             )
             self.obsm["design_matrix"] = materializer_class(
                 self.obs, record_factor_metadata=True
-            ).get_model_matrix(design)
+            ).get_model_matrix(self.design)
         else:
             self.design = self.obsm["design_matrix"]
-
-        # Convert design to list if a single string was provided.
-        self.continuous_factors = continuous_factors
 
         if self.obsm["design_matrix"].isna().any().any():
             raise ValueError("NaNs are not allowed in the design.")
@@ -1294,7 +1298,6 @@ class DeseqDataSet(ad.AnnData):
             ),
             metadata=self.obs,
             design=self.design,
-            continuous_factors=self.continuous_factors,
             min_mu=self.min_mu,
             min_disp=self.min_disp,
             max_disp=self.max_disp,
@@ -1457,7 +1460,6 @@ class DeseqDataSet(ad.AnnData):
             )
 
     ### Methods below are taken and adapted from pertpy's LinearModelBase ###
-
     def _check_category(self, var, value):
         factor_metadata = self._get_factor_metadata_for_variable(var)
         tmp_categories = resolve_ambiguous(factor_metadata, "categories")

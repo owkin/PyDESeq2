@@ -206,7 +206,6 @@ class DeseqStats:
         """Get the names of the variables used in the model definition."""
         return self.dds.variables
 
-    # TODO handle continuous variables and general contrasts
     def summary(
         self,
         **kwargs,
@@ -360,6 +359,7 @@ class DeseqStats:
             If the desired coefficient is not available, it may be set from the
             :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
             (default: ``None``).
+
         adapt: bool
             Whether to use the MLE estimates of LFC to adapt the prior. If False, the
             prior scale is set to 1. (``default=True``)
