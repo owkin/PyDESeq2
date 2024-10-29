@@ -1713,7 +1713,9 @@ def process_design_factors(
     ----------
     design_factors : str or list
         Design factors to process. If a list, it will be converted to a formulaic
-        string. If a string, it will be checked for validity.
+        string. If a string, it will be checked for validity with respect to the
+        limited set of the formulaic syntax pydeseq2 currently supports (see dds.py
+        design_factors' doctsring).
 
     metadata_columns : pandas.Index
         Metadata columns to check against (obtained from .obs).
@@ -1746,6 +1748,73 @@ def process_design_factors(
         Reference level with underscores replaced by hyphens.
 
     """
+    if design_matrix is not None:
+        warnings.warn(
+            """The design matrix was passed as an argument. Ignoring design_factors,
+            continuous_factors and ref_level arguments""",
+            UserWarning,
+            stacklevel=2,
+        )
+        if "intercept" not in design_matrix.columns:
+            warnings.warn(
+                "The design matrix does not contain an 'intercept' column.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        elif not design_matrix["intercept"].equals(
+            pd.Series(1.0, index=design_matrix.index)
+        ):
+            warnings.warn(
+                "The 'intercept' column is not all ones.", UserWarning, stacklevel=2
+            )
+
+        extracted_single_factors = list(
+            itertools.chain(
+                *[parse_column_name(col) for col in design_matrix if col != "intercept"]
+            )
+        )
+        # Remove non unique characters while keeping the apparition order
+        single_design_factors = list(dict.fromkeys(extracted_single_factors))
+        # for factor in extracted_single_factors:
+        #     if factor not in single_design_factors:
+        #         single_design_factors.append(factor)
+
+        # We extract all individual factors from the design matrix following
+        # pydeseq2 naming conventions containing potentially _vs_
+        for individual_factor in extracted_single_factors:
+            if individual_factor not in metadata_columns:
+                raise ValueError(
+                    "The design matrix contains an unknown factor. Note that if"
+                    " there were underscores in the column names they were"
+                    " automatically converted to underscores"
+                    " in the obs matrix."
+                    f"Could not match extracted factor: {individual_factor}"
+                    f" with the list of factors found in the observation:"
+                    f" {metadata_columns}, make sure the name of the columns"
+                    " of your design matrix respects pydeseq2 conventions:"
+                    "colname = 'factor_testlevel_vs_reflevel'."
+                )
+
+        design_factors_list = list(
+            itertools.chain(
+                *[
+                    parse_column_name(col, split_interactions=False)
+                    for col in design_matrix
+                    if col != "intercept"
+                ]
+            )
+        )
+        design_factors = "~" + "+".join(design_factors_list)
+
+        return (
+            design_factors,
+            design_factors_list,
+            single_design_factors,
+            continuous_factors,
+            ref_level,
+        )
+
     # If design factors is provided as a list, convert it to a formulaic string
     if isinstance(design_factors, list):
         # Remove space around colons
@@ -1757,7 +1826,7 @@ def process_design_factors(
             itertools.chain(*[factor.split(":") for factor in design_factors])
         )
 
-        single_design_factors = extracted_single_factors
+        single_design_factors = list(dict.fromkeys(extracted_single_factors))
         # Store design factors as a list for later reuse in contrast
         design_factors_list = copy.deepcopy(design_factors)
         design_factors = "~" + "+".join(design_factors)
@@ -1780,18 +1849,15 @@ def process_design_factors(
         # converting it to the corresponding formula '~a'
         # Thanks to the previous reformatting we can do easily single-factor
         # extraction
-        extracted_single_factors = list(
-            set(
+        # We use dict.fromkeys to preserver order of unique factors as it will
+        # be important later on
+        single_design_factors = list(
+            dict.fromkeys(
                 itertools.chain(
                     *[term.split(":") for term in design_factors[1:].split("+")]
                 )
             )
         )
-        # Remove non unique characters while keeping the apparition order
-        single_design_factors = []
-        for factor in extracted_single_factors:
-            if factor not in single_design_factors:
-                single_design_factors.append(factor)
 
     else:
         raise ValueError(
@@ -1827,61 +1893,10 @@ def process_design_factors(
     design_factors = replace_underscores(design_factors)
     # We need it for the contrast
     assert isinstance(design_factors, str)
+    # We note that design_factors_list is a list of all factors with their
+    # multiplicity and single_design_factors a list of all unique factors
     design_factors_list = design_factors[1:].split("+")
 
-    if design_matrix is not None:
-        warnings.warn(
-            """The design matrix was passed as an argument. Ignoring design_factors,
-            continuous_factors and ref_level arguments""",
-            UserWarning,
-            stacklevel=2,
-        )
-        if "intercept" not in design_matrix.columns:
-            warnings.warn(
-                "The design matrix does not contain an 'intercept' column.",
-                UserWarning,
-                stacklevel=2,
-            )
-
-        elif not design_matrix["intercept"].equals(
-            pd.Series(1.0, index=design_matrix.index)
-        ):
-            warnings.warn(
-                "The 'intercept' column is not all ones.", UserWarning, stacklevel=2
-            )
-
-        extracted_single_factors = list(
-            itertools.chain(
-                *[parse_column_name(col) for col in design_matrix if col != "intercept"]
-            )
-        )
-        # Remove non unique characters while keeping the apparition order
-        single_design_factors = []
-        for factor in extracted_single_factors:
-            if factor not in single_design_factors:
-                single_design_factors.append(factor)
-
-        # We extract all individual factors from the design matrix following
-        # pydeseq2 naming conventions containing potentially _vs_
-        for individual_factor in extracted_single_factors:
-            if individual_factor not in metadata_columns:
-                raise ValueError(
-                    "The design matrix contains an unknown factor. Note that if"
-                    " there were underscores in the column names they were"
-                    " automatically converted to underscores"
-                    " in the obs matrix."
-                    f"Could not match extracted factor: {individual_factor}"
-                    f" with the list of factors found in the observation:"
-                    f" {metadata_columns}, make sure the name of the columns"
-                    " of your design matrix respects pydeseq2 conventions:"
-                    "colname = 'factor_testlevel_vs_reflevel'."
-                )
-
-        design_factors = [
-            parse_column_name(col, split_interactions=False)
-            for col in design_matrix
-            if col != "intercept"
-        ]
     return (
         design_factors,
         design_factors_list,
