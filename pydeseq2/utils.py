@@ -241,7 +241,7 @@ def build_design_matrix(
             UserWarning,
             stacklevel=2,
         )
-        # We rewrite the foruma with quotes
+        # We rewrite the formula with quotes
         design_factors = design_factors.strip()
         assert design_factors.startswith("~"), "The formula should start with a ~"
         design_factors = design_factors[1:]
