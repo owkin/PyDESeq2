@@ -135,7 +135,7 @@ inference = DefaultInference(n_cpus=8)
 dds = DeseqDataSet(
     counts=counts_df,
     metadata=metadata,
-    design_factors="condition",
+    design="~condition",
     refit_cooks=True,
     inference=inference,
     # n_cpus=8, # n_cpus can be specified here or in the inference object
@@ -146,13 +146,12 @@ dds = DeseqDataSet(
 # arguments: a ``counts`` and a ``metadata`` dataframe, like the ones we've loaded in the
 # first part of this tutorial.
 #
-# Next, we should specify the ``design_factor``, i.e. the column of the ``metadata``
-# dataframe that will be used to compare samples. This can be a single string as above,
-# or a list of strings, as in the
-# :ref:`section on multifactor analysis<multifactor_ref>`.
+# Next, we should specify a ``design``, i.e. a Wilkinson formula that describes the
+# design, or directly a design matrix. Here we provide a formula, which is a string
+# that [formulaic](https://github.com/matthewwardrop/formulaic) should be able to parse.
 #
 # .. note::
-#   The ``"condition"`` argument passed to ``design_factors`` corresponds to a column
+#   The ``"condition"`` factor in ``design`` corresponds to a column
 #   from the ``metadata`` dataframe we loaded earlier.
 #   You might need to change it according to your own dataset.
 #
@@ -217,11 +216,13 @@ print(dds.varm["LFC"])
 #
 # Now that dispersions and LFCs were fitted, we may proceed with statistical tests to
 # compute p-values and adjusted p-values for differential expresion. This is the role of
-# the :class:`DeseqStats` class. It has a unique mandatory argument, ``dds``, which
-# should be a *fitted* :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`
-# object.
+# the :class:`DeseqStats` class. It has two mandatory arguments:
+# - ``dds``, which should be a *fitted* :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`
+#   object,
+# - ``contrast``, which is a list of three strings of the form
+#   ``["variable", "tested_level", "control_level"]``, or directly a contrast vector.
 
-stat_res = DeseqStats(dds, inference=inference)
+ds = DeseqStats(dds, contrast=["condition", "B", "A"], inference=inference)
 
 # %%
 # It also has a set of optional keyword arguments (see the :doc:`API documentation
@@ -248,14 +249,14 @@ stat_res = DeseqStats(dds, inference=inference)
 # :meth:`summary() <DeseqStats.summary>` method, which runs the whole statistical
 # analysis, cooks filtering and multiple testing adjustement included.
 
-stat_res.summary()
+ds.summary()
 
 if SAVE:
-    with open(os.path.join(OUTPUT_PATH, "stat_results.pkl"), "wb") as f:
-        pkl.dump(stat_res, f)
+    with open(os.path.join(OUTPUT_PATH, "ds.pkl"), "wb") as f:
+        pkl.dump(ds, f)
 
 # %%
-# The results are then stored in the ``results_df`` attribute (``stat_res.results_df``).
+# The results are then stored in the ``results_df`` attribute (``ds.results_df``).
 
 # %%
 # Optional: threshold-based tests
@@ -267,8 +268,8 @@ if SAVE:
 # null hypothesis. It can take one of the values
 # ``["greaterAbs", "lessAbs", "greater", "less"]``.
 
-stat_res.summary(lfc_null=0.1, alt_hypothesis="greaterAbs")
-stat_res.plot_MA(s=20)
+ds.summary(lfc_null=0.1, alt_hypothesis="greaterAbs")
+ds.plot_MA(s=20)
 
 # %%
 # LFC shrinkage
@@ -278,11 +279,11 @@ stat_res.plot_MA(s=20)
 # LFC shrinkage. This is implemented by the :meth:`lfc_shrink() <DeseqStats.lfc_shrink>`
 # method.
 
-stat_res.lfc_shrink(coeff="condition_B_vs_A")
+ds.lfc_shrink(coeff="condition[T.B]")
 
 if SAVE:
-    with open(os.path.join(OUTPUT_PATH, "shrunk_stat_results.pkl"), "wb") as f:
-        pkl.dump(stat_res, f)
+    with open(os.path.join(OUTPUT_PATH, "shrunk_results.pkl"), "wb") as f:
+        pkl.dump(ds, f)
 
 # %%
 # .. note::
@@ -291,7 +292,7 @@ if SAVE:
 #   This can be checked using the ``shrunk_LFCs`` flag.
 #
 
-print(stat_res.shrunk_LFCs)  # Will be True only if lfc_shrink() was run.
+print(ds.shrunk_LFCs)  # Will be True only if lfc_shrink() was run.
 
 # %%
 # .. _multifactor_ref:
@@ -314,23 +315,18 @@ print(metadata)
 # ^^^^^^^^^^^^^^^^^^^^^
 #
 # To perform multifactor analysis with PyDESeq2, we start by inializing a
-# :class:`DeseqDataSet` as previously, but we provide the list of variables we would like
-# to use in the ``design_factors`` argument.
+# :class:`DeseqDataSet` as previously, but we provide several variables we would like
+# to use in the ``design`` argument.
 #
 
 dds = DeseqDataSet(
     counts=counts_df,
     metadata=metadata,
-    design_factors=["group", "condition"],
+    design="~group + condition",
     refit_cooks=True,
     inference=inference,
 )
 # %%
-# .. note::
-#   By default, the last variable in the list (here, ``"condition"``) will be the one for
-#   which LFCs and p-values will be displayed, but this may be changed later on when
-#   performing the statistical analysis.
-#
 # As for the single-factor analysis, we fit dispersions and LFCs using the
 # :meth:`deseq2() <DeseqDataSet.deseq2>` method.
 
@@ -349,30 +345,22 @@ print(dds.varm["LFC"])
 # ^^^^^^^^^^^^^^^^^^^^
 #
 # P-values are computed as earlier from a :class:`DeseqStats` object with the
-# :meth:`summary() <DeseqStats.summary>` method, with a new important argument:
-# the ``contrast``.
+# :meth:`summary() <DeseqStats.summary>` method. The ``contrast`` argument will allow us
+# to determines which variable we want to obtain LFCs and pvalues for.
 # It is a list of three strings of the form
-# ``["variable", "tested level", "reference level"]`` which determines which
-# variable we want to compute LFCs and pvalues for.
+# ``["variable", "tested level", "reference level"]``
 # As an example, to compare the condition B to the condition A, we set
 # ``contrast=["condition", "B", "A"]``.
 #
 
-stat_res_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"], inference=inference)
+ds_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"], inference=inference)
 
 # %%
-# .. note::
-#   If left blank, the variable of interest will be the last one provided in
-#   the ``design_factors`` attribute of the corresponding
-#   :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>` object,
-#   and the reference level will be picked alphabetically.
-#   In any case, *both variables are still used*. This is due to the fact that ``dds``
-#   was fit with both as design factors.
 #
 # Let us fit p-values:
 #
 
-stat_res_B_vs_A.summary()
+ds_B_vs_A.summary()
 
 
 # %%
@@ -385,8 +373,8 @@ stat_res_B_vs_A.summary()
 # :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`
 # with ``contrast=["group", "Y", "X"]``, and run the analysis again.
 
-stat_res_Y_vs_X = DeseqStats(dds, contrast=["group", "Y", "X"], inference=inference)
-stat_res_Y_vs_X.summary()
+ds_Y_vs_X = DeseqStats(dds, contrast=["group", "Y", "X"], inference=inference)
+ds_Y_vs_X.summary()
 
 # %%
 # LFC shrinkage (multifactor)
@@ -396,4 +384,4 @@ stat_res_Y_vs_X.summary()
 # only shrink the LFCs of a :class:`DeseqStats` object based on its
 # ``contrast`` argument.
 
-stat_res_B_vs_A.lfc_shrink(coeff="condition_B_vs_A")
+ds_B_vs_A.lfc_shrink(coeff="condtion[T.B]")
