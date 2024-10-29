@@ -79,9 +79,7 @@ class DeseqDataSet(ad.AnnData):
         not in ``continuous_factors`` will be considered categorical (default: ``None``).
 
     ref_level : list, optional
-        An optional list of two strings of the form ``["factor", "test_level"]``
-        specifying the factor of interest and the reference (control) level against which
-        we're testing, e.g. ``["condition", "A"]``. (default: ``None``).
+        Deprecated.
 
     fit_type: str
         Either ``"parametric"`` or ``"mean"`` for the type of fitting of dispersions to
@@ -200,7 +198,7 @@ class DeseqDataSet(ad.AnnData):
         design: str | pd.DataFrame = "~condition",
         design_factors: str | list[str] | None = None,
         continuous_factors: list[str] | None = None,
-        ref_level: Optional[List[str]] | None = None,
+        ref_level: list[str] | None = None,
         fit_type: Literal["parametric", "mean"] = "parametric",
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
@@ -243,6 +241,14 @@ class DeseqDataSet(ad.AnnData):
         self.factor_storage = None
         self.variable_to_factors = None
 
+        if ref_level is not None:
+            warnings.warn(
+                "ref_level is deprecated and no longer has any effect. It will be"
+                "removed in a future release.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if design_factors is not None:
             warnings.warn(
                 "design_factors is deprecated and will soon be removed."
@@ -284,7 +290,6 @@ class DeseqDataSet(ad.AnnData):
         self.min_disp = min_disp
         self.max_disp = np.maximum(max_disp, self.n_obs)
         self.refit_cooks = refit_cooks
-        self.ref_level = ref_level
         self.min_replicates = min_replicates
         self.beta_tol = beta_tol
         self.quiet = quiet
@@ -1290,7 +1295,6 @@ class DeseqDataSet(ad.AnnData):
             metadata=self.obs,
             design=self.design,
             continuous_factors=self.continuous_factors,
-            ref_level=self.ref_level,
             min_mu=self.min_mu,
             min_disp=self.min_disp,
             max_disp=self.max_disp,
