@@ -126,7 +126,7 @@ inference = DefaultInference(n_cpus=8)
 dds = DeseqDataSet(
     counts=counts_df,
     metadata=metadata,
-    design_factors="condition",
+    design="~condition",
     refit_cooks=True,
     inference=inference,
 )
@@ -197,14 +197,14 @@ print(dds.varm["LFC"])
 # compute p-values and adjusted p-values for differential expresion. This is the role of
 # the :class:`DeseqStats <ds.DeseqStats>` class.
 
-stat_res = DeseqStats(dds, inference=inference)
+ds = DeseqStats(dds, contrast=["condition", "B", "A"], inference=inference)
 
 # %%
 # PyDESeq2 computes p-values using Wald tests. This can be done using the
 # :meth:`summary() <ds.DeseqStats.summary>` method, which runs the whole statistical
 # analysis, cooks filtering and multiple testing adjustement included.
 
-stat_res.summary()
+ds.summary()
 
 # %%
 # The results are then stored in the ``results_df`` attribute (``stat_res.results_df``).
@@ -214,4 +214,4 @@ stat_res.summary()
 # Hence, we may export ``stat_res.results_df`` as CSV, using `pandas.DataFrame.to_csv()
 # <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html>`_.
 
-stat_res.results_df.to_csv(os.path.join(OUTPUT_PATH, "results.csv"))
+ds.results_df.to_csv(os.path.join(OUTPUT_PATH, "results.csv"))
