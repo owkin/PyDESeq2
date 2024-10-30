@@ -148,7 +148,8 @@ dds = DeseqDataSet(
 #
 # Next, we should specify a ``design``, i.e. a Wilkinson formula that describes the
 # design, or directly a design matrix. Here we provide a formula, which is a string
-# that [formulaic](https://github.com/matthewwardrop/formulaic) should be able to parse.
+# that `formulaic <https://github.com/matthewwardrop/formulaic>`_ should be able to
+# parse.
 #
 # .. note::
 #   The ``"condition"`` factor in ``design`` corresponds to a column
@@ -217,10 +218,12 @@ print(dds.varm["LFC"])
 # Now that dispersions and LFCs were fitted, we may proceed with statistical tests to
 # compute p-values and adjusted p-values for differential expresion. This is the role of
 # the :class:`DeseqStats` class. It has two mandatory arguments:
+#
 # - ``dds``, which should be a *fitted* :class:`DeseqDataSet <pydeseq2.dds.DeseqDataSet>`
 #   object,
 # - ``contrast``, which is a list of three strings of the form
 #   ``["variable", "tested_level", "control_level"]``, or directly a contrast vector.
+#
 
 ds = DeseqStats(dds, contrast=["condition", "B", "A"], inference=inference)
 

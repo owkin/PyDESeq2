@@ -83,7 +83,7 @@ metadata = load_example_data(
 # ``metadata``, as well as a set of optional keyword arguments, among which:
 #
 # - ``design``: a string representing a
-#   [formulaic](https://matthewwardrop.github.io/formulaic/) formula, or a design
+#   `formulaic <https://github.com/matthewwardrop/formulaic>`_ formula, or a design
 #   matrix (ndarray), that will be used to model the data.
 # - ``refit_cooks``: whether to refit cooks outliers – this is advised, in general.
 #

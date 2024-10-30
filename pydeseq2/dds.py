@@ -64,8 +64,8 @@ class DeseqDataSet(ad.AnnData):
 
     design : str or pandas.DataFrame
         Model design. Can be either a design matrix, or a
-        formula.Formulaic formula in the format 'x + z' or '~x+z'.
-        (Default: '~condition').
+        formulaic formula in the format ``'x + z'`` or ``'~x+z'``.
+        (Default: ``'~condition')``.
 
     design_factors : str or list, optional
         Depecated. An optional list of factors to include in the design matrix.
