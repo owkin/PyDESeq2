@@ -1040,6 +1040,10 @@ class DeseqDataSet(ad.AnnData):
     def to_picklable_anndata(self) -> ad.AnnData:
         """Convert the DESeqDataSet to a picklable AnnData object.
 
+        Builds an AnnData object from the DESeqDataSet with the same data, but converts
+        the design matrix to a DataFrame to remove the formulaic model_spec attribute,
+        which is not picklable.
+
         Returns
         -------
         anndata.AnnData
