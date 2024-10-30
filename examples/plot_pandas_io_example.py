@@ -149,20 +149,11 @@ print(dds)
 
 
 # %%
-# As such, it can be saved using
-# `pickle.dump <https://docs.python.org/3/library/pickle.html#pickle.dump>`_.
-with open(os.path.join(OUTPUT_PATH, "dds.pkl"), "wb") as f:
-    pkl.dump(dds, f)
-
-
-# %%
-# It may be loaded again using
-# `pickle.load <https://docs.python.org/3/library/pickle.html#pickle.load>`_.
-
-with open(os.path.join(OUTPUT_PATH, "dds.pkl"), "rb") as f:
-    dds2 = pkl.load(f)
-
-print(dds2)
+# After removing unpicklable DeseqDataSet attributes, we can save the corresponding
+# AnnData object. This can be done using the
+# :meth:`to_picklable_anndata() <DeseqDataSet.to_picklable_anndata>` method.
+with open(os.path.join(OUTPUT_PATH, "result_adata.pkl"), "wb") as f:
+    pkl.dump(dds.to_picklable_anndata(), f)
 
 
 # %%

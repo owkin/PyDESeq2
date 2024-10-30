@@ -282,7 +282,7 @@ class DeseqDataSet(ad.AnnData):
                 self.obs, record_factor_metadata=True
             ).get_model_matrix(self.design)
         else:
-            self.design = self.obsm["design_matrix"]
+            self.obsm["design_matrix"] = self.design
 
         if self.obsm["design_matrix"].isna().any().any():
             raise ValueError("NaNs are not allowed in the design.")
@@ -1036,6 +1036,30 @@ class DeseqDataSet(ad.AnnData):
 
         self.varm["_pvalue_cooks_outlier"] = cooks_outlier
         return self.varm["_pvalue_cooks_outlier"]
+
+    def to_picklable_anndata(self) -> ad.AnnData:
+        """Convert the DESeqDataSet to a picklable AnnData object.
+
+        Returns
+        -------
+        anndata.AnnData
+            The AnnData object, without DeseqDataSet unpicklable attributes.
+        """
+        # Initialize an AnnData object
+        adata = ad.AnnData(
+            X=self.X,
+            obs=self.obs,
+            var=self.var,
+            obsm=self.obsm,
+            varm=self.varm,
+            uns=self.uns,
+            layers=self.layers,
+        )
+
+        # Convert the design matrix to a DataFrame to remove model_spec
+        adata.obsm["design_matrix"] = pd.DataFrame(adata.obsm["design_matrix"])
+
+        return adata
 
     def _fit_MoM_dispersions(self) -> None:
         """Rough method of moments initial dispersions fit.
