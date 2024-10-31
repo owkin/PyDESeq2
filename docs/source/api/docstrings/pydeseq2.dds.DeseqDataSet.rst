@@ -19,5 +19,6 @@
         ~DeseqDataSet.fit_size_factors
         ~DeseqDataSet.plot_dispersions
         ~DeseqDataSet.refit
+        ~DeseqDataSet.to_picklable_anndata
         ~DeseqDataSet.vst
 

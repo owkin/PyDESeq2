@@ -13,7 +13,6 @@
 
    .. autosummary::
    
-      build_design_matrix
       dispersion_trend
       dnb_nll
       fit_alpha_mle

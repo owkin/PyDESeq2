@@ -45,7 +45,7 @@ def test_size_factors_ratio(counts_df, metadata):
         index_col=0,
     )["x"].values
 
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.fit_size_factors()
 
     np.testing.assert_almost_equal(
@@ -57,7 +57,7 @@ def test_size_factors_poscounts(counts_df, metadata):
     """Test that the size_factors calcuation by poscount matches R."""
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.fit_size_factors("poscounts")
 
     r_size_factors = pd.read_csv(
@@ -71,7 +71,7 @@ def test_size_factors_poscounts(counts_df, metadata):
 def test_size_factors_control_genes(counts_df, metadata):
     """Test that the size_factors calculation properly takes control_genes"""
 
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
 
     dds.fit_size_factors(control_genes=["gene4"])
 
@@ -112,17 +112,16 @@ def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.0
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors="condition",
+        design="~condition",
         fit_type="parametric",
     )
     dds.deseq2()
 
-    res = DeseqStats(dds)
-    res.summary()
-    res_df = res.results_df
+    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds.summary()
 
     # Check results
-    assert_res_almost_equal(res_df, r_res, tol)
+    assert_res_almost_equal(ds.results_df, r_res, tol)
 
 
 def test_deseq_independent_filtering_mean_fit(counts_df, metadata, tol=0.02):
@@ -140,17 +139,16 @@ def test_deseq_independent_filtering_mean_fit(counts_df, metadata, tol=0.02):
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors="condition",
+        design="~condition",
         fit_type="mean",
     )
     dds.deseq2()
 
-    res = DeseqStats(dds)
-    res.summary()
-    res_df = res.results_df
+    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds.summary()
 
     # Check results
-    assert_res_almost_equal(res_df, r_res, tol)
+    assert_res_almost_equal(ds.results_df, r_res, tol)
 
 
 def test_deseq_without_independent_filtering_parametric_fit(
@@ -173,17 +171,16 @@ def test_deseq_without_independent_filtering_parametric_fit(
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors="condition",
+        design="~condition",
         fit_type="parametric",
     )
     dds.deseq2()
 
-    res = DeseqStats(dds, independent_filter=False)
-    res.summary()
-    res_df = res.results_df
+    ds = DeseqStats(dds, contrast=["condition", "A", "B"], independent_filter=False)
+    ds.summary()
 
     # Check results
-    assert_res_almost_equal(res_df, r_res, tol)
+    assert_res_almost_equal(ds.results_df, r_res, tol)
 
 
 @pytest.mark.parametrize("alt_hypothesis", ["lessAbs", "greaterAbs", "less", "greater"])
@@ -202,32 +199,35 @@ def test_alt_hypothesis(alt_hypothesis, counts_df, metadata, tol=0.02):
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors="condition",
+        design="~condition",
     )
     dds.deseq2()
 
-    res = DeseqStats(
+    ds = DeseqStats(
         dds,
+        contrast=["condition", "A", "B"],
         lfc_null=-0.5 if alt_hypothesis == "less" else 0.5,
         alt_hypothesis=alt_hypothesis,
     )
-    res.summary()
-    res_df = res.results_df
+    ds.summary()
 
     # check that the same p-values are NaN
-    assert (res_df.pvalue.isna() == r_res.pvalue.isna()).all()
-    assert (res_df.padj.isna() == r_res.padj.isna()).all()
+    assert (ds.results_df.pvalue.isna() == r_res.pvalue.isna()).all()
+    assert (ds.results_df.padj.isna() == r_res.padj.isna()).all()
 
     # Check that the same LFC and Wald statistics are found (up to tol)
     assert (
-        abs(r_res.log2FoldChange - res_df.log2FoldChange) / abs(r_res.log2FoldChange)
+        abs(r_res.log2FoldChange - ds.results_df.log2FoldChange)
+        / abs(r_res.log2FoldChange)
     ).max() < tol
     if alt_hypothesis == "lessAbs":
-        res_df.stat = res_df.stat.abs()
-    assert (abs(r_res.stat - res_df.stat) / abs(r_res.stat)).max() < tol
+        ds.results_df.stat = ds.results_df.stat.abs()
+    assert (abs(r_res.stat - ds.results_df.stat) / abs(r_res.stat)).max() < tol
     # Check for the same pvalue and padj where stat != 0
     assert (
-        abs(r_res.pvalue[r_res.stat != 0] - res_df.pvalue[res_df.stat != 0])
+        abs(
+            r_res.pvalue[r_res.stat != 0] - ds.results_df.pvalue[ds.results_df.stat != 0]
+        )
         / r_res.pvalue[r_res.stat != 0]
     ).max() < tol
 
@@ -248,17 +248,16 @@ def test_deseq_no_refit_cooks(counts_df, metadata, tol=0.02):
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors="condition",
+        design="~condition",
         refit_cooks=False,
     )
     dds.deseq2()
 
-    res = DeseqStats(dds)
-    res.summary()
-    res_df = res.results_df
+    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds.summary()
 
     # Check results
-    assert_res_almost_equal(res_df, r_res, tol)
+    assert_res_almost_equal(ds.results_df, r_res, tol)
 
 
 def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
@@ -285,16 +284,16 @@ def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
         index_col=0,
     ).squeeze()
 
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.deseq2()
     dds.obsm["size_factors"] = r_size_factors.values
     dds.varm["dispersions"] = r_dispersions.values
     dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
-    res = DeseqStats(dds)
+    res = DeseqStats(dds, contrast=["condition", "B", "A"])
     res.summary()
     res.SE = r_res.lfcSE * np.log(2)
-    res.lfc_shrink(coeff="condition_B_vs_A")
+    res.lfc_shrink(coeff="condition[T.B]")
     shrunk_res = res.results_df
 
     # Check that the same LFC are found (up to tol)
@@ -330,16 +329,16 @@ def test_lfc_shrinkage_no_apeAdapt(counts_df, metadata, tol=0.02):
         index_col=0,
     ).squeeze()
 
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.deseq2()
     dds.obsm["size_factors"] = r_size_factors.values
     dds.varm["dispersions"] = r_dispersions.values
     dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
-    res = DeseqStats(dds)
+    res = DeseqStats(dds, contrast=["condition", "B", "A"])
     res.summary()
     res.SE = r_res.lfcSE * np.log(2)
-    res.lfc_shrink(coeff="condition_B_vs_A", adapt=False)
+    res.lfc_shrink(coeff="condition[T.B]", adapt=False)
     shrunk_res = res.results_df
 
     # Check that the same LFC are found (up to tol)
@@ -362,7 +361,7 @@ def test_iterative_size_factors(counts_df, metadata, tol=0.02):
         index_col=0,
     ).squeeze()
 
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds._fit_iterate_size_factors()
 
     # Check that the same LFC are found (up to tol)
@@ -397,12 +396,10 @@ def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.04):
         counts_df.loc["sample11", "gene7"] = 1000
         metadata.loc["sample1", "condition"] = "C"
 
-    dds = DeseqDataSet(
-        counts=counts_df, metadata=metadata, design_factors=["group", "condition"]
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
     dds.deseq2()
 
-    res = DeseqStats(dds, contrast=["condition", "B", "A"])
+    res = DeseqStats(dds, contrast=["condition", "A", "B"])
     res.summary()
     res_df = res.results_df
 
@@ -433,18 +430,16 @@ def test_multifactor_lfc_shrinkage(counts_df, metadata, tol=0.02):
         os.path.join(test_path, "data/multi_factor/r_test_dispersions.csv"), index_col=0
     ).squeeze()
 
-    dds = DeseqDataSet(
-        counts=counts_df, metadata=metadata, design_factors=["group", "condition"]
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
     dds.deseq2()
     dds.obsm["size_factors"] = r_size_factors.values
     dds.varm["dispersions"] = r_dispersions.values
     dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
-    res = DeseqStats(dds)
+    res = DeseqStats(dds, contrast=["condition", "B", "A"])
     res.summary()
     res.SE = r_res.lfcSE * np.log(2)
-    res.lfc_shrink(coeff="condition_B_vs_A")
+    res.lfc_shrink(coeff="condition[T.B]")
     shrunk_res = res.results_df
 
     # Check that the same LFC found (up to tol)
@@ -494,17 +489,18 @@ def test_continuous_deseq(
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors=["group", "condition", "measurement"],
-        continuous_factors=["measurement"],
+        design="~group + condition + measurement",
     )
     dds.deseq2()
 
-    res = DeseqStats(dds)
-    res.summary()
-    res_df = res.results_df
+    contrast_vector = np.zeros(dds.obsm["design_matrix"].shape[1])
+    contrast_vector[-1] = 1
+
+    ds = DeseqStats(dds, contrast=contrast_vector)
+    ds.summary()
 
     # Check results
-    assert_res_almost_equal(res_df, r_res, tol)
+    assert_res_almost_equal(ds.results_df, r_res, tol)
 
 
 def test_continuous_lfc_shrinkage(tol=0.02):
@@ -542,16 +538,18 @@ def test_continuous_lfc_shrinkage(tol=0.02):
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors=["group", "condition", "measurement"],
-        continuous_factors=["measurement"],
+        design="~group + condition + measurement",
     )
-
     dds.deseq2()
+
+    contrast_vector = np.zeros(dds.obsm["design_matrix"].shape[1])
+    contrast_vector[-1] = 1
+
     dds.obsm["size_factors"] = r_size_factors.values
     dds.varm["dispersions"] = r_dispersions.values
     dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
-    res = DeseqStats(dds)
+    res = DeseqStats(dds, contrast=contrast_vector)
     res.summary()
     res.SE = r_res.lfcSE * np.log(2)
     res.lfc_shrink(coeff="measurement")
@@ -590,17 +588,16 @@ def test_wide_deseq(
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors=["group", "condition"],
+        design="~group + condition",
         low_memory=low_memory,
     )
     dds.deseq2()
 
-    res = DeseqStats(dds)
-    res.summary()
-    res_df = res.results_df
+    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds.summary()
 
     # Check results
-    assert_res_almost_equal(res_df, r_res, tol)
+    assert_res_almost_equal(ds.results_df, r_res, tol)
 
 
 def test_contrast(counts_df, metadata):
@@ -609,9 +606,7 @@ def test_contrast(counts_df, metadata):
     coherent results (change of sign in LFCs and Wald stats, same (adjusted p-values).
     """
 
-    dds = DeseqDataSet(
-        counts=counts_df, metadata=metadata, design_factors=["group", "condition"]
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
     dds.deseq2()
 
     res_B_vs_A = DeseqStats(dds, contrast=["condition", "B", "A"])
@@ -663,15 +658,14 @@ def test_anndata_init(counts_df, metadata, tol=0.02):
     )
 
     # Initialize DeseqDataSet from anndata and test results
-    dds = DeseqDataSet(adata=adata, design_factors="condition")
+    dds = DeseqDataSet(adata=adata, design="~condition")
     dds.deseq2()
 
-    res = DeseqStats(dds)
-    res.summary()
-    res_df = res.results_df
+    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds.summary()
 
     # Check results
-    assert_res_almost_equal(res_df, r_res, tol)
+    assert_res_almost_equal(ds.results_df, r_res, tol)
 
 
 def test_vst(counts_df, metadata, tol=0.02):
@@ -690,12 +684,12 @@ def test_vst(counts_df, metadata, tol=0.02):
     ).T
 
     # Test blind design
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors=["condition"])
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.vst(use_design=False)
     assert (np.abs(r_vst - dds.layers["vst_counts"]) / r_vst).max().max() < tol
 
     # Test full design
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors=["condition"])
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.vst(use_design=True)
     assert (
         np.abs(r_vst_with_design - dds.layers["vst_counts"]) / r_vst_with_design
@@ -714,31 +708,9 @@ def test_mean_vst(counts_df, metadata, tol=0.02):
     ).T
 
     # Test blind design
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors=["condition"])
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.vst(use_design=False, fit_type="mean")
     assert (np.abs(r_vst - dds.layers["vst_counts"]) / r_vst).max().max() < tol
-
-
-def test_ref_level(counts_df, metadata):
-    """Test that DeseqDataSet columns are created according to the passed reference
-    level, if any.
-    """
-    dds = DeseqDataSet(
-        counts=counts_df,
-        metadata=metadata,
-        design_factors=["group", "condition"],
-        ref_level=["group", "Y"],
-    )
-
-    # Check that the column exists
-    assert "group_X_vs_Y" in dds.obsm["design_matrix"].columns
-    # Check that its content is correct
-    assert (
-        dds.obsm["design_matrix"]["group_X_vs_Y"]
-        == metadata["group"].apply(
-            lambda x: 1 if x == "X" else 0 if x == "Y" else np.nan
-        )
-    ).all()
 
 
 def test_deseq2_norm(counts_df, metadata):
@@ -778,7 +750,7 @@ def train_metadata(metadata):
 @pytest.fixture
 def train_dds(train_counts, train_metadata):
     return DeseqDataSet(
-        counts=train_counts, metadata=train_metadata, design_factors="condition"
+        counts=train_counts, metadata=train_metadata, design="~condition"
     )
 
 
@@ -838,7 +810,7 @@ def test_vst_blind(train_counts, train_metadata, dea_fit_type, vst_fit_type):
     train_dds = DeseqDataSet(
         counts=train_counts,
         metadata=train_metadata,
-        design_factors="condition",
+        design="~condition",
         fit_type=dea_fit_type,
     )
     train_dds.deseq2()
@@ -860,7 +832,7 @@ def test_vst_transform_no_fit(train_counts, train_metadata, test_counts):
     train_dds = DeseqDataSet(
         counts=train_counts,
         metadata=train_metadata,
-        design_factors="condition",
+        design="~condition",
         fit_type="parametric",
     )
     with pytest.raises(RuntimeError):
