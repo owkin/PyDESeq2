@@ -176,9 +176,10 @@ class DeseqStats:
                 The "contrast" argument must be provided."""
             )
         elif isinstance(contrast, np.ndarray):
-            assert (
-                contrast.shape[0] == self.dds.obsm["design_matrix"].shape[1]
-            ), "The contrast vector must have the same length as the design matrix."
+            if contrast.shape[0] != self.dds.obsm["design_matrix"].shape[1]:
+                raise ValueError(
+                    "The contrast vector must have the same length as the design matrix."
+                )
             self.contrast = contrast
             self.contrast_vector = contrast
         else:

@@ -244,6 +244,10 @@ def test_contrast():
     with pytest.raises(ValueError):
         DeseqStats(dds, contrast=["condition", "C", "B"])
 
+    # Numerical contrast with the wrong number of elements
+    with pytest.raises(ValueError):
+        DeseqStats(dds, contrast=np.array([0, 0, 0, 1]))
+
 
 def test_cooks_not_refitted():
     """Test that an AttributeError is thrown when a `DeseqStats` object is initialized
