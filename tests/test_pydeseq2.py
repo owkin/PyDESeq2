@@ -14,8 +14,6 @@ from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.utils import load_example_data
 
-# Single-factor tests
-
 
 @pytest.fixture
 def counts_df():
@@ -33,6 +31,9 @@ def metadata():
         dataset="synthetic",
         debug=False,
     )
+
+
+# Single-factor tests
 
 
 def test_size_factors_ratio(counts_df, metadata):
