@@ -1594,7 +1594,7 @@ def lowess(
                     [np.sum(weights * features), np.sum(weights * features * features)],
                 ]
             )
-            beta = np.linalg.lstsq(A, b)[0]
+            beta = np.linalg.lstsq(A, b, rcond=None)[0]
             yest[i] = beta[0] + beta[1] * features[i]
 
         residuals = targets - yest
