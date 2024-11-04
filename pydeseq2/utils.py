@@ -1114,9 +1114,7 @@ def robust_method_of_moments_disp(
         filtered_counts = normed_counts[three_or_more.values, :]
         filtered_design = design_matrix.loc[three_or_more, :]
         cell_id = pd.Series(
-            filtered_design.groupby(
-                filtered_design.columns.values.tolist()
-            ).grouper.group_info[0],
+            filtered_design.groupby(filtered_design.columns.values.tolist()).ngroup(),
             index=filtered_design.index,
         )
         v = trimmed_cell_variance(filtered_counts, cell_id)
