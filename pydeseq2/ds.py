@@ -614,33 +614,6 @@ class DeseqStats:
         np.ndarray
             The contrast vector.
         """
-        return self.cond(**{column: baseline}) - self.cond(**{column: group_to_compare})
-
-    def cond(self, **kwargs):
-        """
-        Get a contrast vector representing a specific condition.
-
-        Parameters
-        ----------
-        **kwargs
-            Column/value pairs.
-
-        Returns
-        -------
-        ndarray
-            A contrast vector that aligns to the columns of the design matrix.
-        """
-        cond_dict = kwargs
-        if not set(cond_dict.keys()).issubset(self.dds.variables):
-            raise ValueError(
-                """You specified a variable that is not part of the model. Available
-                variables: """
-                + ",".join(self.dds.variables)
-            )
-        for var in self.dds.variables:
-            if var in cond_dict:
-                self.dds._check_category(var, cond_dict[var])
-            else:
-                cond_dict[var] = self.dds._get_default_value(var)
-        df = pd.DataFrame([kwargs])
-        return self.dds.obsm["design_matrix"].model_spec.get_model_matrix(df).iloc[0]
+        return self.dds.cond(**{column: baseline}) - self.dds.cond(
+            **{column: group_to_compare}
+        )

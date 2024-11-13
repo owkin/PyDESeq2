@@ -10,6 +10,7 @@
     .. autosummary::
    
         ~DeseqDataSet.calculate_cooks
+        ~DeseqDataSet.cond
         ~DeseqDataSet.deseq2
         ~DeseqDataSet.fit_LFC
         ~DeseqDataSet.fit_MAP_dispersions
