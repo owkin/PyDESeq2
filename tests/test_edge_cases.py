@@ -140,7 +140,7 @@ def test_rank_deficient_design():
 
 def test_equal_num_vars_num_samples_design():
     """Test that a ValueError is thrown when fitting dispersions if the design matrix
-    has eaual numbers of rows and columns."""
+    has equal numbers of rows and columns."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1, 55], "gene2": [4, 12, 60]},
         index=["sample1", "sample2", "sample3"],
@@ -156,6 +156,43 @@ def test_equal_num_vars_num_samples_design():
 
     with pytest.raises(ValueError):
         dds.fit_genewise_dispersions()
+
+
+### Tests when a design matrix is passed directly
+
+
+def test_matching_samples():
+    """Test that a ValueError is thrown when the Index of the design matrix does not
+    match obs."""
+    counts_df = pd.DataFrame(
+        {"gene1": [0, 1, 55], "gene2": [4, 12, 60]},
+        index=["sample1", "sample2", "sample3"],
+    )
+    metadata = pd.DataFrame(
+        {"condition": [0, 1, 0]},
+        index=["sample1", "sample2", "sample3"],
+    )
+
+    with pytest.raises(ValueError):
+        design_matrix = pd.DataFrame(
+            {"intercept": [1.0, 1.0, 1.0], "condition": [0, 1, 0]},
+            index=["sample1", "sample2", "sample5"],
+        )
+        DeseqDataSet(counts=counts_df, metadata=metadata, design=design_matrix)
+
+    with pytest.raises(ValueError):
+        design_matrix = pd.DataFrame(
+            {"intercept": [1.0, 1.0], "condition": [0, 1]},
+            index=["sample1", "sample2"],
+        )
+        DeseqDataSet(counts=counts_df, metadata=metadata, design=design_matrix)
+
+    with pytest.raises(ValueError):
+        design_matrix = pd.DataFrame(
+            {"intercept": [1.0, 1.0, 1.0, 1.0], "condition": [0, 1, 0, 0]},
+            index=["sample1", "sample2", "sample3", "sample4"],
+        )
+        DeseqDataSet(counts=counts_df, metadata=metadata, design=design_matrix)
 
 
 def test_lfc_shrinkage_coeff():

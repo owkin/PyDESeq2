@@ -5,6 +5,7 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 import pytest
+from formulaic import model_matrix
 
 import tests
 from pydeseq2.dds import DeseqDataSet
@@ -663,6 +664,36 @@ def test_anndata_init(counts_df, metadata, tol=0.02):
     dds.deseq2()
 
     ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds.summary()
+
+    # Check results
+    assert_res_almost_equal(ds.results_df, r_res, tol)
+
+
+def test_design_matrix_init(counts_df, metadata, tol=0.02):
+    """
+    Test initializing dds with design matrix.
+    """
+    np.random.seed(42)
+
+    # Load R data
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+
+    r_res = pd.read_csv(
+        os.path.join(test_path, "data/single_factor/r_test_res.csv"), index_col=0
+    )
+
+    # Create a design matrix
+    design_matrix = pd.DataFrame(model_matrix("~condition", metadata))
+
+    # Simulate the user picking a different column name
+    design_matrix.rename(columns={"condition[T.B]": "condition_B"}, inplace=True)
+
+    # Initialize DeseqDataSet from design matrix and test results
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design=design_matrix)
+    dds.deseq2()
+
+    ds = DeseqStats(dds, contrast=np.array([0, 1]))
     ds.summary()
 
     # Check results
