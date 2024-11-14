@@ -63,8 +63,10 @@ class DeseqDataSet(ad.AnnData):
         Must be indexed by sample barcodes.
 
     design : str or pandas.DataFrame
-        Model design. Can be either a design matrix, or a
-        formulaic formula in the format ``'x + z'`` or ``'~x+z'``.
+        Model design. Can be either a pandas DataFrame representing a design matrix, or
+        a formulaic formula in the format ``'x + z'`` or ``'~x+z'``.
+        If a design matrix is provided, DeseqStats built from this DeseqDataSet will
+        only support contrasts in the form of numeric vectors.
         (Default: ``'~condition')``.
 
     design_factors : str or list, optional
