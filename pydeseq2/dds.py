@@ -271,10 +271,13 @@ class DeseqDataSet(ad.AnnData):
             )
             self.design = "~" + " + ".join(design_factors)
 
-        assert isinstance(self.design, (str, pd.DataFrame)) or isinstance(
-            self.design, str
-        ), "design must be a string representing a formulaic formula,"
-        "or a pandas DataFrame."
+        if not (
+            isinstance(self.design, (str, pd.DataFrame)) or isinstance(self.design, str)
+        ):
+            raise ValueError(
+                "design must be a string representing a formulaic formula,"
+                "or a pandas DataFrame."
+            )
 
         if isinstance(self.design, str):
             self.factor_storage, self.variable_to_factors, materializer_class = (
