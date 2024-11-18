@@ -280,7 +280,9 @@ ds.plot_MA(s=20)
 #
 # For visualization or post-processing purposes, it might be suitable to perform
 # LFC shrinkage. This is implemented by the :meth:`lfc_shrink() <DeseqStats.lfc_shrink>`
-# method.
+# method, which takes as argument the name of the coefficient to shrink (i.e., the name
+# of one of the columns of the design matrix ``dds.obsm["design_matrix"]``).
+# For instance, to shrink the LFCs of the ``condition B`` samples, we would run:
 
 ds.lfc_shrink(coeff="condition[T.B]")
 
