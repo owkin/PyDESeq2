@@ -30,17 +30,15 @@ class DeseqStats:
     dds : DeseqDataSet
         DeseqDataSet for which dispersion and LFCs were already estimated.
 
-    contrast : list or None
-        A list of three strings, in the following format:
+    contrast : list or ndarray
+        Either a list of three strings or a numpy array.
+        If a list of three strings, it must be in the following format:
         ``['variable_of_interest', 'tested_level', 'ref_level']``.
         Names must correspond to the metadata data passed to the DeseqDataSet.
         E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared
         to 'condition A'.
-        For continuous variables, the last two strings should be left empty, e.g.
-        ``['measurement', '', '']``.
-        If ``None``, the last variable from the design matrix is chosen
-        as the variable of interest, and the reference level is picked alphabetically.
-        (default: ``None``).
+        If a numpy array, it must be a contrast vector of the same length as the design
+        matrix.
 
     alpha : float
         P-value and adjusted p-value significance threshold (usually 0.05).
@@ -134,7 +132,7 @@ class DeseqStats:
     def __init__(
         self,
         dds: DeseqDataSet,
-        contrast: Optional[List[str]] = None,
+        contrast: List[str] | np.ndarray,
         alpha: float = 0.05,
         cooks_filter: bool = True,
         independent_filter: bool = True,
@@ -166,16 +164,27 @@ class DeseqStats:
         self.lfc_null = lfc_null
         self.alt_hypothesis = alt_hypothesis
 
-        # Check the validity of the contrast (if provided) or build it.
-        self._build_contrast(contrast)
-
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
         self.design_matrix = self.dds.obsm["design_matrix"].copy()
         self.LFC = self.dds.varm["LFC"].copy()
 
-        # Build a contrast vector corresponding to the variable and levels of interest
-        self._build_contrast_vector()
+        # Check the validity of the contrast (if provided) or build it.
+        if contrast is None:
+            raise ValueError(
+                """Default contrasts are no longer supported.
+                The "contrast" argument must be provided."""
+            )
+        elif isinstance(contrast, np.ndarray):
+            if contrast.shape[0] != self.dds.obsm["design_matrix"].shape[1]:
+                raise ValueError(
+                    "The contrast vector must have the same length as the design matrix."
+                )
+            self.contrast = contrast
+            self.contrast_vector = contrast
+        else:
+            self.contrast = contrast
+            self._build_contrast_vector()
 
         # Set a flag to indicate that LFCs are unshrunk
         self.shrunk_LFCs = False
@@ -192,6 +201,11 @@ class DeseqStats:
                 "refitted. Please run 'dds.refit()' first or set 'dds.refit_cooks' "
                 "to False."
             )
+
+    @property
+    def variables(self):
+        """Get the names of the variables used in the model definition."""
+        return self.dds.variables
 
     def summary(
         self,
@@ -259,9 +273,12 @@ class DeseqStats:
         self.results_df["padj"] = self.padj
 
         if not self.quiet:
-            if self.contrast[1] == self.contrast[2] == "":
-                # The factor is continuous
-                print(f"Log2 fold change & Wald test p-value: " f"{self.contrast[0]}")
+            if isinstance(self.contrast, np.ndarray):
+                # The contrast vector was directly provided
+                print(
+                    f"Log2 fold change & Wald test p-value, contrast vector: "
+                    f"{self.contrast}"
+                )
             else:
                 # The factor is categorical
                 print(
@@ -329,61 +346,27 @@ class DeseqStats:
             self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
 
-    def lfc_shrink(self, coeff: Optional[str] = None, adapt: bool = True) -> None:
+    # TODO update this to reflect the new contrast format
+    def lfc_shrink(self, coeff: str, adapt: bool = True) -> None:
         """LFC shrinkage with an apeGLM prior :cite:p:`DeseqStats-zhu2019heavy`.
 
         Shrinks LFCs using a heavy-tailed Cauchy prior, leaving p-values unchanged.
 
         Parameters
         ----------
-        coeff : str or None
-            The LFC coefficient to shrink. If set to ``None``, the method will try to
-            shrink the coefficient corresponding to the ``contrast`` attribute.
-            If the desired coefficient is not available, it may be set from the
-            :class:`pydeseq2.dds.DeseqDataSet` argument ``ref_level``.
+        coeff : str
+            The LFC coefficient to shrink. Must be one of the columns of the LFC matrix.
             (default: ``None``).
+
         adapt: bool
             Whether to use the MLE estimates of LFC to adapt the prior. If False, the
             prior scale is set to 1. (``default=True``)
         """
-        if self.contrast[1] == self.contrast[2] == "":
-            # The factor being tested is continuous
-            contrast_level = self.contrast[0]
-        else:
-            # The factor being tested is categorical
-            contrast_level = (
-                f"{self.contrast[0]}_{self.contrast[1]}_vs_{self.contrast[2]}"
-            )
-
-        if coeff is not None:
-            if coeff not in self.LFC.columns:
-                split_coeff = coeff.split("_")
-                if len(split_coeff) == 4:
-                    raise KeyError(
-                        f"The coeff argument '{coeff}' should be one the LFC columns. "
-                        f"The available LFC coeffs are {self.LFC.columns[1:]}. "
-                        f"If the desired coefficient is not available, please set "
-                        f"`ref_level = [{split_coeff[0]}, {split_coeff[3]}]` "
-                        f"in DeseqDataSet and rerun."
-                    )
-                else:
-                    raise KeyError(
-                        f"The coeff argument '{coeff}' should be one the LFC columns. "
-                        f"The available LFC coeffs are {self.LFC.columns[1:]}. "
-                        f"If the desired coefficient is not available, please set the "
-                        f"appropriate`ref_level` in DeseqDataSet and rerun."
-                    )
-        elif contrast_level not in self.LFC.columns:
+        if coeff not in self.LFC.columns:
             raise KeyError(
-                f"lfc_shrink's coeff argument was set to None, but the coefficient "
-                f"corresponding to the contrast {self.contrast} is not available."
-                f"The available LFC coeffs are {self.LFC.columns[1:]}. "
-                f"If the desired coefficient is not available, please set "
-                f"`ref_level = [{self.contrast[0]}, {self.contrast[2]}]` "
-                f"in DeseqDataSet and rerun."
+                f"The coeff argument '{coeff}' should be one the LFC columns. "
+                f"The available LFC coeffs are {self.LFC.columns[1:]}."
             )
-        else:
-            coeff = contrast_level
 
         coeff_idx = self.LFC.columns.get_loc(coeff)
 
@@ -447,23 +430,9 @@ class DeseqStats:
         if hasattr(self, "results_df"):
             self.results_df["log2FoldChange"] = self.LFC.iloc[:, coeff_idx] / np.log(2)
             self.results_df["lfcSE"] = self.SE / np.log(2)
-            # Get the corresponding factor, tested and reference levels of the shrunk
-            # coefficient
-            split_coeff = coeff.split("_")
-            # Categorical coeffs are of the form "factor_A_vs_B", and continuous coeffs
-            # of the form "factor".
-            if len(split_coeff) == 1 and not self.quiet:
+            if not self.quiet:
                 # The factor is continuous
                 print(f"Shrunk log2 fold change & Wald test p-value: " f"{coeff}")
-            elif not self.quiet:
-                # The factor is categorical
-                # Categorical coeffs are of the form "factor_A_vs_B", hence "factor"
-                # is split_coeff[0], "A" is split_coeff[1] and "B" split_coeff[3]
-                print(
-                    f"Shrunk log2 fold change & Wald test p-value: "
-                    f"{split_coeff[0]} {split_coeff[1]} vs {split_coeff[3]}"
-                )
-
             if not self.quiet:
                 print(self.results_df)
 
@@ -608,70 +577,6 @@ class DeseqStats:
         else:
             return root_scalar(objective, bracket=[min_var, max_var]).root
 
-    def _build_contrast(self, contrast: Optional[List[str]] = None) -> None:
-        """Check the validity of the contrast (if provided).
-
-        If not, build a default
-        contrast, corresponding to the last column of the design matrix.
-        A contrast should be a list of three strings, in the following format:
-        ``['variable_of_interest', 'tested_level', 'reference_level']``.
-        Names must correspond to the metadata data passed to the DeseqDataSet.
-        E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B'
-        compared to 'condition A'.
-        For continuous variables, the last two strings will be left empty, e.g.
-        ``['measurement', '', ''].
-        If None, the last variable from the design matrix
-        is chosen as the variable of interest, and the reference level is picked
-        alphabetically.
-
-        Parameters
-        ----------
-        contrast : list or None
-            A list of three strings, in the following format:
-            ``['variable_of_interest', 'tested_level', 'reference_level']``.
-            (default: ``None``).
-        """
-        if contrast is not None:  # Test contrast if provided
-            if len(contrast) != 3:
-                raise ValueError("The contrast should contain three strings.")
-            if contrast[0] not in self.dds.design_factors:
-                raise KeyError(
-                    f"The contrast variable ('{contrast[0]}') should be one "
-                    f"of the design factors."
-                )
-            if not (contrast[1] == contrast[2] == ""):
-                # The contrast factor is categorical, so we should check that the tested
-                # and reference levels are valid.
-                if contrast[1] not in self.dds.obs[contrast[0]].values:
-                    raise KeyError(
-                        f"The tested level ('{contrast[1]}') should correspond to "
-                        f"one of the levels of '{contrast[0]}'"
-                    )
-                if contrast[2] not in self.dds.obs[contrast[0]].values:
-                    raise KeyError(
-                        f"The reference level ('{contrast[2]}') should correspond to "
-                        f"one of the levels of '{contrast[0]}'"
-                    )
-            self.contrast = contrast
-        else:  # Build contrast if None
-            factor = self.dds.design_factors[-1]
-            # Check whether this factor is categorical or continuous.
-            if (
-                self.dds.continuous_factors is not None
-                and factor in self.dds.continuous_factors
-            ):
-                # The factor is continuous
-                self.contrast = [factor, "", ""]
-            else:
-                # The factor is categorical
-                factor_col = next(
-                    col
-                    for col in self.dds.obsm["design_matrix"].columns
-                    if col.startswith(factor)
-                )
-                split_col = factor_col.split("_")
-                self.contrast = [split_col[0], split_col[1], split_col[-1]]
-
     def _build_contrast_vector(self) -> None:
         """
         Build a vector corresponding to the desired contrast.
@@ -681,31 +586,34 @@ class DeseqStats:
         factor = self.contrast[0]
         alternative = self.contrast[1]
         ref = self.contrast[2]
-        if ref == alternative == "":
-            # "factor" is a continuous variable
-            contrast_level = factor
-        else:
-            contrast_level = f"{factor}_{alternative}_vs_{ref}"
+        self.contrast_vector = self._contrast(
+            column=factor, baseline=ref, group_to_compare=alternative
+        )
 
-        self.contrast_vector = np.zeros(self.LFC.shape[-1])
-        if contrast_level in self.design_matrix.columns:
-            self.contrast_idx = self.LFC.columns.get_loc(contrast_level)
-            self.contrast_vector[self.contrast_idx] = 1
-        elif f"{factor}_{ref}_vs_{alternative}" in self.design_matrix.columns:
-            # Reference and alternative are inverted
-            self.contrast_idx = self.LFC.columns.get_loc(
-                f"{factor}_{ref}_vs_{alternative}"
-            )
-            self.contrast_vector[self.contrast_idx] = -1
-        else:
-            # Need to change reference
-            # Get any column corresponding to the desired factor and extract old ref
-            old_ref = next(
-                col for col in self.LFC.columns if col.startswith(factor)
-            ).split("_vs_")[-1]
-            new_alternative_idx = self.LFC.columns.get_loc(
-                f"{factor}_{alternative}_vs_{old_ref}"
-            )
-            new_ref_idx = self.LFC.columns.get_loc(f"{factor}_{ref}_vs_{old_ref}")
-            self.contrast_vector[new_alternative_idx] = 1
-            self.contrast_vector[new_ref_idx] = -1
+    # Everything below is copied from pertpy. TODO : get a MWE, then clean up
+    def _contrast(self, column: str, baseline: str, group_to_compare: str) -> np.ndarray:
+        """Build a simple contrast for pairwise comparisons.
+
+        This is equivalent to
+
+        ```
+        model.cond(<column> = baseline) - model.cond(<column> = group_to_compare)
+        ```
+
+        Parameters
+        ----------
+        column: str
+            The column to contrast.
+        baseline: str
+            The baseline group.
+        group_to_compare: str
+            The group to compare to the baseline.
+
+        Returns
+        -------
+        np.ndarray
+            The contrast vector.
+        """
+        return self.dds.cond(**{column: baseline}) - self.dds.cond(
+            **{column: group_to_compare}
+        )
