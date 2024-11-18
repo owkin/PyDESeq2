@@ -182,6 +182,14 @@ class DeseqDataSet(ad.AnnData):
         Genes whose log means are different from -∞, computed in
         preprocessing.deseq2_norm_fit().
 
+    factor_storage : dict
+        A dictionary storing metadata for each factor processed by the custom
+        materializer (only if ``design`` is input as a formula).
+
+    variable_to_factors : dict
+        A dictionary mapping variable names to factor names (only if ``design`` is input
+        as a formula).
+
     References
     ----------
     .. bibliography::
@@ -280,6 +288,8 @@ class DeseqDataSet(ad.AnnData):
             )
 
         if isinstance(self.design, str):
+            # Keep track of the categorical factors used in the model specification,
+            # including variable and factor names, by generating a custom materializer.
             self.factor_storage, self.variable_to_factors, materializer_class = (
                 get_factor_storage_and_materializer()
             )
