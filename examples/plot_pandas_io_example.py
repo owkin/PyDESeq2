@@ -3,7 +3,7 @@ Loading data and saving results with pandas and pickle
 ======================================================
 
 In this example, we show how load data in order to perform a DEA analysis with PyDESeq2,
-and how to solve its results, using `pandas <https://pandas.pydata.org/>`_ and
+and how to save its results, using `pandas <https://pandas.pydata.org/>`_ and
 `pickle <https://docs.python.org/3/library/pickle.html>`_.
 
 We refer to the :doc:`getting started example <plot_minimal_pydeseq2_pipeline>` for more
@@ -126,7 +126,7 @@ inference = DefaultInference(n_cpus=8)
 dds = DeseqDataSet(
     counts=counts_df,
     metadata=metadata,
-    design_factors="condition",
+    design="~condition",
     refit_cooks=True,
     inference=inference,
 )
@@ -149,20 +149,11 @@ print(dds)
 
 
 # %%
-# As such, it can be saved using
-# `pickle.dump <https://docs.python.org/3/library/pickle.html#pickle.dump>`_.
-with open(os.path.join(OUTPUT_PATH, "dds.pkl"), "wb") as f:
-    pkl.dump(dds, f)
-
-
-# %%
-# It may be loaded again using
-# `pickle.load <https://docs.python.org/3/library/pickle.html#pickle.load>`_.
-
-with open(os.path.join(OUTPUT_PATH, "dds.pkl"), "rb") as f:
-    dds2 = pkl.load(f)
-
-print(dds2)
+# After removing unpicklable DeseqDataSet attributes, we can save the corresponding
+# AnnData object. This can be done using the
+# :meth:`to_picklable_anndata() <DeseqDataSet.to_picklable_anndata>` method.
+with open(os.path.join(OUTPUT_PATH, "result_adata.pkl"), "wb") as f:
+    pkl.dump(dds.to_picklable_anndata(), f)
 
 
 # %%
@@ -197,14 +188,14 @@ print(dds.varm["LFC"])
 # compute p-values and adjusted p-values for differential expresion. This is the role of
 # the :class:`DeseqStats <ds.DeseqStats>` class.
 
-stat_res = DeseqStats(dds, inference=inference)
+ds = DeseqStats(dds, contrast=["condition", "B", "A"], inference=inference)
 
 # %%
 # PyDESeq2 computes p-values using Wald tests. This can be done using the
 # :meth:`summary() <ds.DeseqStats.summary>` method, which runs the whole statistical
 # analysis, cooks filtering and multiple testing adjustement included.
 
-stat_res.summary()
+ds.summary()
 
 # %%
 # The results are then stored in the ``results_df`` attribute (``stat_res.results_df``).
@@ -214,4 +205,4 @@ stat_res.summary()
 # Hence, we may export ``stat_res.results_df`` as CSV, using `pandas.DataFrame.to_csv()
 # <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html>`_.
 
-stat_res.results_df.to_csv(os.path.join(OUTPUT_PATH, "results.csv"))
+ds.results_df.to_csv(os.path.join(OUTPUT_PATH, "results.csv"))

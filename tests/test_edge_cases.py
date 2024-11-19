@@ -32,24 +32,24 @@ def test_zero_genes():
     counts_df[zero_genes] = 0
 
     # Run analysis
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.deseq2()
 
     # check that the corresponding parameters are NaN
     assert np.isnan(dds[:, zero_genes].varm["dispersions"]).all()
     assert np.isnan(dds[:, zero_genes].varm["LFC"]).all().all()
 
-    res = DeseqStats(dds)
-    res.summary()
-    res_df = res.results_df
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"])
+    ds.summary()
+    results_df = ds.results_df
 
     # check that the corresponding stats are NaN
-    assert (res_df.loc[zero_genes].baseMean == 0).all()
-    assert res_df.loc[zero_genes].log2FoldChange.isna().all()
-    assert res_df.loc[zero_genes].lfcSE.isna().all()
-    assert res_df.loc[zero_genes].stat.isna().all()
-    assert res_df.loc[zero_genes].pvalue.isna().all()
-    assert res_df.loc[zero_genes].padj.isna().all()
+    assert (results_df.loc[zero_genes].baseMean == 0).all()
+    assert results_df.loc[zero_genes].log2FoldChange.isna().all()
+    assert results_df.loc[zero_genes].lfcSE.isna().all()
+    assert results_df.loc[zero_genes].stat.isna().all()
+    assert results_df.loc[zero_genes].pvalue.isna().all()
+    assert results_df.loc[zero_genes].padj.isna().all()
 
 
 # Tests on the count matrix
@@ -61,7 +61,7 @@ def test_nan_counts():
     metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
 
 
 def test_numeric_counts():
@@ -74,7 +74,7 @@ def test_numeric_counts():
     metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
 
 
 def test_integer_counts():
@@ -86,7 +86,7 @@ def test_integer_counts():
     metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
 
 
 def test_non_negative_counts():
@@ -98,57 +98,19 @@ def test_non_negative_counts():
     metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+        DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
 
 
 # Tests on the metadata data (design factors)
 def test_nan_factors():
-    """Test that a ValueError is thrown when the design factor contains NaNs."""
+    """Test that a warning is thrown when the design factor contains NaNs."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
     metadata = pd.DataFrame({"condition": [0, np.nan]}, index=["sample1", "sample2"])
 
     with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
-
-
-def test_underscores_in_factors():
-    """Test that underscores in factor and variable names don't cause bugs."""
-    counts_df = load_example_data(
-        modality="raw_counts",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    metadata = load_example_data(
-        modality="metadata",
-        dataset="synthetic",
-        debug=False,
-    )
-
-    # Rename metadata's columns and variables to add underscores
-    metadata.rename(
-        columns={"condition": "some_variable_with_underscores"}, inplace=True
-    )
-    metadata.replace(
-        {"A": "level_with_underscores", "B": "level_with_even_more_underscores"},
-        inplace=True,
-    )
-
-    # Run the pipeline. This should raise a warning, but not cause bugs.
-    with pytest.warns(UserWarning):
-        dds = DeseqDataSet(
-            counts=counts_df,
-            metadata=metadata,
-            design_factors="some_variable_with_underscores",
-            ref_level=["some_variable_with_underscores", "level_with_underscores"],
-        )
-    dds.deseq2()
-
-    stat_res = DeseqStats(dds)
-    stat_res.summary()
-    stat_res.lfc_shrink()
+        DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
 
 
 def test_one_factor():
@@ -158,8 +120,8 @@ def test_one_factor():
     )
     metadata = pd.DataFrame({"condition": [0, 0]}, index=["sample1", "sample2"])
 
-    with pytest.raises(ValueError):
-        DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    with pytest.warns(UserWarning):
+        DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
 
 
 def test_rank_deficient_design():
@@ -173,14 +135,12 @@ def test_rank_deficient_design():
     )
 
     with pytest.warns(UserWarning):
-        DeseqDataSet(
-            counts=counts_df, metadata=metadata, design_factors=["condition", "batch"]
-        )
+        DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition + batch")
 
 
 def test_equal_num_vars_num_samples_design():
     """Test that a ValueError is thrown when fitting dispersions if the design matrix
-    has eaual numbers of rows and columns."""
+    has equal numbers of rows and columns."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1, 55], "gene2": [4, 12, 60]},
         index=["sample1", "sample2", "sample3"],
@@ -190,9 +150,7 @@ def test_equal_num_vars_num_samples_design():
         index=["sample1", "sample2", "sample3"],
     )
 
-    dds = DeseqDataSet(
-        counts=counts_df, metadata=metadata, design_factors=["condition", "batch"]
-    )
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition + batch")
 
     dds.fit_size_factors()
 
@@ -200,26 +158,46 @@ def test_equal_num_vars_num_samples_design():
         dds.fit_genewise_dispersions()
 
 
-def test_reference_level():
-    """Test that a ValueError is thrown when the reference level is not one of the
-    design factor values."""
-    counts_df = pd.DataFrame(
-        {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
-    )
-    metadata = pd.DataFrame({"condition": [0, 1]}, index=["sample1", "sample2"])
+### Tests when a design matrix is passed directly
 
-    with pytest.raises(KeyError):
-        DeseqDataSet(
-            counts=counts_df,
-            metadata=metadata,
-            design_factors="condition",
-            ref_level="control",
+
+def test_matching_samples():
+    """Test that a ValueError is thrown when the Index of the design matrix does not
+    match obs."""
+    counts_df = pd.DataFrame(
+        {"gene1": [0, 1, 55], "gene2": [4, 12, 60]},
+        index=["sample1", "sample2", "sample3"],
+    )
+    metadata = pd.DataFrame(
+        {"condition": [0, 1, 0]},
+        index=["sample1", "sample2", "sample3"],
+    )
+
+    with pytest.raises(ValueError):
+        design_matrix = pd.DataFrame(
+            {"intercept": [1.0, 1.0, 1.0], "condition": [0, 1, 0]},
+            index=["sample1", "sample2", "sample5"],
         )
+        DeseqDataSet(counts=counts_df, metadata=metadata, design=design_matrix)
+
+    with pytest.raises(ValueError):
+        design_matrix = pd.DataFrame(
+            {"intercept": [1.0, 1.0], "condition": [0, 1]},
+            index=["sample1", "sample2"],
+        )
+        DeseqDataSet(counts=counts_df, metadata=metadata, design=design_matrix)
+
+    with pytest.raises(ValueError):
+        design_matrix = pd.DataFrame(
+            {"intercept": [1.0, 1.0, 1.0, 1.0], "condition": [0, 1, 0, 0]},
+            index=["sample1", "sample2", "sample3", "sample4"],
+        )
+        DeseqDataSet(counts=counts_df, metadata=metadata, design=design_matrix)
 
 
 def test_lfc_shrinkage_coeff():
     """Test that a KeyError is thrown when attempting to shrink an unexisting LFC
-    coefficient, but that setting coeff=None runs bug-free.
+    coefficient.
     """
 
     counts_df = load_example_data(
@@ -234,25 +212,16 @@ def test_lfc_shrinkage_coeff():
         debug=False,
     )
 
-    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design_factors="condition")
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.deseq2()
 
     # Check that coeff=None gives the same results as the default
     # coefficient condition_B_vs_A
-    res_1 = DeseqStats(dds)
-    res_1.summary()
-    res_1.lfc_shrink(coeff=None)
-    shrunk_lfcs_1 = res_1.results_df["log2FoldChange"].copy()
-
-    res_2 = DeseqStats(dds)
-    res_2.summary()
-    res_2.lfc_shrink(coeff="condition_B_vs_A")
-    shrunk_lfcs_2 = res_2.results_df["log2FoldChange"].copy()
-
-    assert (shrunk_lfcs_1 == shrunk_lfcs_2).all()
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"])
+    ds.summary()
 
     with pytest.raises(KeyError):
-        res_1.lfc_shrink(coeff="this_coeff_does_not_exist")
+        ds.lfc_shrink(coeff="this_coeff_does_not_exist")
 
 
 def test_indexes():
@@ -267,7 +236,7 @@ def test_indexes():
         DeseqDataSet(
             counts=counts_df,
             metadata=metadata,
-            design_factors="condition",
+            design="~condition",
         )
 
 
@@ -292,25 +261,29 @@ def test_contrast():
         counts=counts_df,
         metadata=metadata,
         refit_cooks=False,
-        design_factors=["condition", "group"],
+        design="~condition + group",
     )
     dds.deseq2()
 
     # Too short
-    with pytest.raises(ValueError):
+    with pytest.raises(IndexError):
         DeseqStats(dds, contrast=["condition", "B"])
 
     # Unexisting factor
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         DeseqStats(dds, contrast=["batch", "Y", "X"])
 
     # Unexisting factor reference level
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         DeseqStats(dds, contrast=["condition", "B", "C"])
 
     # Unexisting tested level
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         DeseqStats(dds, contrast=["condition", "C", "B"])
+
+    # Numerical contrast with the wrong number of elements
+    with pytest.raises(ValueError):
+        DeseqStats(dds, contrast=np.array([0, 0, 0, 1]))
 
 
 def test_cooks_not_refitted():
@@ -335,7 +308,7 @@ def test_cooks_not_refitted():
         counts=counts_df,
         metadata=metadata,
         refit_cooks=False,
-        design_factors="condition",
+        design="~condition",
     )
     dds.deseq2()
 
@@ -343,8 +316,8 @@ def test_cooks_not_refitted():
     dds.refit_cooks = True
 
     with pytest.raises(AttributeError):
-        stat_res = DeseqStats(dds)
-        stat_res.summary()
+        ds = DeseqStats(dds, contrast=["condition", "B", "A"])
+        ds.summary()
 
 
 def test_few_samples():
@@ -378,13 +351,13 @@ def test_few_samples():
         counts=counts_df,
         metadata=metadata,
         refit_cooks=True,
-        design_factors="condition",
+        design="~condition",
     )
 
     with pytest.warns(UserWarning):
         dds.deseq2()
 
-    res = DeseqStats(dds)
+    res = DeseqStats(dds, contrast=["condition", "B", "A"])
     res.summary()
 
     # Check that no gene was refit, as there are not enough samples.
@@ -436,11 +409,11 @@ def test_few_samples_and_outlier():
         counts=counts_df,
         metadata=metadata,
         refit_cooks=True,
-        design_factors="condition",
+        design="~condition",
     )
     dds.deseq2()
 
-    res = DeseqStats(dds)
+    res = DeseqStats(dds, contrast=["condition", "B", "A"])
     res.summary()
 
 
@@ -469,25 +442,25 @@ def test_new_all_zero_gene():
     dds = DeseqDataSet(
         counts=counts_df,
         metadata=metadata,
-        design_factors="condition",
+        design="~condition",
         refit_cooks=True,
     )
     with pytest.warns(UserWarning):
         # Will warn that parametric trend fit failed
         dds.deseq2()
 
-    stat_res = DeseqStats(dds)
-    stat_res.summary()
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"])
+    ds.summary()
 
     # Check that the outlier gene leads to only zeros and that it is correctly handled
     # in DeseqStats
     assert dds.new_all_zeroes_genes.equals(pd.Index(["geneX"]))
-    assert stat_res.results_df.loc["geneX", "baseMean"] == 0
-    assert stat_res.results_df.loc["geneX", "log2FoldChange"] == 0
-    assert stat_res.results_df.loc["geneX", "lfcSE"] == 0
-    assert stat_res.results_df.loc["geneX", "stat"] == 0
-    assert np.isnan(stat_res.results_df.loc["geneX", "pvalue"])
-    assert np.isnan(stat_res.results_df.loc["geneX", "padj"])
+    assert ds.results_df.loc["geneX", "baseMean"] == 0
+    assert ds.results_df.loc["geneX", "log2FoldChange"] == 0
+    assert ds.results_df.loc["geneX", "lfcSE"] == 0
+    assert ds.results_df.loc["geneX", "stat"] == 0
+    assert np.isnan(ds.results_df.loc["geneX", "pvalue"])
+    assert np.isnan(ds.results_df.loc["geneX", "padj"])
 
 
 def test_zero_inflated():
@@ -542,12 +515,12 @@ def test_plot_MA():
     dds.deseq2()
 
     # Initialize a DeseqStats object without runnning the analysis
-    res = DeseqStats(dds)
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"])
 
     with pytest.raises(AttributeError):
-        res.plot_MA()
+        ds.plot_MA()
 
     # Run the analysis
-    res.summary()
+    ds.summary()
     # Now this shouldn't throw an error
-    res.plot_MA()
+    ds.plot_MA()

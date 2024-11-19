@@ -1,6 +1,7 @@
 import sys
 import time
 import warnings
+from itertools import chain
 from typing import List
 from typing import Literal
 from typing import Optional
@@ -15,17 +16,20 @@ from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
 
+from pydeseq2._formulaic import Factor
+
+# TODO this is from pertpy, if we keep it we shoud acknoledge it or import it directly
+from pydeseq2._formulaic import get_factor_storage_and_materializer
+from pydeseq2._formulaic import resolve_ambiguous
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
-from pydeseq2.utils import build_design_matrix
 from pydeseq2.utils import dispersion_trend
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import n_or_more_replicates
 from pydeseq2.utils import nb_nll
-from pydeseq2.utils import replace_underscores
 from pydeseq2.utils import robust_method_of_moments_disp
 from pydeseq2.utils import test_valid_counts
 from pydeseq2.utils import trimmed_mean
@@ -58,18 +62,24 @@ class DeseqDataSet(ad.AnnData):
         DataFrame containing sample metadata.
         Must be indexed by sample barcodes.
 
-    design_factors : str or list
-        Name of the columns of metadata to be used as design variables.
-        (default: ``'condition'``).
+    design : str or pandas.DataFrame
+        Model design. Can be either a pandas DataFrame representing a design matrix, or
+        a formulaic formula in the format ``'x + z'`` or ``'~x+z'``.
+        If a design matrix is provided, DeseqStats built from this DeseqDataSet will
+        only support contrasts in the form of numeric vectors.
+        (Default: ``'~condition')``.
 
-    continuous_factors : list or None
-        An optional list of continuous (as opposed to categorical) factors. Any factor
-        not in ``continuous_factors`` will be considered categorical (default: ``None``).
+    design_factors : str or list, optional
+        Depecated. An optional list of factors to include in the design matrix.
+        Will be removed in a future release. (default: ``None``).
 
-    ref_level : list or None
-        An optional list of two strings of the form ``["factor", "test_level"]``
-        specifying the factor of interest and the reference (control) level against which
-        we're testing, e.g. ``["condition", "A"]``. (default: ``None``).
+    continuous_factors : list, optional
+        Deprecated. Continuous factors are now automatically detected from the design,
+        or cast to categorical using the C() operator in the formula.
+        (default: ``None``).
+
+    ref_level : list, optional
+        Deprecated.
 
     fit_type: str
         Either ``"parametric"`` or ``"mean"`` for the type of fitting of dispersions to
@@ -172,6 +182,14 @@ class DeseqDataSet(ad.AnnData):
         Genes whose log means are different from -∞, computed in
         preprocessing.deseq2_norm_fit().
 
+    factor_storage : dict
+        A dictionary storing metadata for each factor processed by the custom
+        materializer (only if ``design`` is input as a formula).
+
+    variable_to_factors : dict
+        A dictionary mapping variable names to factor names (only if ``design`` is input
+        as a formula).
+
     References
     ----------
     .. bibliography::
@@ -185,9 +203,10 @@ class DeseqDataSet(ad.AnnData):
         adata: Optional[ad.AnnData] = None,
         counts: Optional[pd.DataFrame] = None,
         metadata: Optional[pd.DataFrame] = None,
-        design_factors: Union[str, List[str]] = "condition",
-        continuous_factors: Optional[List[str]] = None,
-        ref_level: Optional[List[str]] = None,
+        design: str | pd.DataFrame = "~condition",
+        design_factors: str | list[str] | None = None,
+        continuous_factors: list[str] | None = None,
+        ref_level: list[str] | None = None,
         fit_type: Literal["parametric", "mean"] = "parametric",
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
@@ -226,55 +245,62 @@ class DeseqDataSet(ad.AnnData):
             )
 
         self.fit_type = fit_type
+        self.design = design
+        self.factor_storage = None
+        self.variable_to_factors = None
 
-        # Convert design_factors to list if a single string was provided.
-        self.design_factors = (
-            [design_factors] if isinstance(design_factors, str) else design_factors
-        )
-        self.continuous_factors = continuous_factors
-
-        if self.obs[self.design_factors].isna().any().any():
-            raise ValueError("NaNs are not allowed in the design factors.")
-        self.obs[self.design_factors] = self.obs[self.design_factors].astype(str)
-
-        # Check that design factors don't contain underscores. If so, convert them to
-        # hyphens.
-        if np.any(["_" in factor for factor in self.design_factors]):
+        if continuous_factors is not None:
             warnings.warn(
-                """Same factor names in the design contain underscores ('_'). They will
-                be converted to hyphens ('-').""",
-                UserWarning,
+                "continuous_factors is deprecated and will soon be removed."
+                "Continuous factors are now automatically detected from the design,"
+                "or can be cast to categorical using the C() operator in the formula",
+                DeprecationWarning,
                 stacklevel=2,
             )
 
-            new_factors = replace_underscores(self.design_factors)
-
-            self.obs.rename(
-                columns=dict(zip(self.design_factors, new_factors)),
-                inplace=True,
+        if ref_level is not None:
+            warnings.warn(
+                "ref_level is deprecated and no longer has any effect. It will be"
+                "removed in a future release.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
-            self.design_factors = new_factors
+        if design_factors is not None:
+            warnings.warn(
+                "design_factors is deprecated and will soon be removed."
+                "Please consider providing a formulaic formula using the design argument"
+                "instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            design_factors = (
+                design_factors if isinstance(design_factors, list) else [design_factors]
+            )
+            self.design = "~" + " + ".join(design_factors)
 
-            # Also check continuous factors
-            if self.continuous_factors is not None:
-                self.continuous_factors = replace_underscores(self.continuous_factors)
+        if not (
+            isinstance(self.design, (str, pd.DataFrame)) or isinstance(self.design, str)
+        ):
+            raise ValueError(
+                "design must be a string representing a formulaic formula,"
+                "or a pandas DataFrame."
+            )
 
-        # If ref_level has underscores, covert them to hyphens
-        # Don't raise a warning: it will be raised by build_design_matrix()
-        if ref_level is not None:
-            ref_level = replace_underscores(ref_level)
+        if isinstance(self.design, str):
+            # Keep track of the categorical factors used in the model specification,
+            # including variable and factor names, by generating a custom materializer.
+            self.factor_storage, self.variable_to_factors, materializer_class = (
+                get_factor_storage_and_materializer()
+            )
+            self.obsm["design_matrix"] = materializer_class(
+                self.obs, record_factor_metadata=True
+            ).get_model_matrix(self.design)
+        else:
+            self.obsm["design_matrix"] = self.design
 
-        # Build the design matrix
-        # Stored in the obsm attribute of the dataset
-        self.obsm["design_matrix"] = build_design_matrix(
-            metadata=self.obs,
-            design_factors=self.design_factors,
-            continuous_factors=self.continuous_factors,
-            ref_level=ref_level,
-            expanded=False,
-            intercept=True,
-        )
+        if self.obsm["design_matrix"].isna().any().any():
+            raise ValueError("NaNs are not allowed in the design.")
 
         # Check that the design matrix has full rank
         self._check_full_rank_design()
@@ -283,7 +309,6 @@ class DeseqDataSet(ad.AnnData):
         self.min_disp = min_disp
         self.max_disp = np.maximum(max_disp, self.n_obs)
         self.refit_cooks = refit_cooks
-        self.ref_level = ref_level
         self.min_replicates = min_replicates
         self.beta_tol = beta_tol
         self.quiet = quiet
@@ -304,6 +329,17 @@ class DeseqDataSet(ad.AnnData):
                 )
         # Initialize the inference object.
         self.inference = inference or DefaultInference(n_cpus=n_cpus)
+
+    @property
+    def variables(self):
+        """Get the names of the variables used in the model definition."""
+        try:
+            return self.obsm["design_matrix"].model_spec.variables_by_source["data"]
+        except AttributeError:
+            raise ValueError(
+                """Retrieving variables is only possible if the model was initialized
+                using a formula."""
+            ) from None
 
     def vst(
         self,
@@ -380,7 +416,7 @@ class DeseqDataSet(ad.AnnData):
             # Reduce the design matrix to an intercept and reconstruct at the end
             self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
             self.obsm["design_matrix"] = pd.DataFrame(
-                1, index=self.obs_names, columns=["intercept"]
+                1, index=self.obs_names, columns=["Intercept"]
             )
             # Fit the trend curve with an intercept design
             self.fit_genewise_dispersions(vst=True)
@@ -509,6 +545,35 @@ class DeseqDataSet(ad.AnnData):
 
         # Compute gene mask for cooks outliers
         self.cooks_outlier()
+
+    def cond(self, **kwargs):
+        """
+        Get a contrast vector representing a specific condition.
+
+        Parameters
+        ----------
+        **kwargs
+            Column/value pairs.
+
+        Returns
+        -------
+        ndarray
+            A contrast vector that aligns to the columns of the design matrix.
+        """
+        cond_dict = kwargs
+        if not set(cond_dict.keys()).issubset(self.variables):
+            raise ValueError(
+                """You specified a variable that is not part of the model. Available
+                variables: """
+                + ",".join(self.variables)
+            )
+        for var in self.variables:
+            if var in cond_dict:
+                self._check_category(var, cond_dict[var])
+            else:
+                cond_dict[var] = self._get_default_value(var)
+        df = pd.DataFrame([kwargs])
+        return self.obsm["design_matrix"].model_spec.get_model_matrix(df).iloc[0]
 
     def fit_size_factors(
         self,
@@ -1016,6 +1081,34 @@ class DeseqDataSet(ad.AnnData):
         self.varm["_pvalue_cooks_outlier"] = cooks_outlier
         return self.varm["_pvalue_cooks_outlier"]
 
+    def to_picklable_anndata(self) -> ad.AnnData:
+        """Convert the DESeqDataSet to a picklable AnnData object.
+
+        Builds an AnnData object from the DESeqDataSet with the same data, but converts
+        the design matrix to a DataFrame to remove the formulaic model_spec attribute,
+        which is not picklable.
+
+        Returns
+        -------
+        anndata.AnnData
+            The AnnData object, without DeseqDataSet unpicklable attributes.
+        """
+        # Initialize an AnnData object
+        adata = ad.AnnData(
+            X=self.X,
+            obs=self.obs,
+            var=self.var,
+            obsm=self.obsm,
+            varm=self.varm,
+            uns=self.uns,
+            layers=self.layers,
+        )
+
+        # Convert the design matrix to a DataFrame to remove model_spec
+        adata.obsm["design_matrix"] = pd.DataFrame(adata.obsm["design_matrix"])
+
+        return adata
+
     def _fit_MoM_dispersions(self) -> None:
         """Rough method of moments initial dispersions fit.
 
@@ -1276,9 +1369,7 @@ class DeseqDataSet(ad.AnnData):
                 columns=self.counts_to_refit.var_names,
             ),
             metadata=self.obs,
-            design_factors=self.design_factors,
-            continuous_factors=self.continuous_factors,
-            ref_level=self.ref_level,
+            design=self.design,
             min_mu=self.min_mu,
             min_disp=self.min_disp,
             max_disp=self.max_disp,
@@ -1359,7 +1450,7 @@ class DeseqDataSet(ad.AnnData):
         # Reduce the design matrix to an intercept and reconstruct at the end
         self.obsm["design_matrix_buffer"] = self.obsm["design_matrix"].copy()
         self.obsm["design_matrix"] = pd.DataFrame(
-            1, index=self.obs_names, columns=["intercept"]
+            1, index=self.obs_names, columns=["Intercept"]
         )
 
         # Fit size factors using MLE
@@ -1439,3 +1530,34 @@ class DeseqDataSet(ad.AnnData):
                 UserWarning,
                 stacklevel=2,
             )
+
+    ### Methods below are taken and adapted from pertpy's LinearModelBase ###
+    def _check_category(self, var, value):
+        factor_metadata = self._get_factor_metadata_for_variable(var)
+        tmp_categories = resolve_ambiguous(factor_metadata, "categories")
+        if (
+            resolve_ambiguous(factor_metadata, "kind") == Factor.Kind.CATEGORICAL
+            and value not in tmp_categories
+        ):
+            raise ValueError(
+                f"""You specified a non-existant category for {var}.
+                Possible categories: {', '.join(tmp_categories)}"""
+            )
+
+    def _get_factor_metadata_for_variable(self, var):
+        factors = self.variable_to_factors[var]
+        return list(chain.from_iterable(self.factor_storage[f] for f in factors))
+
+    def _get_default_value(self, var):
+        factor_metadata = self._get_factor_metadata_for_variable(var)
+        if resolve_ambiguous(factor_metadata, "kind") == Factor.Kind.CATEGORICAL:
+            try:
+                tmp_base = resolve_ambiguous(factor_metadata, "base")
+            except ValueError as e:
+                raise ValueError(
+                    f"""Could not automatically resolve base category for variable {var}.
+                    Please specify it explicity in `model.cond`."""
+                ) from e
+            return tmp_base if tmp_base is not None else "\0"
+        else:
+            return 0
