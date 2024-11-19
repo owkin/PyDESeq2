@@ -49,6 +49,6 @@ filterwarnings = [
     "error",
     '''ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning''',
     # ignore Pyarrow deprecation warnings
-    "ignore::FutureWarning",
-    "ignore::anndata.ImplicitModificationWarning",
+    '''ignore:\s*A value is trying to be set on a copy of a DataFrame:FutureWarning''',
+    '''ignore:\s*Setting an item of incompatible dtype:FutureWarning''',
 ]

@@ -75,6 +75,8 @@ def test_adata_minimal(request):
     return ad.AnnData(X=X, obs=obs, var=var)
 
 
+# Ignore anndata ImplicitModificationWarning
+@pytest.mark.filterwarnings("ignore::UserWarning")
 @pytest.mark.parametrize(
     "formula,reorder_categorical,expected_factor_metadata",
     [
@@ -339,6 +341,8 @@ def test_custom_materializer(
             assert resolve_ambiguous(actual_metadata, k) == expected_metadata[k]
 
 
+# Ignore anndata ImplicitModificationWarning
+@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_resolve_ambiguous():
     obj1 = FactorMetadata("F1", True, True, ["A", "B"], Factor.Kind.CATEGORICAL)
     obj2 = FactorMetadata("F2", True, False, ["A", "B"], Factor.Kind.CATEGORICAL)
