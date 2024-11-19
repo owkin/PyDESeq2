@@ -64,7 +64,7 @@ If you're interested in contributing or want access to the development version, 
 The list of package version requirements is available in `setup.py`.
 
 For reference, the code is being tested in a github workflow (CI) with python
-3.9 to 3.11 and the following package versions:
+3.10 to 3.11 and the following package versions:
 ```
 - anndata 0.8.0
 - numpy 1.23.0
@@ -107,7 +107,7 @@ documentation to see how you can contribute to PyDESeq2.
 
 ### 2 - Create a conda environment
 
-Run `conda create -n pydeseq2 python=3.9` (or higher python version) to create the `pydeseq2` environment and then activate it:
+Run `conda create -n pydeseq2 python=3.10` (or higher python version) to create the `pydeseq2` environment and then activate it:
 `conda activate pydeseq2`.
 
 `cd` to the root of the repo and run `pip install -e ."[dev]"` to install in developer mode.
