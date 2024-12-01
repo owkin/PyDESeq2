@@ -34,6 +34,7 @@ setup(
         "pandas>=1.4.0",
         "scikit-learn>=1.1.0",
         "scipy>=1.11.0",
+        "formulaic-contrasts>=0.1.0",
         "matplotlib>=3.6.2",  # not sure why sphinx_gallery does not work without it
     ],  # external packages as dependencies
     extras_require={
