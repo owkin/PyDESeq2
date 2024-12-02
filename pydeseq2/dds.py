@@ -218,7 +218,7 @@ class DeseqDataSet(ad.AnnData):
         inference: Optional[Inference] = None,
         quiet: bool = False,
         low_memory: bool = False,
-        fit_size_factors_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
+        size_factors_fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
     ) -> None:
         # Initialize the AnnData part
         if adata is not None:
@@ -314,7 +314,7 @@ class DeseqDataSet(ad.AnnData):
         self.beta_tol = beta_tol
         self.quiet = quiet
         self.low_memory = low_memory
-        self.fit_size_factors_type = fit_size_factors_type
+        self.size_factors_fit_type = size_factors_fit_type
         self.logmeans = None
         self.filtered_genes = None
 
@@ -399,7 +399,7 @@ class DeseqDataSet(ad.AnnData):
         # or if they were computed iteratively
         if "size_factors" not in self.obsm or self.logmeans is None:
             self.fit_size_factors(
-                fit_type=self.fit_size_factors_type
+                fit_type=self.size_factors_fit_type
             )  # by default, fit_type != "iterative"
 
         if not hasattr(self, "vst_fit_type"):
@@ -527,7 +527,7 @@ class DeseqDataSet(ad.AnnData):
             print(f"Using {self.fit_type} fit type.")
 
         # Compute DESeq2 normalization factors using the Median-of-ratios method
-        self.fit_size_factors(fit_type=self.fit_size_factors_type)
+        self.fit_size_factors(fit_type=self.size_factors_fit_type)
         # Fit an independent negative binomial model per gene
         self.fit_genewise_dispersions()
         # Fit a parameterized trend curve for dispersions, of the form
@@ -617,7 +617,7 @@ class DeseqDataSet(ad.AnnData):
             are used. (default: ``None``).
         """
         if fit_type is None:
-            fit_type = self.fit_size_factors_type
+            fit_type = self.size_factors_fit_type
         if not self.quiet:
             print("Fitting size factors...", file=sys.stderr)
 
@@ -702,7 +702,7 @@ class DeseqDataSet(ad.AnnData):
         """
         # Check that size factors are available. If not, compute them.
         if "size_factors" not in self.obsm:
-            self.fit_size_factors(fit_type=self.fit_size_factors_type)
+            self.fit_size_factors(fit_type=self.size_factors_fit_type)
 
         # Exclude genes with all zeroes
         self.varm["non_zero"] = ~(self.X == 0).all(axis=0)
@@ -1122,7 +1122,7 @@ class DeseqDataSet(ad.AnnData):
         """
         # Check that size_factors are available. If not, compute them.
         if "normed_counts" not in self.layers:
-            self.fit_size_factors(fit_type=self.fit_size_factors_type)
+            self.fit_size_factors(fit_type=self.size_factors_fit_type)
 
         normed_counts = self.layers["normed_counts"][:, self.non_zero_idx]
         rde = self.inference.fit_rough_dispersions(
