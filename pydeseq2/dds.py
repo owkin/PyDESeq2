@@ -88,6 +88,13 @@ class DeseqDataSet(ad.AnnData):
         estimates. Will set the fit type for the DEA and the vst transformation. If
         needed, it can be set separately for each method.(default: ``"parametric"``).
 
+    size_factors_fit_type : str
+        The normalization method to use: ``"ratio"``, ``"poscounts"`` or ``"iterative"``.
+        ``"ratio"``: fit size factors using the median-of-ratios method. ``"poscounts"``:
+        fit size factors using the method implemented in DESeq2 for the case where there
+        may be few or no genes which have no zero values.
+        ``"iterative"``: fit size factors iteratively. (default: ``"ratio"``).
+
     min_mu : float
         Threshold for mean estimates. (default: ``0.5``).
 
@@ -208,6 +215,7 @@ class DeseqDataSet(ad.AnnData):
         continuous_factors: list[str] | None = None,
         ref_level: list[str] | None = None,
         fit_type: Literal["parametric", "mean"] = "parametric",
+        size_factors_fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
         max_disp: float = 10.0,
@@ -313,6 +321,7 @@ class DeseqDataSet(ad.AnnData):
         self.beta_tol = beta_tol
         self.quiet = quiet
         self.low_memory = low_memory
+        self.size_factors_fit_type = size_factors_fit_type
         self.logmeans = None
         self.filtered_genes = None
 
@@ -396,7 +405,9 @@ class DeseqDataSet(ad.AnnData):
         # Start by fitting median-of-ratio size factors if not already present,
         # or if they were computed iteratively
         if "size_factors" not in self.obsm or self.logmeans is None:
-            self.fit_size_factors()  # by default, fit_type != "iterative"
+            self.fit_size_factors(
+                fit_type=self.size_factors_fit_type
+            )  # by default, fit_type != "iterative"
 
         if not hasattr(self, "vst_fit_type"):
             self.vst_fit_type = self.fit_type
@@ -523,7 +534,7 @@ class DeseqDataSet(ad.AnnData):
             print(f"Using {self.fit_type} fit type.")
 
         # Compute DESeq2 normalization factors using the Median-of-ratios method
-        self.fit_size_factors()
+        self.fit_size_factors(fit_type=self.size_factors_fit_type)
         # Fit an independent negative binomial model per gene
         self.fit_genewise_dispersions()
         # Fit a parameterized trend curve for dispersions, of the form
@@ -577,7 +588,7 @@ class DeseqDataSet(ad.AnnData):
 
     def fit_size_factors(
         self,
-        fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
+        fit_type: Optional[Literal["ratio", "poscounts", "iterative"]] = None,
         control_genes: Optional[
             Union[np.ndarray, List[str], List[int], pd.Index]
         ] = None,
@@ -612,6 +623,8 @@ class DeseqDataSet(ad.AnnData):
             Genes to use as control genes for size factor fitting. If None, all genes
             are used. (default: ``None``).
         """
+        if fit_type is None:
+            fit_type = self.size_factors_fit_type
         if not self.quiet:
             print("Fitting size factors...", file=sys.stderr)
 
@@ -696,7 +709,7 @@ class DeseqDataSet(ad.AnnData):
         """
         # Check that size factors are available. If not, compute them.
         if "size_factors" not in self.obsm:
-            self.fit_size_factors()
+            self.fit_size_factors(fit_type=self.size_factors_fit_type)
 
         # Exclude genes with all zeroes
         self.varm["non_zero"] = ~(self.X == 0).all(axis=0)
@@ -1116,7 +1129,7 @@ class DeseqDataSet(ad.AnnData):
         """
         # Check that size_factors are available. If not, compute them.
         if "normed_counts" not in self.layers:
-            self.fit_size_factors()
+            self.fit_size_factors(fit_type=self.size_factors_fit_type)
 
         normed_counts = self.layers["normed_counts"][:, self.non_zero_idx]
         rde = self.inference.fit_rough_dispersions(
