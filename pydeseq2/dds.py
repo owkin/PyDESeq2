@@ -581,7 +581,7 @@ class DeseqDataSet(ad.AnnData):
 
     def fit_size_factors(
         self,
-        fit_type: Optional[Literal["ratio", "poscounts", "iterative"]],
+        fit_type: Optional[Literal["ratio", "poscounts", "iterative"]] = None,
         control_genes: Optional[
             Union[np.ndarray, List[str], List[int], pd.Index]
         ] = None,
