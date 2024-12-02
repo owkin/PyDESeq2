@@ -218,6 +218,7 @@ class DeseqDataSet(ad.AnnData):
         inference: Optional[Inference] = None,
         quiet: bool = False,
         low_memory: bool = False,
+        fit_size_factors_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
     ) -> None:
         # Initialize the AnnData part
         if adata is not None:
@@ -313,6 +314,7 @@ class DeseqDataSet(ad.AnnData):
         self.beta_tol = beta_tol
         self.quiet = quiet
         self.low_memory = low_memory
+        self.fit_size_factors_type = fit_size_factors_type
         self.logmeans = None
         self.filtered_genes = None
 
