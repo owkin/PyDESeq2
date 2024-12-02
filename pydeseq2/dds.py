@@ -88,6 +88,13 @@ class DeseqDataSet(ad.AnnData):
         estimates. Will set the fit type for the DEA and the vst transformation. If
         needed, it can be set separately for each method.(default: ``"parametric"``).
 
+    size_factors_fit_type : str
+        The normalization method to use: ``"ratio"``, ``"poscounts"`` or ``"iterative"``.
+        ``"ratio"``: fit size factors using the median-of-ratios method. ``"poscounts"``:
+        fit size factors using the method implemented in DESeq2 for the case where there
+        may be few or no genes which have no zero values.
+        ``"iterative"``: fit size factors iteratively. (default: ``"ratio"``).
+
     min_mu : float
         Threshold for mean estimates. (default: ``0.5``).
 
@@ -208,6 +215,7 @@ class DeseqDataSet(ad.AnnData):
         continuous_factors: list[str] | None = None,
         ref_level: list[str] | None = None,
         fit_type: Literal["parametric", "mean"] = "parametric",
+        size_factors_fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
         max_disp: float = 10.0,
@@ -218,7 +226,6 @@ class DeseqDataSet(ad.AnnData):
         inference: Optional[Inference] = None,
         quiet: bool = False,
         low_memory: bool = False,
-        size_factors_fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
     ) -> None:
         # Initialize the AnnData part
         if adata is not None:
