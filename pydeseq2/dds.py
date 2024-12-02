@@ -398,7 +398,9 @@ class DeseqDataSet(ad.AnnData):
         # Start by fitting median-of-ratio size factors if not already present,
         # or if they were computed iteratively
         if "size_factors" not in self.obsm or self.logmeans is None:
-            self.fit_size_factors()  # by default, fit_type != "iterative"
+            self.fit_size_factors(
+                fit_type=self.fit_size_factors_type
+            )  # by default, fit_type != "iterative"
 
         if not hasattr(self, "vst_fit_type"):
             self.vst_fit_type = self.fit_type
@@ -525,7 +527,7 @@ class DeseqDataSet(ad.AnnData):
             print(f"Using {self.fit_type} fit type.")
 
         # Compute DESeq2 normalization factors using the Median-of-ratios method
-        self.fit_size_factors()
+        self.fit_size_factors(fit_type=self.fit_size_factors_type)
         # Fit an independent negative binomial model per gene
         self.fit_genewise_dispersions()
         # Fit a parameterized trend curve for dispersions, of the form
@@ -579,7 +581,7 @@ class DeseqDataSet(ad.AnnData):
 
     def fit_size_factors(
         self,
-        fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
+        fit_type: Optional[Literal["ratio", "poscounts", "iterative"]],
         control_genes: Optional[
             Union[np.ndarray, List[str], List[int], pd.Index]
         ] = None,
@@ -614,6 +616,8 @@ class DeseqDataSet(ad.AnnData):
             Genes to use as control genes for size factor fitting. If None, all genes
             are used. (default: ``None``).
         """
+        if fit_type is None:
+            fit_type = self.fit_size_factors_type
         if not self.quiet:
             print("Fitting size factors...", file=sys.stderr)
 
@@ -698,7 +702,7 @@ class DeseqDataSet(ad.AnnData):
         """
         # Check that size factors are available. If not, compute them.
         if "size_factors" not in self.obsm:
-            self.fit_size_factors()
+            self.fit_size_factors(fit_type=self.fit_size_factors_type)
 
         # Exclude genes with all zeroes
         self.varm["non_zero"] = ~(self.X == 0).all(axis=0)
@@ -1118,7 +1122,7 @@ class DeseqDataSet(ad.AnnData):
         """
         # Check that size_factors are available. If not, compute them.
         if "normed_counts" not in self.layers:
-            self.fit_size_factors()
+            self.fit_size_factors(fit_type=self.fit_size_factors_type)
 
         normed_counts = self.layers["normed_counts"][:, self.non_zero_idx]
         rde = self.inference.fit_rough_dispersions(
