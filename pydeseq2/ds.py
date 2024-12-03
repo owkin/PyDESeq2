@@ -586,34 +586,6 @@ class DeseqStats:
         factor = self.contrast[0]
         alternative = self.contrast[1]
         ref = self.contrast[2]
-        self.contrast_vector = self._contrast(
+        self.contrast_vector = self.dds.contrast(
             column=factor, baseline=ref, group_to_compare=alternative
-        )
-
-    # Everything below is copied from pertpy. TODO : get a MWE, then clean up
-    def _contrast(self, column: str, baseline: str, group_to_compare: str) -> np.ndarray:
-        """Build a simple contrast for pairwise comparisons.
-
-        This is equivalent to
-
-        ```
-        model.cond(<column> = baseline) - model.cond(<column> = group_to_compare)
-        ```
-
-        Parameters
-        ----------
-        column: str
-            The column to contrast.
-        baseline: str
-            The baseline group.
-        group_to_compare: str
-            The group to compare to the baseline.
-
-        Returns
-        -------
-        np.ndarray
-            The contrast vector.
-        """
-        return self.dds.cond(**{column: baseline}) - self.dds.cond(
-            **{column: group_to_compare}
         )
