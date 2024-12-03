@@ -1,7 +1,6 @@
 import sys
 import time
 import warnings
-from itertools import chain
 from typing import List
 from typing import Literal
 from typing import Optional
@@ -11,16 +10,12 @@ from typing import cast
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
+from formulaic_contrasts import FormulaicContrasts
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
 
-from pydeseq2._formulaic import Factor
-
-# TODO this is from pertpy, if we keep it we shoud acknoledge it or import it directly
-from pydeseq2._formulaic import get_factor_storage_and_materializer
-from pydeseq2._formulaic import resolve_ambiguous
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.preprocessing import deseq2_norm_fit
@@ -254,8 +249,6 @@ class DeseqDataSet(ad.AnnData):
 
         self.fit_type = fit_type
         self.design = design
-        self.factor_storage = None
-        self.variable_to_factors = None
 
         if continuous_factors is not None:
             warnings.warn(
@@ -298,12 +291,8 @@ class DeseqDataSet(ad.AnnData):
         if isinstance(self.design, str):
             # Keep track of the categorical factors used in the model specification,
             # including variable and factor names, by generating a custom materializer.
-            self.factor_storage, self.variable_to_factors, materializer_class = (
-                get_factor_storage_and_materializer()
-            )
-            self.obsm["design_matrix"] = materializer_class(
-                self.obs, record_factor_metadata=True
-            ).get_model_matrix(self.design)
+            self.formulaic_contrasts = FormulaicContrasts(self.obs, self.design)
+            self.obsm["design_matrix"] = self.formulaic_contrasts.design_matrix
         else:
             self.obsm["design_matrix"] = self.design
 
@@ -343,7 +332,7 @@ class DeseqDataSet(ad.AnnData):
     def variables(self):
         """Get the names of the variables used in the model definition."""
         try:
-            return self.obsm["design_matrix"].model_spec.variables_by_source["data"]
+            return self.formulaic_contrasts.variables
         except AttributeError:
             raise ValueError(
                 """Retrieving variables is only possible if the model was initialized
@@ -571,20 +560,11 @@ class DeseqDataSet(ad.AnnData):
         ndarray
             A contrast vector that aligns to the columns of the design matrix.
         """
-        cond_dict = kwargs
-        if not set(cond_dict.keys()).issubset(self.variables):
-            raise ValueError(
-                """You specified a variable that is not part of the model. Available
-                variables: """
-                + ",".join(self.variables)
-            )
-        for var in self.variables:
-            if var in cond_dict:
-                self._check_category(var, cond_dict[var])
-            else:
-                cond_dict[var] = self._get_default_value(var)
-        df = pd.DataFrame([kwargs])
-        return self.obsm["design_matrix"].model_spec.get_model_matrix(df).iloc[0]
+        return self.formulaic_contrasts.cond(**kwargs)
+
+    def contrast(self, *args, **kwargs):
+        """Get a contrast for a simple pairwise comparison."""
+        return self.formulaic_contrasts.contrast(*args, **kwargs)
 
     def fit_size_factors(
         self,
@@ -1543,34 +1523,3 @@ class DeseqDataSet(ad.AnnData):
                 UserWarning,
                 stacklevel=2,
             )
-
-    ### Methods below are taken and adapted from pertpy's LinearModelBase ###
-    def _check_category(self, var, value):
-        factor_metadata = self._get_factor_metadata_for_variable(var)
-        tmp_categories = resolve_ambiguous(factor_metadata, "categories")
-        if (
-            resolve_ambiguous(factor_metadata, "kind") == Factor.Kind.CATEGORICAL
-            and value not in tmp_categories
-        ):
-            raise ValueError(
-                f"""You specified a non-existant category for {var}.
-                Possible categories: {', '.join(tmp_categories)}"""
-            )
-
-    def _get_factor_metadata_for_variable(self, var):
-        factors = self.variable_to_factors[var]
-        return list(chain.from_iterable(self.factor_storage[f] for f in factors))
-
-    def _get_default_value(self, var):
-        factor_metadata = self._get_factor_metadata_for_variable(var)
-        if resolve_ambiguous(factor_metadata, "kind") == Factor.Kind.CATEGORICAL:
-            try:
-                tmp_base = resolve_ambiguous(factor_metadata, "base")
-            except ValueError as e:
-                raise ValueError(
-                    f"""Could not automatically resolve base category for variable {var}.
-                    Please specify it explicity in `model.cond`."""
-                ) from e
-            return tmp_base if tmp_base is not None else "\0"
-        else:
-            return 0
