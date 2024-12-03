@@ -119,7 +119,7 @@ def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.0
     )
     dds.deseq2()
 
-    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"])
     ds.summary()
 
     # Check results
@@ -146,7 +146,7 @@ def test_deseq_independent_filtering_mean_fit(counts_df, metadata, tol=0.02):
     )
     dds.deseq2()
 
-    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"])
     ds.summary()
 
     # Check results
@@ -178,7 +178,7 @@ def test_deseq_without_independent_filtering_parametric_fit(
     )
     dds.deseq2()
 
-    ds = DeseqStats(dds, contrast=["condition", "A", "B"], independent_filter=False)
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"], independent_filter=False)
     ds.summary()
 
     # Check results
@@ -207,7 +207,7 @@ def test_alt_hypothesis(alt_hypothesis, counts_df, metadata, tol=0.02):
 
     ds = DeseqStats(
         dds,
-        contrast=["condition", "A", "B"],
+        contrast=["condition", "B", "A"],
         lfc_null=-0.5 if alt_hypothesis == "less" else 0.5,
         alt_hypothesis=alt_hypothesis,
     )
@@ -255,8 +255,10 @@ def test_deseq_no_refit_cooks(counts_df, metadata, tol=0.02):
     )
     dds.deseq2()
 
-    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"])
     ds.summary()
+
+    breakpoint()
 
     # Check results
     assert_res_almost_equal(ds.results_df, r_res, tol)
@@ -401,7 +403,7 @@ def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.04):
     dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
     dds.deseq2()
 
-    res = DeseqStats(dds, contrast=["condition", "A", "B"])
+    res = DeseqStats(dds, contrast=["condition", "B", "A"])
     res.summary()
     res_df = res.results_df
 
@@ -595,7 +597,7 @@ def test_wide_deseq(
     )
     dds.deseq2()
 
-    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"])
     ds.summary()
 
     # Check results
@@ -663,7 +665,7 @@ def test_anndata_init(counts_df, metadata, tol=0.02):
     dds = DeseqDataSet(adata=adata, design="~condition")
     dds.deseq2()
 
-    ds = DeseqStats(dds, contrast=["condition", "A", "B"])
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"])
     ds.summary()
 
     # Check results
