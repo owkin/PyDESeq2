@@ -258,8 +258,6 @@ def test_deseq_no_refit_cooks(counts_df, metadata, tol=0.02):
     ds = DeseqStats(dds, contrast=["condition", "B", "A"])
     ds.summary()
 
-    breakpoint()
-
     # Check results
     assert_res_almost_equal(ds.results_df, r_res, tol)
 
