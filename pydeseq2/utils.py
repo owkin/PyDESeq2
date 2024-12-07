@@ -1608,3 +1608,64 @@ def lowess(
         delta = (1 - delta**2) ** 2
 
     return yest
+
+
+def make_rle_plot(
+    count_matrix: np.array,
+    sample_ids: np.array,
+    normalize: bool = False,
+    save_path: Optional[str] = None,
+    **kwargs,
+) -> None:
+    """
+    Create a ratio of log expression plot using matplotlib.
+
+    Parameters
+    ----------
+    count_matrix : np.ndarray
+        An mxn matrix of count data, where m is the number of samples (rows),
+        and n is the number of genes (columns).
+
+    sample_ids : np.ndarray
+        An array of sample identifiers.
+
+    normalize : bool
+        Whether to normalize the count matrix before plotting. (default: ``False``).
+
+    save_path : str or None
+        The path where to save the plot. If left None, the plot won't be saved
+        (default: ``None``).
+
+    **kwargs :
+        Additional keyword arguments passed to matplotlib's boxplot function.
+    """
+    if normalize:
+        print("Plotting normalized RLE plot...")
+        geometric_mean = np.exp(np.mean(np.log(count_matrix + 1), axis=0))
+        size_factors = np.median(count_matrix / geometric_mean, axis=1)
+        count_matrix = count_matrix / size_factors[:, np.newaxis]
+
+    plt.rcParams.update({"font.size": 10})
+
+    fig, ax = plt.subplots(figsize=(15, 8), dpi=600)
+
+    # Calculate median expression across samples
+    gene_medians = np.median(count_matrix, axis=0)
+    rle_values = np.log2(count_matrix / gene_medians)
+
+    kwargs.setdefault("alpha", 0.5)
+    boxprops = {"facecolor": "lightgray", "alpha": kwargs.pop("alpha")}
+
+    ax.boxplot(rle_values.T, patch_artist=True, boxprops=boxprops, **kwargs)
+
+    ax.axhline(0, color="red", linestyle="--", linewidth=1, alpha=0.5, zorder=3)
+    ax.set_xlabel("Sample")
+    ax.set_ylabel("Relative Log Expression")
+    ax.set_xticks(np.arange(len(sample_ids)))
+    ax.set_xticklabels(sample_ids, rotation=90)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, bbox_inches="tight")
+    else:
+        plt.show()
