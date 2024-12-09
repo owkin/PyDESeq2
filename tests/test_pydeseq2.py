@@ -372,6 +372,72 @@ def test_iterative_size_factors(counts_df, metadata, tol=0.02):
     ).max() < tol
 
 
+def test_lfc_shrinkage_large_counts(counts_df, metadata, tol=0.02):
+    """Test that the outputs of the lfc_shrink function match those of the original
+    R package (starting from the same inputs), up to a tolerance in relative error in
+    the presence of a gene with very large counts.
+    """
+
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_res = pd.read_csv(
+        os.path.join(test_path, "data/large_counts/r_test_res.csv"), index_col=0
+    )
+    r_shrunk_res = pd.read_csv(
+        os.path.join(test_path, "data/large_counts/r_test_lfc_shrink_res.csv"),
+        index_col=0,
+    )
+
+    r_size_factors = pd.read_csv(
+        os.path.join(test_path, "data/large_counts/r_test_size_factors.csv"),
+        index_col=0,
+    ).squeeze()
+
+    r_dispersions = pd.read_csv(
+        os.path.join(test_path, "data/large_counts/r_test_dispersions.csv"),
+        index_col=0,
+    ).squeeze()
+
+    counts_df = pd.DataFrame(
+        data=[
+            [25, 405, 1355, 12558, 489843],
+            [28, 480, 2144, 13844, 514571],
+            [12, 690, 1919, 15632, 564106],
+            [31, 420, 1684, 11513, 556380],
+            [34, 278, 3849, 11577, 412551],
+            [19, 249, 3086, 7296, 295565],
+            [17, 491, 4089, 13805, 280945],
+            [15, 251, 2785, 10492, 214062],
+        ],
+        index=["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"],
+        columns=["g1", "g2", "g3", "g4", "g5"],
+    )
+
+    metadata_df = pd.DataFrame(
+        data=["A", "A", "A", "A", "B", "B", "B", "B"],
+        index=["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"],
+        columns=["condition"],
+    )
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata_df, design="~condition")
+    dds.deseq2()
+
+    dds.obsm["size_factors"] = r_size_factors.values
+    dds.varm["dispersions"] = r_dispersions.values
+    dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
+
+    res = DeseqStats(dds, contrast=["condition", "B", "A"])
+    res.summary()
+    res.SE = r_res.lfcSE * np.log(2)
+    res.lfc_shrink(coeff="condition[T.B]")
+    shrunk_res = res.results_df
+
+    # Check that the same LFC are found (up to tol)
+    assert (
+        abs(r_shrunk_res.log2FoldChange - shrunk_res.log2FoldChange)
+        / abs(r_shrunk_res.log2FoldChange)
+    ).max() < tol
+
+
 # Multi-factor tests
 @pytest.mark.parametrize("with_outliers", [True, False])
 def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.04):
