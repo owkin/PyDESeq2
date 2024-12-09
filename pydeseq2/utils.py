@@ -1083,7 +1083,7 @@ def nbinomGLM(
         xbeta = design_matrix @ beta
         d_neg_prior = (
             beta * no_shrink_mask / prior_no_shrink_scale**2
-            + 2 * beta * shrink_mask / (prior_scale**2 + beta[shrink_index] ** 2),
+            + 2 * beta * shrink_mask / (prior_scale**2 + beta[shrink_index] ** 2)
         )
 
         d_nll = (
@@ -1116,6 +1116,10 @@ def nbinomGLM(
         jac=df,
         hess=ddf if optimizer == "Newton-CG" else None,
         method=optimizer,
+        options={
+            "ftol": 1e-8,
+            "gtol": 1e-8,
+        },
     )
 
     beta = res.x
