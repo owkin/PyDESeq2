@@ -1622,11 +1622,11 @@ def make_rle_plot(
 
     Parameters
     ----------
-    count_matrix : np.ndarray
+    count_matrix : ndarray
         An mxn matrix of count data, where m is the number of samples (rows),
         and n is the number of genes (columns).
 
-    sample_ids : np.ndarray
+    sample_ids : ndarray
         An array of sample identifiers.
 
     normalize : bool
