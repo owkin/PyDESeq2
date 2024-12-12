@@ -305,7 +305,7 @@ class DeseqStats:
                 )
 
         mu = (
-            np.exp(self.design_matrix @ self.LFC.T)
+            np.exp(self.design_matrix.dot(self.LFC.T))
             .multiply(self.dds.obsm["size_factors"], 0)
             .values
         )
