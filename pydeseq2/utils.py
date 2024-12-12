@@ -3,9 +3,6 @@ from math import ceil
 from math import floor
 from pathlib import Path
 from typing import Literal
-from typing import Optional
-from typing import Tuple
-from typing import Union
 from typing import cast
 
 import numpy as np
@@ -109,7 +106,7 @@ def load_example_data(
     return df
 
 
-def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
+def test_valid_counts(counts: pd.DataFrame | np.ndarray) -> None:
     """Test that the count matrix contains valid inputs.
 
     More precisely, test that inputs are non-negative integers.
@@ -138,9 +135,9 @@ def test_valid_counts(counts: Union[pd.DataFrame, np.ndarray]) -> None:
 
 
 def dispersion_trend(
-    normed_mean: Union[float, np.ndarray],
-    coeffs: Union["pd.Series[float]", np.ndarray],
-) -> Union[float, np.ndarray]:
+    normed_mean: float | np.ndarray,
+    coeffs: pd.Series | np.ndarray,
+) -> float | np.ndarray:
     r"""Return dispersion trend from normalized counts.
 
     :math:`a_1/ \mu + a_0`.
@@ -165,8 +162,8 @@ def dispersion_trend(
 
 
 def nb_nll(
-    counts: np.ndarray, mu: np.ndarray, alpha: Union[float, np.ndarray]
-) -> Union[float, np.ndarray]:
+    counts: np.ndarray, mu: np.ndarray, alpha: float | np.ndarray
+) -> float | np.ndarray:
     r"""Neg log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
 
     Mathematically, if ``counts`` is a vector of counting entries :math:`y_i`
@@ -285,7 +282,7 @@ def irls_solver(
     max_beta: float = 30,
     optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
     maxiter: int = 250,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, bool]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, bool]:
     r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 
     See equations (1-2) in the DESeq2 paper.
@@ -449,11 +446,11 @@ def fit_alpha_mle(
     alpha_hat: float,
     min_disp: float,
     max_disp: float,
-    prior_disp_var: Optional[float] = None,
+    prior_disp_var: float | None = None,
     cr_reg: bool = True,
     prior_reg: bool = False,
     optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
-) -> Tuple[float, bool]:
+) -> tuple[float, bool]:
     """Estimate the dispersion parameter of a negative binomial GLM.
 
     Note: it is possible to pass counts, design_matrix and mu arguments in the form of
@@ -568,7 +565,7 @@ def fit_alpha_mle(
         )
 
 
-def trimmed_mean(x: np.ndarray, trim: float = 0.1, **kwargs) -> Union[float, np.ndarray]:
+def trimmed_mean(x: np.ndarray, trim: float = 0.1, **kwargs) -> float | np.ndarray:
     """Return trimmed mean.
 
     Compute the mean after trimming data of its smallest and largest quantiles.
@@ -656,7 +653,7 @@ def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
 
 def trimmed_variance(
     x: np.ndarray, trim: float = 0.125, axis: int = 0
-) -> Union[float, np.ndarray]:
+) -> float | np.ndarray:
     """Return trimmed variance.
 
     Compute the variance after trimming data of its smallest and largest quantiles.
@@ -727,8 +724,8 @@ def wald_test(
     ridge_factor: np.ndarray,
     contrast: np.ndarray,
     lfc_null: float,
-    alt_hypothesis: Optional[Literal["greaterAbs", "lessAbs", "greater", "less"]],
-) -> Tuple[float, float, float]:
+    alt_hypothesis: Literal["greaterAbs", "lessAbs", "greater", "less"] | None,
+) -> tuple[float, float, float]:
     """Run Wald test for differential expression.
 
     Computes Wald statistics, standard error and p-values from
@@ -757,7 +754,7 @@ def wald_test(
     lfc_null : float
         The (log2) log fold change under the null hypothesis.
 
-    alt_hypothesis : str or None
+    alt_hypothesis : str, optional
         The alternative hypothesis for computing wald p-values.
 
     Returns
@@ -962,14 +959,14 @@ def robust_method_of_moments_disp(
     return alpha
 
 
-def get_num_processes(n_cpus: Optional[int] = None) -> int:
+def get_num_processes(n_cpus: int | None) -> int:
     """Return the number of processes to use for multiprocessing.
 
     Returns the maximum number of available cpus by default.
 
     Parameters
     ----------
-    n_cpus : int or None
+    n_cpus : int, optional
         Desired number of cpus. If ``None``, will return the number of available cpus.
         (default: ``None``).
 
@@ -998,7 +995,7 @@ def nbinomGLM(
     prior_scale: float,
     optimizer="L-BFGS-B",
     shrink_index: int = 1,
-) -> Tuple[np.ndarray, np.ndarray, bool]:
+) -> tuple[np.ndarray, np.ndarray, bool]:
     """Fit a negative binomial MAP LFC using an apeGLM prior.
 
     Only the LFC is shrinked, and not the intercept.
@@ -1234,7 +1231,7 @@ def make_scatter(
     legend_labels: list,
     x_val: np.array,
     log: bool = True,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     **kwargs,
 ) -> None:
     """
@@ -1256,7 +1253,7 @@ def make_scatter(
     log : bool
         Whether or not to log scale features and targets axes (``default=True``).
 
-    save_path : str or None
+    save_path : str, optional
         The path where to save the plot. If left None, the plot won't be saved
         (``default=None``).
 
@@ -1303,9 +1300,9 @@ def make_MA_plot(
     results_df: pd.DataFrame,
     padj_thresh: float = 0.05,
     log: bool = True,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     lfc_null: float = 0,
-    alt_hypothesis: Optional[Literal["greaterAbs", "lessAbs", "greater", "less"]] = None,
+    alt_hypothesis: Literal["greaterAbs", "lessAbs", "greater", "less"] | None = None,
     **kwargs,
 ) -> None:
     """
@@ -1326,14 +1323,14 @@ def make_MA_plot(
     log : bool
         Whether or not to log scale features and targets axes (``default=True``).
 
-    save_path : str or None
+    save_path : str, optional
         The path where to save the plot. If left None, the plot won't be saved
         (``default=None``).
 
     lfc_null : float
         The (log2) log fold change under the null hypothesis. (default: ``0``).
 
-    alt_hypothesis : str or None
+    alt_hypothesis : str, optional
         The alternative hypothesis for computing wald p-values. (default: ``None``).
 
     **kwargs

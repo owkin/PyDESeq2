@@ -1,6 +1,4 @@
 from typing import Literal
-from typing import Optional
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -41,7 +39,7 @@ class DefaultInference(inference.Inference):
         self,
         joblib_verbosity: int = 0,
         batch_size: int = 128,
-        n_cpus: Optional[int] = None,
+        n_cpus: int | None = None,
         backend: str = "loky",
     ):
         self._joblib_verbosity = joblib_verbosity
@@ -94,7 +92,7 @@ class DefaultInference(inference.Inference):
         max_beta: float = 30,
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
         maxiter: int = 250,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
                 n_jobs=self.n_cpus,
@@ -133,11 +131,11 @@ class DefaultInference(inference.Inference):
         alpha_hat: np.ndarray,
         min_disp: float,
         max_disp: float,
-        prior_disp_var: Optional[float] = None,
+        prior_disp_var: float | None = None,
         cr_reg: bool = True,
         prior_reg: bool = False,
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
                 n_jobs=self.n_cpus,
@@ -171,10 +169,10 @@ class DefaultInference(inference.Inference):
         ridge_factor: np.ndarray,
         contrast: np.ndarray,
         lfc_null: np.ndarray,
-        alt_hypothesis: Optional[
-            Literal["greaterAbs", "lessAbs", "greater", "less"]
-        ] = None,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        alt_hypothesis: (
+            Literal["greaterAbs", "lessAbs", "greater", "less"] | None
+        ) = None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         num_genes = mu.shape[1]
         with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
@@ -201,7 +199,7 @@ class DefaultInference(inference.Inference):
 
     def dispersion_trend_gamma_glm(  # noqa: D102
         self, covariates: pd.Series, targets: pd.Series
-    ) -> Tuple[np.ndarray, np.ndarray, bool]:
+    ) -> tuple[np.ndarray, np.ndarray, bool]:
         covariates_w_intercept = covariates.to_frame()
         covariates_w_intercept.insert(0, "intercept", 1)
         covariates_fit = covariates_w_intercept.values
@@ -241,7 +239,7 @@ class DefaultInference(inference.Inference):
         prior_scale: float,
         optimizer: str,
         shrink_index: int,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             num_genes = counts.shape[1]
             res = Parallel(

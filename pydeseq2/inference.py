@@ -1,8 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
 from typing import Literal
-from typing import Optional
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -57,7 +55,7 @@ class Inference(ABC):
         max_beta: float = 30,
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
         maxiter: int = 250,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 
         See equations (1-2) in the DESeq2 paper.
@@ -128,11 +126,11 @@ class Inference(ABC):
         alpha_hat: np.ndarray,
         min_disp: float,
         max_disp: float,
-        prior_disp_var: Optional[float] = None,
+        prior_disp_var: float | None = None,
         cr_reg: bool = True,
         prior_reg: bool = False,
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Estimate the dispersion parameter of a negative binomial GLM.
 
         Parameters
@@ -155,7 +153,7 @@ class Inference(ABC):
         max_disp : float
             Upper threshold for dispersion parameters.
 
-        prior_disp_var : float
+        prior_disp_var : float, optional
             Prior dispersion variance.
 
         cr_reg : bool
@@ -188,10 +186,10 @@ class Inference(ABC):
         ridge_factor: np.ndarray,
         contrast: np.ndarray,
         lfc_null: np.ndarray,
-        alt_hypothesis: Optional[
-            Literal["greaterAbs", "lessAbs", "greater", "less"]
-        ] = None,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        alt_hypothesis: (
+            Literal["greaterAbs", "lessAbs", "greater", "less"] | None
+        ) = None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Run Wald test for differential expression.
 
         Computes Wald statistics, standard error and p-values from
@@ -285,7 +283,7 @@ class Inference(ABC):
     @abstractmethod
     def dispersion_trend_gamma_glm(
         self, covariates: pd.Series, targets: pd.Series
-    ) -> Tuple[np.ndarray, np.ndarray, bool]:
+    ) -> tuple[np.ndarray, np.ndarray, bool]:
         """Fit a gamma glm on gene dispersions.
 
         The intercept should be concatenated in this method
@@ -319,7 +317,7 @@ class Inference(ABC):
         prior_scale: float,
         optimizer: str,
         shrink_index: int,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Fit a negative binomial MAP LFC using an apeGLM prior.
 
         Only the LFC is shrinked, and not the intercept.
