@@ -1,8 +1,6 @@
 import sys
 import time
-from typing import List
 from typing import Literal
-from typing import Optional
 
 # import anndata as ad
 import numpy as np
@@ -57,7 +55,7 @@ class DeseqStats:
     lfc_null : float
         The (log2) log fold change under the null hypothesis. (default: ``0``).
 
-    alt_hypothesis : str or None
+    alt_hypothesis : str, optional
         The alternative hypothesis for computing wald p-values. By default, the normal
         Wald test assesses deviation of the estimated log fold change from the null
         hypothesis, as given by ``lfc_null``.
@@ -81,7 +79,7 @@ class DeseqStats:
     lfc_null : float
         The (log2) log fold change under the null hypothesis.
 
-    alt_hypothesis : str or None
+    alt_hypothesis : str, optional
         The alternative hypothesis for computing wald p-values.
 
     contrast_vector : ndarray
@@ -132,16 +130,16 @@ class DeseqStats:
     def __init__(
         self,
         dds: DeseqDataSet,
-        contrast: List[str] | np.ndarray,
+        contrast: list[str] | np.ndarray,
         alpha: float = 0.05,
         cooks_filter: bool = True,
         independent_filter: bool = True,
-        prior_LFC_var: Optional[np.ndarray] = None,
+        prior_LFC_var: np.ndarray | None = None,
         lfc_null: float = 0.0,
-        alt_hypothesis: Optional[
-            Literal["greaterAbs", "lessAbs", "greater", "less"]
-        ] = None,
-        inference: Optional[Inference] = None,
+        alt_hypothesis: (
+            Literal["greaterAbs", "lessAbs", "greater", "less"] | None
+        ) = None,
+        inference: Inference | None = None,
         quiet: bool = False,
     ) -> None:
         assert (
@@ -436,7 +434,7 @@ class DeseqStats:
             if not self.quiet:
                 print(self.results_df)
 
-    def plot_MA(self, log: bool = True, save_path: Optional[str] = None, **kwargs):
+    def plot_MA(self, log: bool = True, save_path: str | None = None, **kwargs):
         """
         Create an log ratio (M)-average (A) plot using matplotlib.
 
@@ -449,7 +447,7 @@ class DeseqStats:
         log : bool
             Whether or not to log scale x and y axes (``default=True``).
 
-        save_path : str or None
+        save_path : str, optional
             The path where to save the plot. If left None, the plot won't be saved
             (``default=None``).
 

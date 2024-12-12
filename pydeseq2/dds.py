@@ -1,10 +1,7 @@
 import sys
 import time
 import warnings
-from typing import List
 from typing import Literal
-from typing import Optional
-from typing import Union
 from typing import cast
 
 import anndata as ad  # type: ignore
@@ -202,9 +199,9 @@ class DeseqDataSet(ad.AnnData):
     def __init__(
         self,
         *,
-        adata: Optional[ad.AnnData] = None,
-        counts: Optional[pd.DataFrame] = None,
-        metadata: Optional[pd.DataFrame] = None,
+        adata: ad.AnnData | None = None,
+        counts: pd.DataFrame | None = None,
+        metadata: pd.DataFrame | None = None,
         design: str | pd.DataFrame = "~condition",
         design_factors: str | list[str] | None = None,
         continuous_factors: list[str] | None = None,
@@ -217,8 +214,8 @@ class DeseqDataSet(ad.AnnData):
         refit_cooks: bool = True,
         min_replicates: int = 7,
         beta_tol: float = 1e-8,
-        n_cpus: Optional[int] = None,
-        inference: Optional[Inference] = None,
+        n_cpus: int | None = None,
+        inference: Inference | None = None,
         quiet: bool = False,
         low_memory: bool = False,
     ) -> None:
@@ -342,7 +339,7 @@ class DeseqDataSet(ad.AnnData):
     def vst(
         self,
         use_design: bool = False,
-        fit_type: Optional[Literal["parametric", "mean"]] = None,
+        fit_type: Literal["parametric", "mean"] | None = None,
     ) -> None:
         """Fit a variance stabilizing transformation, and apply it to normalized counts.
 
@@ -427,7 +424,7 @@ class DeseqDataSet(ad.AnnData):
             self.obsm["design_matrix"] = self.obsm["design_matrix_buffer"].copy()
             del self.obsm["design_matrix_buffer"]
 
-    def vst_transform(self, counts: Optional[np.ndarray] = None) -> np.ndarray:
+    def vst_transform(self, counts: np.ndarray | None = None) -> np.ndarray:
         """Apply the variance stabilizing transformation.
 
         Uses the results from the ``vst_fit`` method.
@@ -501,7 +498,7 @@ class DeseqDataSet(ad.AnnData):
                 f"Found fit_type '{self.vst_fit_type}'. Expected 'parametric' or 'mean'."
             )
 
-    def deseq2(self, fit_type: Optional[Literal["parametric", "mean"]] = None) -> None:
+    def deseq2(self, fit_type: Literal["parametric", "mean"] | None = None) -> None:
         """Perform dispersion and log fold-change (LFC) estimation.
 
         Wrapper for the first part of the PyDESeq2 pipeline.
@@ -568,10 +565,8 @@ class DeseqDataSet(ad.AnnData):
 
     def fit_size_factors(
         self,
-        fit_type: Optional[Literal["ratio", "poscounts", "iterative"]] = None,
-        control_genes: Optional[
-            Union[np.ndarray, List[str], List[int], pd.Index]
-        ] = None,
+        fit_type: Literal["ratio", "poscounts", "iterative"] | None = None,
+        control_genes: np.ndarray | list[str] | list[int] | pd.Index | None = None,
     ) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
@@ -599,7 +594,7 @@ class DeseqDataSet(ad.AnnData):
         fit_type : str
             The normalization method to use: "ratio", "poscounts" or "iterative".
             (default: ``"ratio"``).
-        control_genes : ndarray, list, pandas.Index, or None
+        control_genes : ndarray, list, or pandas.Index, optional
             Genes to use as control genes for size factor fitting. If None, all genes
             are used. (default: ``None``).
         """
@@ -1127,7 +1122,7 @@ class DeseqDataSet(ad.AnnData):
         )
 
     def plot_dispersions(
-        self, log: bool = True, save_path: Optional[str] = None, **kwargs
+        self, log: bool = True, save_path: str | None = None, **kwargs
     ) -> None:
         """Plot dispersions.
 
@@ -1139,7 +1134,7 @@ class DeseqDataSet(ad.AnnData):
         log : bool
             Whether to log scale x and y axes (``default=True``).
 
-        save_path : str or None
+        save_path : str, optional
             The path where to save the plot. If left None, the plot won't be saved
             (``default=None``).
 

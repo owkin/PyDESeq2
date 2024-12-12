@@ -1,13 +1,10 @@
-from typing import Tuple
-from typing import Union
-
 import numpy as np
 import pandas as pd
 
 
 def deseq2_norm(
-    counts: Union[pd.DataFrame, np.ndarray]
-) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
+    counts: pd.DataFrame | np.ndarray,
+) -> tuple[pd.DataFrame | np.ndarray, pd.DataFrame | np.ndarray]:
     """Return normalized counts and size_factors.
 
     Uses the median of ratios method.
@@ -31,9 +28,7 @@ def deseq2_norm(
     return deseq2_counts, size_factors
 
 
-def deseq2_norm_fit(
-    counts: Union[pd.DataFrame, np.ndarray]
-) -> Tuple[np.ndarray, np.ndarray]:
+def deseq2_norm_fit(counts: pd.DataFrame | np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Return ``logmeans`` and ``filtered_genes``, needed in the median of ratios method.
 
     ``Logmeans`` and ``filtered_genes`` can then be used to normalize external datasets.
@@ -62,10 +57,10 @@ def deseq2_norm_fit(
 
 
 def deseq2_norm_transform(
-    counts: Union[pd.DataFrame, np.ndarray],
+    counts: pd.DataFrame | np.ndarray,
     logmeans: np.ndarray,
     filtered_genes: np.ndarray,
-) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray]]:
+) -> tuple[pd.DataFrame | np.ndarray, pd.DataFrame | np.ndarray]:
     """Return normalized counts and size factors from the median of ratios method.
 
     Can be applied on external dataset, using the ``logmeans`` and ``filtered_genes``

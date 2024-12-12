@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 from scipy.special import gammaln  # type: ignore
 
@@ -58,7 +56,7 @@ def grid_fit_alpha(
     alpha_hat: float,
     min_disp: float,
     max_disp: float,
-    prior_disp_var: Optional[float] = None,
+    prior_disp_var: float | None = None,
     cr_reg: bool = True,
     prior_reg: bool = False,
     grid_length: int = 100,
@@ -87,7 +85,7 @@ def grid_fit_alpha(
     max_disp : float
         Upper threshold for dispersion parameters.
 
-    prior_disp_var : float
+    prior_disp_var : float, optional
         Prior dispersion variance.
 
     cr_reg : bool
