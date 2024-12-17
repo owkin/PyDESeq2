@@ -1017,7 +1017,7 @@ class DeseqDataSet(ad.AnnData):
         save_path: str | None = None,
         **kwargs,
     ):
-        """Plot ratio of log expressions for each sample.
+        """Plot ratio of log expressions (RLE) for each sample.
 
         Useful for visualizing sample to sample variation.
 

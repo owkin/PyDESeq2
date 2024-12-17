@@ -12,6 +12,7 @@
       ~DeseqStats.lfc_shrink
       ~DeseqStats.run_wald_test
       ~DeseqStats.summary
+      ~DeseqStats.plot_MA
    
    
 

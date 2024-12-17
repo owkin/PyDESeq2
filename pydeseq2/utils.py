@@ -1640,7 +1640,6 @@ def make_rle_plot(
         Additional keyword arguments passed to matplotlib's boxplot function.
     """
     if normalize:
-        print("Plotting normalized RLE plot...")
         geometric_mean = np.exp(np.mean(np.log(count_matrix + 1), axis=0))
         size_factors = np.median(count_matrix / geometric_mean, axis=1)
         count_matrix = count_matrix / size_factors[:, np.newaxis]

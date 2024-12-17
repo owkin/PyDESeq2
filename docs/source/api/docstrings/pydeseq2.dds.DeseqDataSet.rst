@@ -18,6 +18,7 @@
         ~DeseqDataSet.fit_genewise_dispersions
         ~DeseqDataSet.fit_size_factors
         ~DeseqDataSet.plot_dispersions
+        ~DeseqDataSet.plot_rle
         ~DeseqDataSet.refit
         ~DeseqDataSet.vst
 
