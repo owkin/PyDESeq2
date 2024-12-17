@@ -883,7 +883,7 @@ def test_plot_rle(train_counts, train_metadata):
     dds = DeseqDataSet(
         counts=train_counts,
         metadata=train_metadata,
-        design_factors="condition",
+        design="~condition",
     )
 
     dds.plot_rle(normalize=False)
