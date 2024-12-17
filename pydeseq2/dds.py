@@ -1036,7 +1036,7 @@ class DeseqDataSet(ad.AnnData):
         make_rle_plot(
             count_matrix=self.X,
             normalize=normalize,
-            sample_ids=self.obsm["design_matrix"].index,
+            sample_ids=self.obs_names,
             save_path=save_path,
             **kwargs,
         )
