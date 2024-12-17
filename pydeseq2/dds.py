@@ -1014,7 +1014,7 @@ class DeseqDataSet(ad.AnnData):
     def plot_rle(
         self,
         normalize: bool = False,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         **kwargs,
     ):
         """Plot ratio of log expressions for each sample.
@@ -1026,7 +1026,7 @@ class DeseqDataSet(ad.AnnData):
         normalize : bool, optional
             Whether to normalize the counts before plotting. (default: ``False``).
 
-        save_path : str or None
+        save_path : str, optional
             The path where to save the plot. If left None, the plot won't be saved
             (default: ``None``).
 

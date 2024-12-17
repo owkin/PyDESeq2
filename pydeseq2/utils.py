@@ -1614,7 +1614,7 @@ def make_rle_plot(
     count_matrix: np.array,
     sample_ids: np.array,
     normalize: bool = False,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     **kwargs,
 ) -> None:
     """
@@ -1632,7 +1632,7 @@ def make_rle_plot(
     normalize : bool
         Whether to normalize the count matrix before plotting. (default: ``False``).
 
-    save_path : str or None
+    save_path : str, optional
         The path where to save the plot. If left None, the plot won't be saved
         (default: ``None``).
 
