@@ -607,7 +607,9 @@ class DeseqDataSet(ad.AnnData):
             (default: ``"ratio"``).
         control_genes : ndarray, list, or pandas.Index, optional
             Genes to use as control genes for size factor fitting. If None, all genes
-            are used. (default: ``None``).
+            are used. Note that manually passing control genes here will override the
+            `DeseqDataSet` `control_genes` attribute.
+            (default: ``None``).
         """
         if fit_type is None:
             fit_type = self.size_factors_fit_type
@@ -616,7 +618,18 @@ class DeseqDataSet(ad.AnnData):
 
         start = time.time()
 
+        if control_genes is None:
+            # Check whether control genes were specified at initialization
+            if hasattr(self, "control_genes"):
+                control_genes = self.control_genes
+                if not self.quiet:
+                    print(
+                        f"Using {control_genes} as control genes, passed at"
+                        " DeseqDataSet initialization"
+                    )
+
         # If control genes are provided, set a mask where those genes are True
+        # This will override self.control_genes
         if control_genes is not None:
             _control_mask = np.zeros(self.X.shape[1], dtype=bool)
 
