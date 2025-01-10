@@ -87,6 +87,13 @@ class DeseqDataSet(ad.AnnData):
         may be few or no genes which have no zero values.
         ``"iterative"``: fit size factors iteratively. (default: ``"ratio"``).
 
+    control_genes : ndarray, list, or pandas.Index, optional
+        Genes to use as control genes for size factor fitting. If provided, size factors
+        will be fit using only these genes. This is useful when certain genes are known
+        to be invariant across conditions (e.g., housekeeping genes). Any valid AnnData
+        indexer (bool array, integer positions, or gene name strings) can be used.
+        (default: ``None``).
+
     min_mu : float
         Threshold for mean estimates. (default: ``0.5``).
 
@@ -208,6 +215,7 @@ class DeseqDataSet(ad.AnnData):
         ref_level: list[str] | None = None,
         fit_type: Literal["parametric", "mean"] = "parametric",
         size_factors_fit_type: Literal["ratio", "poscounts", "iterative"] = "ratio",
+        control_genes: np.ndarray | list[str] | list[int] | pd.Index | None = None,
         min_mu: float = 0.5,
         min_disp: float = 1e-8,
         max_disp: float = 10.0,
@@ -308,6 +316,7 @@ class DeseqDataSet(ad.AnnData):
         self.quiet = quiet
         self.low_memory = low_memory
         self.size_factors_fit_type = size_factors_fit_type
+        self.control_genes = control_genes
         self.logmeans = None
         self.filtered_genes = None
 
@@ -520,7 +529,9 @@ class DeseqDataSet(ad.AnnData):
             print(f"Using {self.fit_type} fit type.")
 
         # Compute DESeq2 normalization factors using the Median-of-ratios method
-        self.fit_size_factors(fit_type=self.size_factors_fit_type)
+        self.fit_size_factors(
+            fit_type=self.size_factors_fit_type, control_genes=self.control_genes
+        )
         # Fit an independent negative binomial model per gene
         self.fit_genewise_dispersions()
         # Fit a parameterized trend curve for dispersions, of the form
