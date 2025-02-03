@@ -46,7 +46,7 @@ jobs:
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: test-coverage-report
+          name: test-coverage-report-${{ strategy.job-index }}
           path: htmlcov/
           retention-days: 20
       - name: Compile docs
