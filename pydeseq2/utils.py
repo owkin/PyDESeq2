@@ -56,9 +56,10 @@ def load_example_data(
     pandas.DataFrame
         Requested data modality.
     """
-    assert modality in ["raw_counts", "metadata"], (
-        "The modality argument must be one of the following: " "raw_counts, metadata"
-    )
+    assert modality in [
+        "raw_counts",
+        "metadata",
+    ], "The modality argument must be one of the following: raw_counts, metadata"
 
     assert dataset in [
         "synthetic"
@@ -1078,13 +1079,14 @@ def nbinomGLM(
     def df(beta: np.ndarray, cnst: float = scale_cnst) -> np.ndarray:
         # Gradient of the function to optimize
         xbeta = design_matrix @ beta
+        exp_xbeta_off = np.exp(xbeta + offset)
         d_neg_prior = (
             beta * no_shrink_mask / prior_no_shrink_scale**2
             + 2 * beta * shrink_mask / (prior_scale**2 + beta[shrink_index] ** 2)
         )
 
         d_nll = (
-            counts - (counts + size) / (1 + size * np.exp(-xbeta - offset))
+            size * (counts - exp_xbeta_off) / (size + exp_xbeta_off)
         ) @ design_matrix
 
         return (d_neg_prior - d_nll) / cnst
