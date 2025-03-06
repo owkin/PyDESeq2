@@ -1,4 +1,5 @@
-# Requirements
+Requirements
+------------
 
 The list of package version requirements is available in `setup.py`, and will be automatically installed along PyDESeq2 when using PyPI.
 For reference, the code was tested with python 3.10 and the following package versions:
