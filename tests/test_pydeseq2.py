@@ -194,10 +194,7 @@ def test_alt_hypothesis(alt_hypothesis, counts_df, metadata, tol=0.02):
     )
 
     dds = DeseqDataSet(
-        counts=counts_df,
-        metadata=metadata,
-        design="~condition",
-        n_cpus=2
+        counts=counts_df, metadata=metadata, design="~condition", n_cpus=2
     )
     dds.deseq2()
 
@@ -206,7 +203,7 @@ def test_alt_hypothesis(alt_hypothesis, counts_df, metadata, tol=0.02):
         contrast=["condition", "B", "A"],
         lfc_null=-0.5 if alt_hypothesis == "less" else 0.5,
         alt_hypothesis=alt_hypothesis,
-        n_cpus=2
+        n_cpus=2,
     )
     ds.summary()
 
