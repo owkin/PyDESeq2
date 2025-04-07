@@ -141,6 +141,7 @@ class DeseqStats:
         ) = None,
         inference: Inference | None = None,
         quiet: bool = False,
+        n_cpus: int | None = None
     ) -> None:
         assert (
             "LFC" in dds.varm
@@ -189,7 +190,7 @@ class DeseqStats:
         self.quiet = quiet
 
         # Initialize the inference object.
-        self.inference = inference or DefaultInference()
+        self.inference = inference or DefaultInference(n_cpus=n_cpus)
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
