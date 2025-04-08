@@ -1,5 +1,6 @@
 import sys
 import time
+import warnings
 from typing import Literal
 
 # import anndata as ad
@@ -141,6 +142,7 @@ class DeseqStats:
         ) = None,
         inference: Inference | None = None,
         quiet: bool = False,
+        n_cpus: int | None = None,
     ) -> None:
         assert (
             "LFC" in dds.varm
@@ -188,8 +190,20 @@ class DeseqStats:
         self.shrunk_LFCs = False
         self.quiet = quiet
 
+        if inference:
+            if n_cpus:
+                if hasattr(inference, "n_cpus"):
+                    inference.n_cpus = n_cpus
+                else:
+                    warnings.warn(
+                        "The provided inference object does not have an n_cpus "
+                        "attribute, cannot override `n_cpus`.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+
         # Initialize the inference object.
-        self.inference = inference or DefaultInference()
+        self.inference = inference or DefaultInference(n_cpus=n_cpus)
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
