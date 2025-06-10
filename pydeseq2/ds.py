@@ -153,7 +153,7 @@ class DeseqStats:
         self.alpha = alpha
         self.cooks_filter = cooks_filter
         self.independent_filter = independent_filter
-        self.base_mean = self.dds.varm["_normed_means"].copy()
+        self.base_mean = self.dds.var["_normed_means"].copy()
         self.prior_LFC_var = prior_LFC_var
 
         if lfc_null < 0 and alt_hypothesis in {"greaterAbs", "lessAbs"}:
@@ -207,7 +207,7 @@ class DeseqStats:
 
         # If the `refit_cooks` attribute of the dds object is True, check that outliers
         # were actually refitted.
-        if self.dds.refit_cooks and "replaced" not in self.dds.varm:
+        if self.dds.refit_cooks and "replaced" not in self.dds.var:
             raise AttributeError(
                 "dds has 'refit_cooks' set to True but Cooks outliers have not been "
                 "refitted. Please run 'dds.refit()' first or set 'dds.refit_cooks' "
@@ -318,7 +318,7 @@ class DeseqStats:
 
         mu = (
             np.exp(self.design_matrix @ self.LFC.T)
-            .multiply(self.dds.obsm["size_factors"], 0)
+            .multiply(self.dds.obs["size_factors"], 0)
             .values
         )
 
@@ -336,7 +336,7 @@ class DeseqStats:
         start = time.time()
         pvals, stats, se = self.inference.wald_test(
             design_matrix=design_matrix,
-            disp=self.dds.varm["dispersions"],
+            disp=self.dds.var["dispersions"],
             lfc=LFCs,
             mu=mu,
             ridge_factor=ridge_factor,
@@ -346,14 +346,14 @@ class DeseqStats:
         )
         end = time.time()
         if not self.quiet:
-            print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
+            print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
         self.p_values: pd.Series = pd.Series(pvals, index=self.dds.var_names)
         self.statistics: pd.Series = pd.Series(stats, index=self.dds.var_names)
         self.SE: pd.Series = pd.Series(se, index=self.dds.var_names)
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
-        if self.dds.refit_cooks and self.dds.varm["replaced"].sum() > 0:
+        if self.dds.refit_cooks and self.dds.var["replaced"].sum() > 0:
             self.SE.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
             self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
@@ -382,8 +382,8 @@ class DeseqStats:
 
         coeff_idx = self.LFC.columns.get_loc(coeff)
 
-        size = 1.0 / self.dds.varm["dispersions"]
-        offset = np.log(self.dds.obsm["size_factors"])
+        size = 1.0 / self.dds.var["dispersions"]
+        offset = np.log(self.dds.obs["size_factors"])
 
         # Set priors
         prior_no_shrink_scale = 15
@@ -409,7 +409,7 @@ class DeseqStats:
         )
         end = time.time()
         if not self.quiet:
-            print(f"... done in {end-start:.2f} seconds.\n", file=sys.stderr)
+            print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
         self.LFC.iloc[:, coeff_idx].update(
             pd.Series(
@@ -444,7 +444,7 @@ class DeseqStats:
             self.results_df["lfcSE"] = self.SE / np.log(2)
             if not self.quiet:
                 # The factor is continuous
-                print(f"Shrunk log2 fold change & Wald test p-value: " f"{coeff}")
+                print(f"Shrunk log2 fold change & Wald test p-value: {coeff}")
             if not self.quiet:
                 print(self.results_df)
 
