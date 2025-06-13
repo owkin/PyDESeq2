@@ -1143,9 +1143,9 @@ class DeseqDataSet(ad.AnnData):
         alpha_hat = np.minimum(rde, mde)
 
         self.var["_MoM_dispersions"] = np.full(self.n_vars, np.nan)
-        self.var["_MoM_dispersions"][self.var["non_zero"]] = np.clip(
+        self.var.loc[self.var["non_zero"], "_MoM_dispersions"] = np.clip(
             alpha_hat, self.min_disp, self.max_disp
-        )[:, None]
+        )
 
     def plot_dispersions(
         self, log: bool = True, save_path: str | None = None, **kwargs
