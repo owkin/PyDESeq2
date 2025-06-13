@@ -901,19 +901,19 @@ class DeseqDataSet(ad.AnnData):
             print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
         self.var["MAP_dispersions"] = np.full(self.n_vars, np.nan)
-        self.var["MAP_dispersions"][self.var["non_zero"]] = np.clip(
+        self.var.loc[self.var["non_zero"], "MAP_dispersions"] = np.clip(
             dispersions_, self.min_disp, self.max_disp
         )
 
         self.var["_MAP_converged"] = np.full(self.n_vars, np.nan)
-        self.var["_MAP_converged"][self.var["non_zero"]] = l_bfgs_b_converged_
+        self.var.loc[self.var["non_zero"], "_MAP_converged"] = l_bfgs_b_converged_
 
         # Filter outlier genes for which we won't apply shrinkage
         self.var["dispersions"] = self.var["MAP_dispersions"].copy()
         self.var["_outlier_genes"] = np.log(self.var["genewise_dispersions"]) > np.log(
             self.var["fitted_dispersions"]
         ) + 2 * np.sqrt(self.uns["_squared_logres"])
-        self.var["dispersions"][self.var["_outlier_genes"]] = self.var[
+        self.var.loc[self.var["_outlier_genes"], "dispersions"] = self.var[
             "genewise_dispersions"
         ][self.var["_outlier_genes"]]
 
@@ -967,7 +967,7 @@ class DeseqDataSet(ad.AnnData):
         self.obsm["_hat_diagonals"] = hat_diagonals_
 
         self.var["_LFC_converged"] = np.full(self.n_vars, np.nan)
-        self.var["_LFC_converged"][self.var["non_zero"]] = converged_
+        self.var.loc[self.var["non_zero"], "_LFC_converged"] = converged_
 
     def calculate_cooks(self) -> None:
         """Compute Cook's distance for outlier detection.
@@ -1257,8 +1257,8 @@ class DeseqDataSet(ad.AnnData):
 
             self.var["fitted_dispersions"] = np.full(self.n_vars, np.nan)
             self.uns["disp_function_type"] = "parametric"
-            self.var["fitted_dispersions"][self.var["non_zero"]] = self.disp_function(
-                self.var["_normed_means"][self.var["non_zero"]]
+            self.var.loc[self.var["non_zero"], "fitted_dispersions"] = (
+                self.disp_function(self.var.loc[self.var["non_zero"], "_normed_means"])
             )
 
     def _fit_mean_dispersion_trend(self, vst: bool = False):
