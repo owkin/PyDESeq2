@@ -745,7 +745,7 @@ class DeseqDataSet(ad.AnnData):
                 counts=self.X[:, self.non_zero_idx],
                 size_factors=size_factors,
                 design_matrix=design_matrix,
-                disp=self.var["_MoM_dispersions"][self.non_zero_idx].values,
+                disp=self.var.loc[self.var["non_zero"], "_MoM_dispersions"].values,
                 min_mu=self.min_mu,
                 beta_tol=self.beta_tol,
             )
@@ -765,7 +765,7 @@ class DeseqDataSet(ad.AnnData):
             counts=self.X[:, self.non_zero_idx],
             design_matrix=design_matrix,
             mu=self.layers[mu_param_name][:, self.non_zero_idx],
-            alpha_hat=self.var["_MoM_dispersions"][self.non_zero_idx],
+            alpha_hat=self.var.loc[self.var["non_zero"], "_MoM_dispersions"],
             min_disp=self.min_disp,
             max_disp=self.max_disp,
         )
@@ -775,12 +775,12 @@ class DeseqDataSet(ad.AnnData):
             print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
 
         self.var[disp_param_name] = np.full(self.n_vars, np.nan)
-        self.var[disp_param_name][self.var["non_zero"]] = np.clip(
+        self.var.loc[self.var["non_zero"], disp_param_name] = np.clip(
             dispersions_, self.min_disp, self.max_disp
         )
 
         self.var["_genewise_converged"] = np.full(self.n_vars, np.nan)
-        self.var["_genewise_converged"][self.var["non_zero"]] = l_bfgs_b_converged_
+        self.var.loc[self.var["non_zero"], "_genewise_converged"] = l_bfgs_b_converged_
 
     def fit_dispersion_trend(self, vst: bool = False) -> None:
         """Fit the dispersion trend curve.
@@ -888,7 +888,7 @@ class DeseqDataSet(ad.AnnData):
             counts=self.X[:, self.non_zero_idx],
             design_matrix=design_matrix,
             mu=self.layers["_mu_hat"][:, self.non_zero_idx],
-            alpha_hat=self.var["fitted_dispersions"][self.non_zero_idx],
+            alpha_hat=self.var.loc[self.var["non_zero"], "fitted_dispersions"],
             min_disp=self.min_disp,
             max_disp=self.max_disp,
             prior_disp_var=self.uns["prior_disp_var"].item(),
@@ -940,7 +940,7 @@ class DeseqDataSet(ad.AnnData):
             counts=self.X[:, self.non_zero_idx],
             size_factors=self.obs["size_factors"].values,
             design_matrix=design_matrix,
-            disp=self.var["dispersions"][self.non_zero_idx].values,
+            disp=self.var.loc[self.var["non_zero"], "dispersions"].values,
             min_mu=self.min_mu,
             beta_tol=self.beta_tol,
         )
@@ -1426,15 +1426,17 @@ class DeseqDataSet(ad.AnnData):
         sub_dds.fit_LFC()
 
         # Replace values in main object
-        self.var["_normed_means"][self.var["refitted"]] = sub_dds.var["_normed_means"]
+        self.var.loc[self.var["refitted"], "_normed_means"] = sub_dds.var[
+            "_normed_means"
+        ]
         self.varm["LFC"][self.var["refitted"]] = sub_dds.varm["LFC"]
-        self.var["genewise_dispersions"][self.var["refitted"]] = sub_dds.var[
+        self.var.loc[self.var["refitted"], "genewise_dispersions"] = sub_dds.var[
             "genewise_dispersions"
         ]
-        self.var["fitted_dispersions"][self.var["refitted"]] = sub_dds.var[
+        self.var.loc[self.var["refitted"], "fitted_dispersions"] = sub_dds.var[
             "fitted_dispersions"
         ]
-        self.var["dispersions"][self.var["refitted"]] = sub_dds.var["dispersions"]
+        self.var.loc[self.var["refitted"], "dispersions"] = sub_dds.var["dispersions"]
 
         self.layers["replace_cooks"] = self.layers["cooks"].copy()
 
