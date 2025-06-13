@@ -765,7 +765,7 @@ class DeseqDataSet(ad.AnnData):
             counts=self.X[:, self.non_zero_idx],
             design_matrix=design_matrix,
             mu=self.layers[mu_param_name][:, self.non_zero_idx],
-            alpha_hat=self.var.loc[self.var["non_zero"], "_MoM_dispersions"],
+            alpha_hat=self.var.loc[self.var["non_zero"], "_MoM_dispersions"].values,
             min_disp=self.min_disp,
             max_disp=self.max_disp,
         )
@@ -888,7 +888,7 @@ class DeseqDataSet(ad.AnnData):
             counts=self.X[:, self.non_zero_idx],
             design_matrix=design_matrix,
             mu=self.layers["_mu_hat"][:, self.non_zero_idx],
-            alpha_hat=self.var.loc[self.var["non_zero"], "fitted_dispersions"],
+            alpha_hat=self.var.loc[self.var["non_zero"], "fitted_dispersions"].values,
             min_disp=self.min_disp,
             max_disp=self.max_disp,
             prior_disp_var=self.uns["prior_disp_var"].item(),
