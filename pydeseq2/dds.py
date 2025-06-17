@@ -454,7 +454,7 @@ class DeseqDataSet(ad.AnnData):
         RuntimeError
             If the size factors were not fitted before calling this method.
         """
-        if "size_factors" not in self.obsm:
+        if "size_factors" not in self.obs:
             raise RuntimeError(
                 "The vst_fit method should be called prior to vst_transform."
             )

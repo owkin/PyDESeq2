@@ -382,8 +382,9 @@ class DeseqStats:
 
         coeff_idx = self.LFC.columns.get_loc(coeff)
 
-        size = 1.0 / self.dds.var["dispersions"]
-        offset = np.log(self.dds.obs["size_factors"])
+        design_matrix = self.design_matrix.values
+        size = 1.0 / self.dds.var["dispersions"].values
+        offset = np.log(self.dds.obs["size_factors"]).values
 
         # Set priors
         prior_no_shrink_scale = 15
@@ -391,8 +392,6 @@ class DeseqStats:
         if adapt:
             prior_var = self._fit_prior_var(coeff_idx=coeff_idx)
             prior_scale = np.minimum(np.sqrt(prior_var), 1)
-
-        design_matrix = self.design_matrix.values
 
         if not self.quiet:
             print("Fitting MAP LFCs...", file=sys.stderr)
