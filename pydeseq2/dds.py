@@ -1336,7 +1336,6 @@ class DeseqDataSet(ad.AnnData):
                 .T
             )
 
-            breakpoint()
             self.counts_to_refit.X[
                 self.obs["replaceable"].values[:, None] & idx[:, self.var["replaced"]]
             ] = replacement_counts.values[
@@ -1478,7 +1477,7 @@ class DeseqDataSet(ad.AnnData):
                 mu=self[:, self.non_zero_genes].layers["_mu_hat"]
                 / self.obs["size_factors"].values[:, None]
                 * sf[:, None],
-                alpha=self[:, self.non_zero_genes].var["dispersions"],
+                alpha=self.var.loc[self.non_zero_genes, "dispersions"].values,
             )
             # Take out the lowest likelihoods (highest neg) from the sum
             return np.sum(nll[nll < np.quantile(nll, quant)])
