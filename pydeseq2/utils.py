@@ -217,7 +217,6 @@ def nb_nll(
     """
     n = len(counts)
     alpha_neg1 = 1 / alpha
-    breakpoint()
     logbinom = gammaln(counts + alpha_neg1) - gammaln(counts + 1) - gammaln(alpha_neg1)
     if hasattr(alpha, "__len__") and len(alpha) > 1:
         return (

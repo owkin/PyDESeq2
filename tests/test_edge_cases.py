@@ -436,7 +436,7 @@ def test_new_all_zero_gene():
     counts_df = counts_df.loc[metadata.index]
 
     # Add a gene with a single outlier value and zeros elsewhere
-    counts_df.loc[:, "geneX"] = 0
+    counts_df["geneX"] = 0
     counts_df.loc["sample100", "geneX"] = 100
 
     dds = DeseqDataSet(
@@ -445,6 +445,7 @@ def test_new_all_zero_gene():
         design="~condition",
         refit_cooks=True,
     )
+
     with pytest.warns(UserWarning):
         # Will warn that parametric trend fit failed
         dds.deseq2()

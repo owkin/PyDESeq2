@@ -78,7 +78,7 @@ def test_size_factors_control_genes(counts_df, metadata):
     dds.fit_size_factors()
 
     np.testing.assert_almost_equal(
-        dds.obs["size_factors"].ravel(),
+        dds.obs["size_factors"],
         counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
     )
 

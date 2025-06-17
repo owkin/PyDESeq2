@@ -914,9 +914,9 @@ class DeseqDataSet(ad.AnnData):
         self.var["_outlier_genes"] = np.log(self.var["genewise_dispersions"]) > np.log(
             self.var["fitted_dispersions"]
         ) + 2 * np.sqrt(self.uns["_squared_logres"])
-        self.var.loc[self.var["_outlier_genes"], "dispersions"] = self.var[
-            "genewise_dispersions"
-        ][self.var["_outlier_genes"]]
+        self.var.loc[self.var["_outlier_genes"], "dispersions"] = self.var.loc[
+            self.var["_outlier_genes"], "genewise_dispersions"
+        ]
 
         if self.low_memory:
             del self.layers["_mu_hat"]
@@ -1364,9 +1364,7 @@ class DeseqDataSet(ad.AnnData):
 
         # Take into account new all-zero genes
         if new_all_zeroes.sum() > 0:
-            self.var["_normed_means"][
-                self.var_names.get_indexer(self.new_all_zeroes_genes)
-            ] = 0
+            self.var.loc[self.new_all_zeroes_genes, "_normed_means"] = 0
             self.varm["LFC"].loc[self.new_all_zeroes_genes, :] = 0
 
         if self.var["refitted"].sum() == 0:  # if no gene can be refitted, we can skip
