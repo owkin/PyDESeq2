@@ -357,8 +357,6 @@ def test_iterative_size_factors(counts_df, metadata, tol=0.02):
     dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds._fit_iterate_size_factors()
 
-    breakpoint()
-
     # Check that the same LFC are found (up to tol)
     assert (
         abs(r_size_factors.values - dds.obs["size_factors"].values)
