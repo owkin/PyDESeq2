@@ -36,7 +36,7 @@ def test_zero_genes():
     dds.deseq2()
 
     # check that the corresponding parameters are NaN
-    assert np.isnan(dds[:, zero_genes].varm["dispersions"]).all()
+    assert np.isnan(dds[:, zero_genes].var["dispersions"]).all()
     assert np.isnan(dds[:, zero_genes].varm["LFC"]).all().all()
 
     ds = DeseqStats(dds, contrast=["condition", "B", "A"])
@@ -361,7 +361,7 @@ def test_few_samples():
     res.summary()
 
     # Check that no gene was refit, as there are not enough samples.
-    assert dds.varm["replaced"].sum() == 0
+    assert dds.var["replaced"].sum() == 0
 
 
 def test_few_samples_and_outlier():

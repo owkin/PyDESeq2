@@ -51,7 +51,7 @@ def test_size_factors_ratio(counts_df, metadata):
     dds.fit_size_factors()
 
     np.testing.assert_almost_equal(
-        dds.obsm["size_factors"].ravel(), r_size_factors.ravel()
+        dds.obs["size_factors"].ravel(), r_size_factors.ravel()
     )
 
 
@@ -67,7 +67,7 @@ def test_size_factors_poscounts(counts_df, metadata):
         index_col=0,
     )["sizeFactor"].values
 
-    np.testing.assert_almost_equal(dds.obsm["size_factors"].ravel(), r_size_factors)
+    np.testing.assert_almost_equal(dds.obs["size_factors"].ravel(), r_size_factors)
 
 
 def test_size_factors_control_genes(counts_df, metadata):
@@ -80,7 +80,7 @@ def test_size_factors_control_genes(counts_df, metadata):
     dds.fit_size_factors()
 
     np.testing.assert_almost_equal(
-        dds.obsm["size_factors"].ravel(),
+        dds.obs["size_factors"].ravel(),
         counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
     )
 
@@ -89,7 +89,7 @@ def test_size_factors_control_genes(counts_df, metadata):
 
     # Gene 4 has no zero counts, so we should get the same as before
     np.testing.assert_almost_equal(
-        dds.obsm["size_factors"].ravel(),
+        dds.obs["size_factors"].ravel(),
         counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
     )
 
@@ -282,8 +282,8 @@ def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
 
     dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.deseq2()
-    dds.obsm["size_factors"] = r_size_factors.values
-    dds.varm["dispersions"] = r_dispersions.values
+    dds.obs["size_factors"] = r_size_factors.values
+    dds.var["dispersions"] = r_dispersions.values
     dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
     res = DeseqStats(dds, contrast=["condition", "B", "A"])
@@ -327,8 +327,8 @@ def test_lfc_shrinkage_no_apeAdapt(counts_df, metadata, tol=0.02):
 
     dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.deseq2()
-    dds.obsm["size_factors"] = r_size_factors.values
-    dds.varm["dispersions"] = r_dispersions.values
+    dds.obs["size_factors"] = r_size_factors.values
+    dds.var["dispersions"] = r_dispersions.values
     dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
     res = DeseqStats(dds, contrast=["condition", "B", "A"])
@@ -362,7 +362,7 @@ def test_iterative_size_factors(counts_df, metadata, tol=0.02):
 
     # Check that the same LFC are found (up to tol)
     assert (
-        abs(r_size_factors - dds.obsm["size_factors"]) / abs(r_size_factors)
+        abs(r_size_factors - dds.obs["size_factors"]) / abs(r_size_factors)
     ).max() < tol
 
 
@@ -415,8 +415,8 @@ def test_lfc_shrinkage_large_counts(counts_df, metadata, tol=0.02):
     dds = DeseqDataSet(counts=counts_df, metadata=metadata_df, design="~condition")
     dds.deseq2()
 
-    dds.obsm["size_factors"] = r_size_factors.values
-    dds.varm["dispersions"] = r_dispersions.values
+    dds.obs["size_factors"] = r_size_factors.values
+    dds.var["dispersions"] = r_dispersions.values
     dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
     res = DeseqStats(dds, contrast=["condition", "B", "A"])
@@ -494,8 +494,8 @@ def test_multifactor_lfc_shrinkage(counts_df, metadata, tol=0.02):
 
     dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
     dds.deseq2()
-    dds.obsm["size_factors"] = r_size_factors.values
-    dds.varm["dispersions"] = r_dispersions.values
+    dds.obs["size_factors"] = r_size_factors.values
+    dds.var["dispersions"] = r_dispersions.values
     dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
     res = DeseqStats(dds, contrast=["condition", "B", "A"])
@@ -607,8 +607,8 @@ def test_continuous_lfc_shrinkage(tol=0.02):
     contrast_vector = np.zeros(dds.obsm["design_matrix"].shape[1])
     contrast_vector[-1] = 1
 
-    dds.obsm["size_factors"] = r_size_factors.values
-    dds.varm["dispersions"] = r_dispersions.values
+    dds.obs["size_factors"] = r_size_factors.values
+    dds.var["dispersions"] = r_dispersions.values
     dds.varm["LFC"].iloc[:, 1] = r_res.log2FoldChange.values * np.log(2)
 
     res = DeseqStats(dds, contrast=contrast_vector)
@@ -707,10 +707,10 @@ def test_anndata_init(counts_df, metadata, tol=0.02):
 
     # Put some dummy data in unused fields
     adata.obsm["dummy_metadata"] = np.random.choice(2, adata.n_obs)
-    adata.varm["dummy_param"] = np.random.randn(adata.n_vars)
+    adata.var["dummy_param"] = np.random.randn(adata.n_vars)
 
     # Put values in the dispersions field
-    adata.varm["dispersions"] = np.random.randn(adata.n_vars) ** 2
+    adata.var["dispersions"] = np.random.randn(adata.n_vars) ** 2
 
     # Load R data
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
@@ -812,7 +812,7 @@ def test_deseq2_norm(counts_df, metadata):
     # Fit size factors from DeseqDataSet
     dds = DeseqDataSet(counts=counts_df, metadata=metadata)
     dds.fit_size_factors()
-    s1 = dds.obsm["size_factors"]
+    s1 = dds.obs["size_factors"]
 
     # Fit size factors from counts directly
     s2 = deseq2_norm(counts_df)[1]
