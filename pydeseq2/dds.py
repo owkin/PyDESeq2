@@ -708,7 +708,7 @@ class DeseqDataSet(ad.AnnData):
             pipeline. (default: ``False``).
         """
         # Check that size factors are available. If not, compute them.
-        if "size_factors" not in self.obsm:
+        if "size_factors" not in self.obs:
             self.fit_size_factors(fit_type=self.size_factors_fit_type)
 
         # Exclude genes with all zeroes
@@ -1200,11 +1200,11 @@ class DeseqDataSet(ad.AnnData):
 
         # Exclude all-zero counts
         targets = pd.Series(
-            self[:, self.non_zero_genes].var[disp_param_name].copy(),
+            self.var.loc[self.non_zero_genes, disp_param_name].copy(),
             index=self.non_zero_genes,
         )
         covariates = pd.Series(
-            1 / self[:, self.non_zero_genes].var["_normed_means"],
+            1 / self.var.loc[self.non_zero_genes, "_normed_means"],
             index=self.non_zero_genes,
         )
 
@@ -1239,7 +1239,7 @@ class DeseqDataSet(ad.AnnData):
                 return
 
             # Filter out genes that are too far away from the curve before refitting
-            pred_ratios = self[:, covariates.index].var[disp_param_name] / predictions
+            pred_ratios = self.var.loc[covariates.index, disp_param_name] / predictions
 
             targets.drop(
                 targets[(pred_ratios < 1e-4) | (pred_ratios >= 15)].index,
@@ -1273,7 +1273,9 @@ class DeseqDataSet(ad.AnnData):
         disp_param_name = "vst_genewise_dispersions" if vst else "genewise_dispersions"
 
         self.uns["mean_disp"] = trim_mean(
-            self.var[disp_param_name][self.var[disp_param_name] > 10 * self.min_disp],
+            self.var.loc[
+                self.var[disp_param_name] > 10 * self.min_disp, disp_param_name
+            ].values,
             proportiontocut=0.001,
         )
 
@@ -1293,11 +1295,11 @@ class DeseqDataSet(ad.AnnData):
         num_vars = self.obsm["design_matrix"].shape[1]
 
         # Check whether cohorts have enough samples to allow refitting
-        self.obsm["replaceable"] = n_or_more_replicates(
+        self.obs["replaceable"] = n_or_more_replicates(
             self.obsm["design_matrix"], self.min_replicates
         ).values
 
-        if self.obsm["replaceable"].sum() == 0:
+        if self.obs["replaceable"].sum() == 0:
             # No sample can be replaced. Set self.replaced to False and exit.
             self.var["replaced"] = np.full(
                 self.n_vars,
@@ -1337,9 +1339,9 @@ class DeseqDataSet(ad.AnnData):
             )
 
             self.counts_to_refit.X[
-                self.obsm["replaceable"][:, None] & idx[:, self.var["replaced"]]
+                self.obs["replaceable"][:, None] & idx[:, self.var["replaced"]]
             ] = replacement_counts.values[
-                self.obsm["replaceable"][:, None] & idx[:, self.var["replaced"]]
+                self.obs["replaceable"][:, None] & idx[:, self.var["replaced"]]
             ]
 
     def _refit_without_outliers(
@@ -1360,7 +1362,7 @@ class DeseqDataSet(ad.AnnData):
 
         self.var["refitted"] = self.var["replaced"].copy()
         # Only replace if genes are not all zeroes after outlier replacement
-        self.var["refitted"][self.var["refitted"]] = ~new_all_zeroes
+        self.var.loc[self.var["refitted"], "refitted"] = ~new_all_zeroes
 
         # Take into account new all-zero genes
         if new_all_zeroes.sum() > 0:
@@ -1441,7 +1443,7 @@ class DeseqDataSet(ad.AnnData):
         self.layers["replace_cooks"] = self.layers["cooks"].copy()
 
         for col in np.where(self.var["refitted"])[0]:
-            self.layers["replace_cooks"][self.obsm["replaceable"], col] = 0.0
+            self.layers["replace_cooks"][self.obs["replaceable"], col] = 0.0
 
     def _fit_iterate_size_factors(self, niter: int = 10, quant: float = 0.95) -> None:
         """

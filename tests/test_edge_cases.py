@@ -36,7 +36,7 @@ def test_zero_genes():
     dds.deseq2()
 
     # check that the corresponding parameters are NaN
-    assert np.isnan(dds[:, zero_genes].var["dispersions"]).all()
+    assert np.isnan(dds.var.loc[zero_genes, "dispersions"]).all()
     assert np.isnan(dds[:, zero_genes].varm["LFC"]).all().all()
 
     ds = DeseqStats(dds, contrast=["condition", "B", "A"])
