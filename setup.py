@@ -28,7 +28,7 @@ setup(
     author_email="boris.muzellec@owkin.com",
     packages=find_packages(exclude=["tests*"]),
     install_requires=[
-        "anndata>=0.8.0",
+        "anndata>=0.11.0",
         "formulaic>=1.0.2",
         "numpy>=1.23.0",
         "pandas>=1.4.0",

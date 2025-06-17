@@ -56,9 +56,10 @@ def load_example_data(
     pandas.DataFrame
         Requested data modality.
     """
-    assert modality in ["raw_counts", "metadata"], (
-        "The modality argument must be one of the following: " "raw_counts, metadata"
-    )
+    assert modality in [
+        "raw_counts",
+        "metadata",
+    ], "The modality argument must be one of the following: raw_counts, metadata"
 
     assert dataset in [
         "synthetic"
