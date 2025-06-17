@@ -336,7 +336,7 @@ class DeseqStats:
         start = time.time()
         pvals, stats, se = self.inference.wald_test(
             design_matrix=design_matrix,
-            disp=self.dds.var["dispersions"],
+            disp=self.dds.var["dispersions"].values,
             lfc=LFCs,
             mu=mu,
             ridge_factor=ridge_factor,
