@@ -666,7 +666,9 @@ class DeseqDataSet(ad.AnnData):
 
             # Normalize size factors to a geometric mean of 1 to match DESeq
             self.obs["size_factors"] = sf / (np.exp(np.mean(np.log(sf))))
-            self.layers["normed_counts"] = self.X / self.obs["size_factors"][:, None]
+            self.layers["normed_counts"] = (
+                self.X / self.obs["size_factors"].values[:, None]
+            )
             self.logmeans = logmeans
 
         # Test whether it is possible to use median-of-ratios.
@@ -1326,7 +1328,7 @@ class DeseqDataSet(ad.AnnData):
 
             replacement_counts = (
                 pd.DataFrame(
-                    trim_base_mean.values * self.obs["size_factors"],
+                    trim_base_mean.values * self.obs["size_factors"].values,
                     index=self.counts_to_refit.var_names,
                     columns=self.counts_to_refit.obs_names,
                 )
@@ -1334,10 +1336,11 @@ class DeseqDataSet(ad.AnnData):
                 .T
             )
 
+            breakpoint()
             self.counts_to_refit.X[
-                self.obs["replaceable"][:, None] & idx[:, self.var["replaced"]]
+                self.obs["replaceable"].values[:, None] & idx[:, self.var["replaced"]]
             ] = replacement_counts.values[
-                self.obs["replaceable"][:, None] & idx[:, self.var["replaced"]]
+                self.obs["replaceable"].values[:, None] & idx[:, self.var["replaced"]]
             ]
 
     def _refit_without_outliers(
@@ -1394,7 +1397,7 @@ class DeseqDataSet(ad.AnnData):
         # Use the same size factors
         sub_dds.obs["size_factors"] = self.counts_to_refit.obs["size_factors"]
         sub_dds.layers["normed_counts"] = (
-            sub_dds.X / sub_dds.obs["size_factors"][:, None]
+            sub_dds.X / sub_dds.obs["size_factors"].values[:, None]
         )
 
         # Estimate gene-wise dispersions.
@@ -1473,7 +1476,7 @@ class DeseqDataSet(ad.AnnData):
             nll = nb_nll(
                 counts=self[:, self.non_zero_genes].X,
                 mu=self[:, self.non_zero_genes].layers["_mu_hat"]
-                / self.obs["size_factors"][:, None]
+                / self.obs["size_factors"].values[:, None]
                 * sf[:, None],
                 alpha=self[:, self.non_zero_genes].var["dispersions"],
             )
@@ -1528,7 +1531,7 @@ class DeseqDataSet(ad.AnnData):
         del self.obsm["design_matrix_buffer"]
 
         # Store normalized counts
-        self.layers["normed_counts"] = self.X / self.obs["size_factors"][:, None]
+        self.layers["normed_counts"] = self.X / self.obs["size_factors"].values[:, None]
 
     def _check_full_rank_design(self):
         """Check that the design matrix has full column rank."""
