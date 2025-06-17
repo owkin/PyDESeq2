@@ -50,9 +50,7 @@ def test_size_factors_ratio(counts_df, metadata):
     dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
     dds.fit_size_factors()
 
-    np.testing.assert_almost_equal(
-        dds.obs["size_factors"].ravel(), r_size_factors.ravel()
-    )
+    np.testing.assert_almost_equal(dds.obs["size_factors"], r_size_factors)
 
 
 def test_size_factors_poscounts(counts_df, metadata):
@@ -67,7 +65,7 @@ def test_size_factors_poscounts(counts_df, metadata):
         index_col=0,
     )["sizeFactor"].values
 
-    np.testing.assert_almost_equal(dds.obs["size_factors"].ravel(), r_size_factors)
+    np.testing.assert_almost_equal(dds.obs["size_factors"], r_size_factors)
 
 
 def test_size_factors_control_genes(counts_df, metadata):
@@ -89,7 +87,7 @@ def test_size_factors_control_genes(counts_df, metadata):
 
     # Gene 4 has no zero counts, so we should get the same as before
     np.testing.assert_almost_equal(
-        dds.obs["size_factors"].ravel(),
+        dds.obs["size_factors"],
         counts_df["gene4"] / np.exp(np.log(counts_df["gene4"]).mean()),
     )
 
