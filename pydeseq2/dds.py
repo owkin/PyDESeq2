@@ -2,7 +2,6 @@ import sys
 import time
 import warnings
 from typing import Literal
-from typing import cast
 
 import anndata as ad  # type: ignore
 import numpy as np
@@ -1317,13 +1316,10 @@ class DeseqDataSet(ad.AnnData):
             self.counts_to_refit = self[:, self.var["replaced"]].copy()
 
             trim_base_mean = pd.DataFrame(
-                cast(
-                    np.ndarray,
-                    trimmed_mean(
-                        self.counts_to_refit.X / self.obs["size_factors"][:, None],
-                        trim=0.2,
-                        axis=0,
-                    ),
+                trimmed_mean(
+                    self.counts_to_refit.X / self.obs["size_factors"].values[:, None],
+                    trim=0.2,
+                    axis=0,
                 ),
                 index=self.counts_to_refit.var_names,
             )
