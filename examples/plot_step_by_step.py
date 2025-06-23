@@ -107,7 +107,7 @@ dds = DeseqDataSet(
 
 dds.fit_size_factors()
 
-dds.obsm["size_factors"]
+dds.obs["size_factors"]
 
 # %%
 # Fit genewise dispersions
@@ -115,7 +115,7 @@ dds.obsm["size_factors"]
 
 dds.fit_genewise_dispersions()
 
-dds.varm["genewise_dispersions"]
+dds.var["genewise_dispersions"]
 
 # %%
 # Fit dispersion trend coefficients
@@ -123,7 +123,7 @@ dds.varm["genewise_dispersions"]
 
 dds.fit_dispersion_trend()
 dds.uns["trend_coeffs"]
-dds.varm["fitted_dispersions"]
+dds.var["fitted_dispersions"]
 
 # %%
 # Dispersion priors
@@ -145,8 +145,8 @@ print(
 # stored in `dds.dispersions`.
 
 dds.fit_MAP_dispersions()
-dds.varm["MAP_dispersions"]
-dds.varm["dispersions"]
+dds.var["MAP_dispersions"]
+dds.var["dispersions"]
 
 # %%
 # Fit log fold changes

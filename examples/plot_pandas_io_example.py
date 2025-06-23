@@ -161,18 +161,17 @@ with open(os.path.join(OUTPUT_PATH, "result_adata.pkl"), "wb") as f:
 # structure, with key-based data fields. In particular,
 #
 # - ``X`` stores the count data,
-# - ``obs`` stores design factors,
-# - ``obsm`` stores sample-level data, such as ``"design_matrix"`` and
-#   ``"size_factors"``,
-# - ``varm`` stores gene-level data, such as ``"dispersions"`` and ``"LFC"``.
-#
+# - ``obs`` stores 1D sample-level data, such as design factors and ``"size_factors"``,
+# - ``obsm`` stores multi-dimensional sample-level data, such as ``"design_matrix"``,
+# - ``var`` stores 1D gene-level data, such as gene names and ``"dispersions"``,
+# - ``varm`` stores multi-dimensional gene-level data, such as ``"LFC"``.
 #
 # As an example, here is how we would access dispersions and LFCs
 # (in natural log scale):
 
 # %%
 
-print(dds.varm["dispersions"])
+print(dds.var["dispersions"])
 
 # %%
 
