@@ -36,7 +36,7 @@ def test_zero_genes():
     dds.deseq2()
 
     # check that the corresponding parameters are NaN
-    assert np.isnan(dds[:, zero_genes].varm["dispersions"]).all()
+    assert np.isnan(dds.var.loc[zero_genes, "dispersions"]).all()
     assert np.isnan(dds[:, zero_genes].varm["LFC"]).all().all()
 
     ds = DeseqStats(dds, contrast=["condition", "B", "A"])
@@ -361,7 +361,7 @@ def test_few_samples():
     res.summary()
 
     # Check that no gene was refit, as there are not enough samples.
-    assert dds.varm["replaced"].sum() == 0
+    assert dds.var["replaced"].sum() == 0
 
 
 def test_few_samples_and_outlier():
@@ -436,7 +436,7 @@ def test_new_all_zero_gene():
     counts_df = counts_df.loc[metadata.index]
 
     # Add a gene with a single outlier value and zeros elsewhere
-    counts_df.loc[:, "geneX"] = 0
+    counts_df["geneX"] = 0
     counts_df.loc["sample100", "geneX"] = 100
 
     dds = DeseqDataSet(
@@ -445,6 +445,7 @@ def test_new_all_zero_gene():
         design="~condition",
         refit_cooks=True,
     )
+
     with pytest.warns(UserWarning):
         # Will warn that parametric trend fit failed
         dds.deseq2()
@@ -487,9 +488,9 @@ def test_zero_inflated():
     counts_df.iloc[idx, :] = 0
 
     dds = DeseqDataSet(counts=counts_df, metadata=metadata)
+    # Will warn that each gene contains a zero
+    # and that the parametric curve is not a good fit
     with pytest.warns(UserWarning):
-        # Will warn that each gene contains a zero
-        # and that the parametric curve is not a good fit
         dds.deseq2()
 
 
