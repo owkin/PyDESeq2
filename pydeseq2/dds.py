@@ -1494,10 +1494,10 @@ class DeseqDataSet(ad.AnnData):
             ]
 
             if len(use_for_mean_genes) == 0:
-                # TODO: this should be a warning, or printed to stderr
                 print(
                     "No genes have a dispersion above 10 * min_disp in "
-                    "_fit_iterate_size_factors."
+                    "_fit_iterate_size_factors.",
+                    file=sys.stderr,
                 )
                 break
 
