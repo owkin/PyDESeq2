@@ -442,9 +442,7 @@ class DeseqStats:
             self.results_df["log2FoldChange"] = self.LFC.iloc[:, coeff_idx] / np.log(2)
             self.results_df["lfcSE"] = self.SE / np.log(2)
             if not self.quiet:
-                # The factor is continuous
                 print(f"Shrunk log2 fold change & Wald test p-value: {coeff}")
-            if not self.quiet:
                 print(self.results_df)
 
     def plot_MA(self, log: bool = True, save_path: str | None = None, **kwargs):
