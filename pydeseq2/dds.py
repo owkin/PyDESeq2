@@ -1389,6 +1389,7 @@ class DeseqDataSet(ad.AnnData):
             min_replicates=self.min_replicates,
             beta_tol=self.beta_tol,
             inference=self.inference,
+            quiet=self.quiet,
         )
 
         # Use the same size factors
