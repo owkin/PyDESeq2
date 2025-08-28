@@ -374,7 +374,8 @@ class DeseqDataSet(ad.AnnData):
         else:
             self.vst_fit_type = self.fit_type
 
-        print(f"Fit type used for VST : {self.vst_fit_type}")
+        if not self.quiet:
+            print(f"Fit type used for VST : {self.vst_fit_type}")
 
         self.vst_fit(use_design=use_design)
         self.layers["vst_counts"] = self.vst_transform()
@@ -526,7 +527,8 @@ class DeseqDataSet(ad.AnnData):
         """
         if fit_type is not None:
             self.fit_type = fit_type
-            print(f"Using {self.fit_type} fit type.")
+            if not self.quiet:
+                print(f"Using {self.fit_type} fit type.")
 
         # Compute DESeq2 normalization factors using the Median-of-ratios method
         self.fit_size_factors(
@@ -1389,6 +1391,7 @@ class DeseqDataSet(ad.AnnData):
             min_replicates=self.min_replicates,
             beta_tol=self.beta_tol,
             inference=self.inference,
+            quiet=self.quiet,
         )
 
         # Use the same size factors
@@ -1493,7 +1496,8 @@ class DeseqDataSet(ad.AnnData):
             if len(use_for_mean_genes) == 0:
                 print(
                     "No genes have a dispersion above 10 * min_disp in "
-                    "_fit_iterate_size_factors."
+                    "_fit_iterate_size_factors.",
+                    file=sys.stderr,
                 )
                 break
 
