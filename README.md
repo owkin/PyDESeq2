@@ -118,20 +118,6 @@ The `pre-commit` tool will automatically run [ruff](https://docs.astral.sh/ruff/
 
 PyDESeq2 is a living project and any contributions are welcome! Feel free to open new PRs or issues.
 
-## Development Roadmap
-
-Here are some of the features and improvements we plan to implement in the future:
-
-- [x] Integration to the [scverse](https://scverse.org/) ecosystem:
-  * [x] Refactoring to use the [AnnData](https://anndata.readthedocs.io/) data structure
-  * [x] Submitting a PR to be listed as an [scverse ecosystem](https://github.com/scverse/ecosystem-packages/) package
-- [x] Variance-stabilizing transformation
-- [x] Improving multi-factor analysis:
-  * [x] Allowing n-level factors
-  * [x] Support for continuous covariates
-  * [x] Implementing interaction terms
-
-
 ## Citing this work
 
 ```
