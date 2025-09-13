@@ -55,6 +55,7 @@ class Inference(ABC):
         max_beta: float = 30,
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
         maxiter: int = 250,
+        normalization_factors: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 

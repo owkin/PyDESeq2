@@ -17,7 +17,14 @@ from scratch, you may experience some differences in terms of retrieved values o
 Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor and
 multi-factor analysis (with categorical or continuous factors) using Wald tests, with an
 optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage step
-:cite:p:`zhu2019heavy`. We plan to implement more in the near future. In case there is a feature you would particularly
+:cite:p:`zhu2019heavy`. 
+
+PyDESeq2 also supports `pytximport <https://bioconductor.org/packages/release/bioc/html/tximport.html>`_-derived 
+normalization factors :cite:p:`kuehlGeneCountEstimation2024b`, enabling accurate differential expression analysis 
+with transcript-level quantification data from tools like Salmon, Kallisto, or RSEM. When explicitly enabled,
+this feature accounts for gene length differences between samples due to differential isoform usage.
+
+We plan to implement more features in the near future. In case there is a feature you would particularly
 like to be implemented, feel free to open an issue on GitHub.
 
 

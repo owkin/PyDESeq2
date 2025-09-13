@@ -70,6 +70,8 @@ instance/
 
 # Sphinx documentation
 docs/build/
+docs/source/auto_examples/
+output_files/
 
 # PyBuilder
 target/
@@ -127,6 +129,9 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# ruff
+.ruff_cache/
 
 # Pyre type checker
 .pyre/

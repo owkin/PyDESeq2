@@ -16,6 +16,7 @@ from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
+from pydeseq2.preprocessing import estimate_norm_factors
 from pydeseq2.utils import dispersion_trend
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
@@ -135,6 +136,14 @@ class DeseqDataSet(ad.AnnData):
         longer necessary after they are used during deseq2 run, such as Cook's
         distances. (default: False)
 
+    from_pytximport : bool
+        Whether the data comes from pytximport and should use length-corrected
+        normalization factors instead of simple size factors. Must be explicitly
+        set to True to enable pytximport support. When enabled, will validate the
+        presence of "length" in obsm and "counts_from_abundance" in uns. Counts
+        must have been generated with ``counts_from_abundance=None``.
+        (default: ``False``)
+
     Attributes
     ----------
     X
@@ -225,6 +234,7 @@ class DeseqDataSet(ad.AnnData):
         inference: Inference | None = None,
         quiet: bool = False,
         low_memory: bool = False,
+        from_pytximport: bool = False,
     ) -> None:
         # Initialize the AnnData part
         if adata is not None:
@@ -318,6 +328,11 @@ class DeseqDataSet(ad.AnnData):
         self.control_genes = control_genes
         self.logmeans = None
         self.filtered_genes = None
+        self.from_pytximport = from_pytximport
+
+        if self.from_pytximport:
+            print("Detected pytximport data with length offsets.")
+            self._validate_pytximport_data()
 
         if inference:
             if n_cpus:
@@ -645,6 +660,11 @@ class DeseqDataSet(ad.AnnData):
         else:
             _control_mask = np.ones(self.X.shape[1], dtype=bool)
 
+        if fit_type not in [None, "ratio"] and self.from_pytximport:
+            raise ValueError(
+                "When from_pytximport=True, fit_type must be 'ratio' (default)."
+            )
+
         if fit_type == "iterative":
             self._fit_iterate_size_factors()
 
@@ -682,7 +702,55 @@ class DeseqDataSet(ad.AnnData):
                 UserWarning,
                 stacklevel=2,
             )
+            if self.from_pytximport:
+                raise ValueError(
+                    "When from_pytximport=True, size factors cannot be computed "
+                    "iteratively. Please check your input data."
+                )
+
             self._fit_iterate_size_factors()
+
+        elif self.from_pytximport:
+            if not self.quiet:
+                print(
+                    "Using pytximport length offsets for normalization factors...",
+                    file=sys.stderr,
+                )
+
+            # Create normalization matrix from length matrix
+            # Divide each gene's length by the geometric mean across samples
+            length_matrix = self.obsm["length"]
+
+            with np.errstate(divide="ignore"):
+                # Gene-wise geometric means
+                log_geom_means = np.mean(np.log(length_matrix), axis=0)
+                norm_matrix = length_matrix / np.exp(log_geom_means)
+
+            # Compute normalization factors using the DESeq2 algorithm
+            (
+                counts_adj,
+                self.layers["normed_counts"],
+                norm_factors,
+                logmeans,
+                filtered_genes,
+            ) = estimate_norm_factors(self.X, norm_matrix, _control_mask)
+
+            self.obsm["normalization_factors"] = norm_factors
+            self.logmeans = logmeans
+            self.filtered_genes = filtered_genes
+
+            # Calculate the size factors on the normed counts
+            _, self.obs["size_factors"] = deseq2_norm_transform(
+                counts_adj, logmeans, filtered_genes
+            )
+
+            # Store sample-wise geometric mean of norm factors as size_factors
+            # This maintains compatibility with existing code while incorporating
+            # the gene-length correction
+            # with np.errstate(divide="ignore"):
+            #     log_norm_factors = np.log(norm_factors)
+            #     log_geom_mean_per_sample = np.mean(log_norm_factors, axis=1)
+            #     self.obs["size_factors"] = np.exp(log_geom_mean_per_sample)
 
         else:
             self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X)
@@ -744,6 +812,12 @@ class DeseqDataSet(ad.AnnData):
                 min_mu=self.min_mu,
             )
         else:
+            # Use normalization factors if available
+            norm_factors = (
+                self.obsm["normalization_factors"][:, self.non_zero_idx]
+                if "normalization_factors" in self.obsm
+                else None
+            )
             _, mu_hat_, _, _ = self.inference.irls(
                 counts=self.X[:, self.non_zero_idx],
                 size_factors=size_factors,
@@ -751,6 +825,7 @@ class DeseqDataSet(ad.AnnData):
                 disp=self.var.loc[self.var["non_zero"], "_MoM_dispersions"].values,
                 min_mu=self.min_mu,
                 beta_tol=self.beta_tol,
+                normalization_factors=norm_factors,
             )
 
         mu_param_name = "_vst_mu_hat" if vst else "_mu_hat"
@@ -939,6 +1014,12 @@ class DeseqDataSet(ad.AnnData):
         if not self.quiet:
             print("Fitting LFCs...", file=sys.stderr)
         start = time.time()
+        # Use normalization factors if available
+        norm_factors = (
+            self.obsm["normalization_factors"][:, self.non_zero_idx]
+            if "normalization_factors" in self.obsm
+            else None
+        )
         mle_lfcs_, mu_, hat_diagonals_, converged_ = self.inference.irls(
             counts=self.X[:, self.non_zero_idx],
             size_factors=self.obs["size_factors"].values,
@@ -946,6 +1027,7 @@ class DeseqDataSet(ad.AnnData):
             disp=self.var.loc[self.var["non_zero"], "dispersions"].values,
             min_mu=self.min_mu,
             beta_tol=self.beta_tol,
+            normalization_factors=norm_factors,
         )
         end = time.time()
 
@@ -1548,3 +1630,43 @@ class DeseqDataSet(ad.AnnData):
                 UserWarning,
                 stacklevel=2,
             )
+
+    def _validate_pytximport_data(self):
+        """Validate that the data has the necessary pytximport information."""
+        if "length" not in self.obsm_keys():
+            raise ValueError(
+                "from_pytximport=True but 'length' not found in obsm. "
+                "Make sure your AnnData object was created from pytximport output."
+            )
+
+        if "counts_from_abundance" not in self.uns_keys():
+            raise ValueError(
+                "from_pytximport=True but 'counts_from_abundance' not found in uns. "
+                "Make sure your AnnData object was created from pytximport output."
+            )
+
+        # Check that counts_from_abundance is None (meaning raw counts were used)
+        if self.uns["counts_from_abundance"] is not None:
+            raise ValueError(
+                "Normalization factors can only be used with raw counts. "
+                f"Got counts_from_abundance={self.uns['counts_from_abundance']}. "
+                "Please use pytximport with counts_from_abundance=None."
+            )
+
+        # Validate length matrix dimensions
+        length_matrix = self.obsm["length"]
+        if length_matrix.shape != (self.n_obs, self.n_vars):
+            raise ValueError(
+                f"Length matrix shape {length_matrix.shape} does not match "
+                f"count matrix shape {(self.n_obs, self.n_vars)}"
+            )
+
+        # Check for non-positive lengths
+        if np.any(length_matrix <= 0):
+            raise ValueError(
+                "Length matrix contains non-positive values. "
+                "All gene lengths must be positive."
+            )
+
+        if not self.quiet:
+            print("Detected pytximport data with length offsets.", file=sys.stderr)

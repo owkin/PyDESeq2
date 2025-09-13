@@ -100,3 +100,82 @@ def deseq2_norm_transform(
     size_factors = np.exp(log_medians)
     deseq2_counts = counts / size_factors[:, None]
     return deseq2_counts, size_factors
+
+
+def estimate_norm_factors(
+    counts: pd.DataFrame | np.ndarray,
+    norm_matrix: np.ndarray,
+    control_mask: np.ndarray | None = None,
+) -> tuple[
+    pd.DataFrame | np.ndarray,
+    pd.DataFrame | np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
+    """Estimate normalization factors from counts and normalization matrix.
+
+    Implements the DESeq2 estimateNormFactors algorithm for pytximport integration.
+    This function computes normalization factors that account for both library size
+    and gene length differences.
+
+    Parameters
+    ----------
+    counts : pandas.DataFrame or ndarray
+        Raw counts. One column per gene, one row per sample.
+
+    norm_matrix : ndarray
+        Normalization matrix. Should have the same dimensions as counts.
+
+    control_mask : ndarray, optional
+        Boolean mask indicating which genes to use as control genes for size
+        factor estimation. If None, all genes are used.
+
+    Returns
+    -------
+    counts_adj : pandas.DataFrame or ndarray
+        Counts adjusted by the normalization matrix.
+
+    normed_counts : pandas.DataFrame or ndarray
+        Normalized counts using the computed normalization factors.
+
+    norm_factors : ndarray
+        Computed normalization factors that account for both library size
+        and gene length differences.
+
+    logmeans : ndarray
+        Gene-wise mean log counts from the adjusted counts.
+
+    filtered_genes : ndarray
+        Genes whose log means are different from -∞ in the adjusted counts.
+    """
+    # Divide counts by normalization matrix
+    counts_adj = counts / norm_matrix
+
+    # Compute size factors from adjusted counts using standard DESeq2 method
+    logmeans, filtered_genes = deseq2_norm_fit(counts_adj)
+
+    # Apply control gene mask if provided
+    if control_mask is not None:
+        filtered_genes = filtered_genes & control_mask
+
+    _, size_factors = deseq2_norm_transform(counts_adj, logmeans, filtered_genes)
+
+    # Compute normalization factors: (norm_matrix.T * size_factors).T
+    # Broadcasting: norm_matrix (samples x genes) * size_factors (samples,)
+    norm_factors = norm_matrix * size_factors[:, None]
+
+    # Normalize to geometric mean of 1 (row-wise geometric mean)
+    with np.errstate(divide="ignore"):  # ignore division by zero warnings
+        log_norm_factors = np.log(norm_factors)
+        log_geom_means = np.mean(log_norm_factors, axis=1, keepdims=True)
+        norm_factors = norm_factors / np.exp(log_geom_means)
+
+    # Compute normalized counts
+    normed_counts = counts / norm_factors
+
+    # TODO: Check whether we actually have to calculate logmeans and filtered_genes again
+    # from the normed counts, or if we can just return the previous ones.
+    logmeans, filtered_genes = deseq2_norm_fit(normed_counts)
+
+    return counts_adj, normed_counts, norm_factors, logmeans, filtered_genes

@@ -92,6 +92,7 @@ class DefaultInference(inference.Inference):
         max_beta: float = 30,
         optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
         maxiter: int = 250,
+        normalization_factors: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with parallel_backend(self._backend, inner_max_num_threads=1):
             res = Parallel(
@@ -110,6 +111,11 @@ class DefaultInference(inference.Inference):
                     max_beta=max_beta,
                     optimizer=optimizer,
                     maxiter=maxiter,
+                    normalization_factors=(
+                        normalization_factors[:, i]
+                        if normalization_factors is not None
+                        else None
+                    ),
                 )
                 for i in range(counts.shape[1])
             )

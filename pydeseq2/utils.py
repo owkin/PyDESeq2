@@ -283,6 +283,7 @@ def irls_solver(
     max_beta: float = 30,
     optimizer: Literal["BFGS", "L-BFGS-B"] = "L-BFGS-B",
     maxiter: int = 250,
+    normalization_factors: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, bool]:
     r"""Fit a NB GLM wit log-link to predict counts from the design matrix.
 
@@ -327,6 +328,11 @@ def irls_solver(
         Maximum number of IRLS iterations to perform before switching to L-BFGS-B.
         (default: ``250``).
 
+    normalization_factors : ndarray, optional
+        Gene-specific normalization factors (samples x genes). If provided, these
+        will be used instead of size_factors for computing mu. This enables support
+        for pytximport length-corrected normalization. (default: ``None``).
+
     Returns
     -------
     beta: ndarray
@@ -347,28 +353,36 @@ def irls_solver(
     num_vars = design_matrix.shape[1]
     X = design_matrix
 
+    # Choose appropriate normalization factors
+    if normalization_factors is not None:
+        # Use gene-specific normalization factors (1D array for single gene)
+        norm_factors = normalization_factors
+    else:
+        # Use standard size factors (1D array)
+        norm_factors = size_factors
+
     # if full rank, estimate initial betas for IRLS below
     if np.linalg.matrix_rank(X) == num_vars:
         Q, R = np.linalg.qr(X)
-        y = np.log(counts / size_factors + 0.1)
+        y = np.log(counts / norm_factors + 0.1)
         beta_init = solve(R, Q.T @ y)
         beta = beta_init
     else:  # Initialise intercept with log base mean
         beta_init = np.zeros(num_vars)
-        beta_init[0] = np.log(counts / size_factors).mean()
+        beta_init[0] = np.log(counts / norm_factors).mean()
         beta = beta_init
 
     dev = 1000.0
     dev_ratio = 1.0
 
     ridge_factor = np.diag(np.repeat(1e-6, num_vars))
-    mu = np.maximum(size_factors * np.exp(X @ beta), min_mu)
+    mu = np.maximum(norm_factors * np.exp(X @ beta), min_mu)
 
     converged = True
     i = 0
     while dev_ratio > beta_tol:
         W = mu / (1.0 + mu * disp)
-        z = np.log(mu / size_factors) + (counts - mu) / mu
+        z = np.log(mu / norm_factors) + (counts - mu) / mu
         H = (X.T * W) @ X + ridge_factor
         beta_hat = solve(H, X.T @ (W * z), assume_a="pos")
         i += 1
@@ -377,11 +391,11 @@ def irls_solver(
             # If IRLS starts diverging, use L-BFGS-B
             def f(beta: np.ndarray) -> float:
                 # closure to minimize
-                mu_ = np.maximum(size_factors * np.exp(X @ beta), min_mu)
+                mu_ = np.maximum(norm_factors * np.exp(X @ beta), min_mu)
                 return nb_nll(counts, mu_, disp) + 0.5 * (ridge_factor @ beta**2).sum()
 
             def df(beta: np.ndarray) -> np.ndarray:
-                mu_ = np.maximum(size_factors * np.exp(X @ beta), min_mu)
+                mu_ = np.maximum(norm_factors * np.exp(X @ beta), min_mu)
                 return (
                     -X.T @ counts
                     + ((1 / disp + counts) * mu_ / (1 / disp + mu_)) @ X
@@ -401,7 +415,7 @@ def irls_solver(
             )
 
             beta = res.x
-            mu = np.maximum(size_factors * np.exp(X @ beta), min_mu)
+            mu = np.maximum(norm_factors * np.exp(X @ beta), min_mu)
             converged = res.success
 
             if not res.success and num_vars <= 2:
@@ -411,11 +425,11 @@ def irls_solver(
                     X,
                     disp,
                 )
-                mu = np.maximum(size_factors * np.exp(X @ beta), min_mu)
+                mu = np.maximum(norm_factors * np.exp(X @ beta), min_mu)
             break
 
         beta = beta_hat
-        mu = np.maximum(size_factors * np.exp(X @ beta), min_mu)
+        mu = np.maximum(norm_factors * np.exp(X @ beta), min_mu)
         # Compute deviation
         old_dev = dev
         # Replaced deviation with -2 * nll, as in the R code
@@ -436,7 +450,7 @@ def irls_solver(
 
     # Return an UNthresholded mu (as in the R code)
     # Previous quantities are estimated with a threshold though
-    mu = size_factors * np.exp(X @ beta)
+    mu = norm_factors * np.exp(X @ beta)
     return beta, mu, H, converged
 
 
