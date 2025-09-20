@@ -19,7 +19,7 @@ multi-factor analysis (with categorical or continuous factors) using Wald tests,
 optional `apeGLM <https://academic.oup.com/bioinformatics/article/35/12/2084/5159452>`_ LFC shrinkage step
 :cite:p:`zhu2019heavy`. 
 
-PyDESeq2 also supports `pytximport <https://bioconductor.org/packages/release/bioc/html/tximport.html>`_-derived 
+PyDESeq2 also supports `pytximport <https://pytximport.complextissue.com/en/stable/>`_-derived 
 normalization factors :cite:p:`kuehlGeneCountEstimation2024b`, enabling accurate differential expression analysis 
 with transcript-level quantification data from tools like Salmon, Kallisto, or RSEM. When explicitly enabled,
 this feature accounts for gene length differences between samples due to differential isoform usage.
