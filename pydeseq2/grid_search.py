@@ -19,7 +19,7 @@ def vec_nb_nll(
     mu : ndarray
         Mean of the distribution.
 
-    alpha : ndarray | float
+    alpha : ndarray or float
         Dispersion of the distribution, s.t. the variance is
         :math:`\mu + \alpha \mu^2`.
 
