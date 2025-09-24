@@ -3,16 +3,16 @@
 
 .. automodule:: pydeseq2.utils
 
-   
-   
-   
 
-   
-   
+
+
+
+
+
    .. rubric:: Functions
 
    .. autosummary::
-   
+
       dispersion_trend
       dnb_nll
       fit_alpha_mle
@@ -32,16 +32,13 @@
       trimmed_mean
       trimmed_variance
       wald_test
-   
-   
 
-   
-   
-   
 
-   
-   
-   
+
+
+
+
+
 
 
 
