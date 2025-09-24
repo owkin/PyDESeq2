@@ -14,4 +14,3 @@ https://github.com/blog/1506-closing-issues-via-pull-requests
 
 
 #### What does your PR implement? Be specific.
-

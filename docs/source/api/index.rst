@@ -16,4 +16,3 @@ PyDESeq2
     ~utils
     ~grid_search
     ~preprocessing
-

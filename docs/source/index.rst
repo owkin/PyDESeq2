@@ -63,9 +63,3 @@ PyDESeq2 is released under an `MIT license <https://github.com/owkin/PyDESeq2/bl
    :caption: Tutorials
 
    auto_examples/index.rst
-
-
-
-
-
-

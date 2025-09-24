@@ -5,7 +5,7 @@ The list of package version requirements is available in ``setup.py``, and will 
 For reference, the code was tested with python 3.10 and the following package versions::
 
     - anndata >= 0.8.0
-    - formulaic >= 1.0.2  
+    - formulaic >= 1.0.2
     - numpy >= 1.23.0
     - pandas >= 1.4.0
     - scikit-learn >= 1.1.0
