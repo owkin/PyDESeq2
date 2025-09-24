@@ -1348,9 +1348,9 @@ class DeseqDataSet(ad.AnnData):
         self,
     ) -> None:
         """Re-run the whole DESeq2 pipeline with replaced outliers."""
-        assert (
-            self.refit_cooks
-        ), "Trying to refit Cooks outliers but the 'refit_cooks' flag is set to False"
+        assert self.refit_cooks, (
+            "Trying to refit Cooks outliers but the 'refit_cooks' flag is set to False"
+        )
 
         # Check that _replace_outliers() was previously run.
         if "replaced" not in self.var:

@@ -50,6 +50,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+.ruff_cache/
 
 # Translations
 *.mo
@@ -133,3 +134,11 @@ dmypy.json
 
 # IDEs
 .vscode
+
+# Docs files
+output_files/
+docs/source/auto_examples/
+docs/source/sg_execution_times.rst
+
+# Binder files
+requirements.txt

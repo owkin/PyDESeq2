@@ -61,9 +61,9 @@ def load_example_data(
         "metadata",
     ], "The modality argument must be one of the following: raw_counts, metadata"
 
-    assert dataset in [
-        "synthetic"
-    ], "The dataset argument must be one of the following: synthetic."
+    assert dataset in ["synthetic"], (
+        "The dataset argument must be one of the following: synthetic."
+    )
 
     # Load data
     datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
@@ -502,9 +502,9 @@ def fit_alpha_mle(
 
     if prior_reg:
         # Note: assertion is not working when using numpy
-        assert (
-            prior_disp_var is not None
-        ), "Sigma_prior is required for prior regularization"
+        assert prior_disp_var is not None, (
+            "Sigma_prior is required for prior regularization"
+        )
 
     log_alpha_hat = np.log(alpha_hat)
 
@@ -1080,7 +1080,7 @@ def nbinomGLM(
         # Gradient of the function to optimize
         xbeta = design_matrix @ beta
         d_neg_prior = (
-            beta * no_shrink_mask / prior_no_shrink_scale**2
+            beta * no_shrink_mask / prior_no_shrink_scale** 2
             + 2 * beta * shrink_mask / (prior_scale**2 + beta[shrink_index] ** 2)
         )
 
@@ -1284,7 +1284,7 @@ def make_scatter(
     kwargs.setdefault("s", 0.6)
 
     # create scatter plot per trace
-    for disp, color in list(zip(disps, colors)):
+    for disp, color in list(zip(disps, colors, strict=False)):
         plt.scatter(x=x_val, y=disp, c=color, **kwargs)
 
     # label legend + axes

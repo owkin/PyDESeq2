@@ -144,9 +144,9 @@ class DeseqStats:
         quiet: bool = False,
         n_cpus: int | None = None,
     ) -> None:
-        assert (
-            "LFC" in dds.varm
-        ), "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
+        assert "LFC" in dds.varm, (
+            "Please provide a fitted DeseqDataSet by first running the `deseq2` method."
+        )
 
         self.dds = dds
 
