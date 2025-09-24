@@ -27,16 +27,16 @@ classifiers = [
 dependencies = [
   "anndata>=0.11.0",
   "formulaic>=1.0.2",
-  "numpy>=1.23.0",
-  "pandas>=1.4.0",
-  "scikit-learn>=1.1.0",
-  "scipy>=1.11.0",
+  "numpy>=2.0.0",
+  "pandas>=2.2.0",
+  "scikit-learn>=1.4.0",
+  "scipy>=1.12.0",
   "formulaic-contrasts>=0.2.0",
-  "matplotlib>=3.6.2",
+  "matplotlib>=3.9.0",
 ]
 optional-dependencies.dev = [
-  "pytest>=6.2.4",
-  "pre-commit>=2.13.0",
+  "pytest>=8.4.0",
+  "pre-commit>=2.16.0",
   "numpydoc",
   "coverage",
   "mypy==1.18.2",
@@ -51,9 +51,6 @@ optional-dependencies.doc = [
   "sphinx-autobuild",
   "texttable",
   "myst-parser",
-  # Sphinx 3.3.1 does not require a specific version of docutils
-  # but docutils 0.17 changed the output html markup, breaking the RTD theme
-  # original issue: https://github.com/sphinx-doc/sphinx/issues/9051
   "docutils",
   "sphinx_click",
   "sphinx_gallery",
