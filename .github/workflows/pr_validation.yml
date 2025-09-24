@@ -56,3 +56,6 @@ jobs:
           uv pip freeze > requirements.txt
           cd docs
           make clean html
+      - name: Build package
+        run: |
+          uv build
