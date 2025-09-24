@@ -31,4 +31,5 @@ repos:
     rev: v1.18.2
     hooks:
     - id: mypy
-      exclude: ^(tests/|docs/source/conf.py)
+      pass_filenames: false
+      args: [-p, pydeseq2, --ignore-missing-imports]

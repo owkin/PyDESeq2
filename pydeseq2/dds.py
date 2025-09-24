@@ -2,11 +2,12 @@ import sys
 import time
 import warnings
 from typing import Literal
+from typing import cast
 
 import anndata as ad  # type: ignore
 import numpy as np
 import pandas as pd
-from formulaic_contrasts import FormulaicContrasts
+from formulaic_contrasts import FormulaicContrasts  # type: ignore[import-untyped]
 from scipy.optimize import minimize
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import f  # type: ignore
@@ -316,8 +317,8 @@ class DeseqDataSet(ad.AnnData):
         self.low_memory = low_memory
         self.size_factors_fit_type = size_factors_fit_type
         self.control_genes = control_genes
-        self.logmeans = None
-        self.filtered_genes = None
+        self.logmeans: np.ndarray | None = None
+        self.filtered_genes: np.ndarray | None = None
 
         if inference:
             if n_cpus:
@@ -475,8 +476,12 @@ class DeseqDataSet(ad.AnnData):
                     stacklevel=2,
                 )
                 logmeans, filtered_genes = deseq2_norm_fit(counts)
-            else:
+            elif self.filtered_genes is not None:
                 logmeans, filtered_genes = self.logmeans, self.filtered_genes
+            else:
+                raise RuntimeError(
+                    "Logmeans is set but filtered_genes is None. This should not happen."
+                )
 
             normed_counts, _ = deseq2_norm_transform(counts, logmeans, filtered_genes)
 
@@ -684,14 +689,18 @@ class DeseqDataSet(ad.AnnData):
             )
             self._fit_iterate_size_factors()
 
-        else:
-            self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X)
+        elif self.X is not None:
+            self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X.toarray())
             _control_mask &= self.filtered_genes
 
             (
                 self.layers["normed_counts"],
                 self.obs["size_factors"],
-            ) = deseq2_norm_transform(self.X, self.logmeans, _control_mask)
+            ) = deseq2_norm_transform(
+                self.X, cast(np.ndarray, self.logmeans), _control_mask
+            )
+        else:
+            raise ValueError("Counts matrix 'X' is None, cannot fit size factors.")
 
         end = time.time()
         self.var["_normed_means"] = self.layers["normed_counts"].mean(0)
@@ -1220,8 +1229,8 @@ class DeseqDataSet(ad.AnnData):
                 covariates.drop(labels=[gene], inplace=True)
 
         # Initialize coefficients
-        old_coeffs = pd.Series([0.1, 0.1])
-        coeffs = pd.Series([1.0, 1.0])
+        old_coeffs: np.ndarray | pd.Series = pd.Series([0.1, 0.1])
+        coeffs: np.ndarray | pd.Series = pd.Series([1.0, 1.0])
         while (coeffs > 1e-10).all() and (
             np.log(np.abs(coeffs / old_coeffs)) ** 2
         ).sum() >= 1e-6:
@@ -1229,7 +1238,6 @@ class DeseqDataSet(ad.AnnData):
             coeffs, predictions, converged = self.inference.dispersion_trend_gamma_glm(
                 covariates, targets
             )
-
             if not converged or (coeffs <= 1e-10).any():
                 warnings.warn(
                     "The dispersion trend curve fitting did not converge. "
@@ -1320,10 +1328,13 @@ class DeseqDataSet(ad.AnnData):
             self.counts_to_refit = self[:, self.var["replaced"]].copy()
 
             trim_base_mean = pd.DataFrame(
-                trimmed_mean(
-                    self.counts_to_refit.X / self.obs["size_factors"].values[:, None],
-                    trim=0.2,
-                    axis=0,
+                np.asarray(
+                    trimmed_mean(
+                        self.counts_to_refit.X
+                        / self.obs["size_factors"].values[:, None],
+                        trim=0.2,
+                        axis=0,
+                    )
                 ),
                 index=self.counts_to_refit.var_names,
             )

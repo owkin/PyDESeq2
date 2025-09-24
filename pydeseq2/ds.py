@@ -170,6 +170,7 @@ class DeseqStats:
         self.LFC = self.dds.varm["LFC"].copy()
 
         # Check the validity of the contrast (if provided) or build it.
+        self.contrast: list[str] | np.ndarray
         if contrast is None:
             raise ValueError(
                 """Default contrasts are no longer supported.
@@ -510,7 +511,7 @@ class DeseqStats:
             U2 = self.p_values[use]
             if not U2.empty:
                 result.loc[use, i] = false_discovery_control(U2, method="bh")
-        num_rej = (result < self.alpha).sum(0).values
+        num_rej = (result < self.alpha).sum(0).to_numpy()
         lowess_res = lowess(theta, num_rej, frac=1 / 5)
 
         if num_rej.max() <= 10:
@@ -584,7 +585,7 @@ class DeseqStats:
         if objective(min_var) < 0:
             return min_var
         else:
-            return root_scalar(objective, bracket=[min_var, max_var]).root
+            return root_scalar(objective, bracket=(min_var, max_var)).root
 
     def _build_contrast_vector(self) -> None:
         """

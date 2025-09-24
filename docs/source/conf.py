@@ -18,7 +18,6 @@ import git
 
 import pydeseq2
 
-
 # -- Project information -----------------------------------------------------
 
 project = "PyDESeq2"

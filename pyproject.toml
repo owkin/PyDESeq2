@@ -39,9 +39,10 @@ optional-dependencies.dev = [
   "pre-commit>=2.13.0",
   "numpydoc",
   "coverage",
-  "mypy",
+  "mypy==1.18.2",
   "pandas-stubs",
   "ruff==0.13.1",
+  "scipy-stubs",
 ]
 optional-dependencies.doc = [
   "jupyter",
