@@ -690,7 +690,9 @@ class DeseqDataSet(ad.AnnData):
             self._fit_iterate_size_factors()
 
         elif self.X is not None:
-            self.logmeans, self.filtered_genes = deseq2_norm_fit(self.X.toarray())
+            self.logmeans, self.filtered_genes = deseq2_norm_fit(
+                self.X.toarray() if not isinstance(self.X, np.ndarray) else self.X
+            )
             _control_mask &= self.filtered_genes
 
             (

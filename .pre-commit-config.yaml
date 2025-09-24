@@ -32,4 +32,4 @@ repos:
     hooks:
     - id: mypy
       pass_filenames: false
-      args: [-p, pydeseq2, --ignore_missing_imports]
+      args: [-p, pydeseq2, --ignore-missing-imports]
