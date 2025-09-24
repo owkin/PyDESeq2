@@ -35,31 +35,32 @@ dependencies = [
   "matplotlib>=3.6.2",
 ]
 optional-dependencies.dev = [
-    "pytest>=6.2.4",
-    "pre-commit>=2.13.0",
-    "numpydoc",
-    "coverage",
-    "mypy",
-    "pandas-stubs",
+  "pytest>=6.2.4",
+  "pre-commit>=2.13.0",
+  "numpydoc",
+  "coverage",
+  "mypy",
+  "pandas-stubs",
+  "ruff==0.13.1",
 ]
 optional-dependencies.doc = [
-    "jupyter",
-    "sphinx>=8.0.0",
-    "sphinx_rtd_theme",
-    "sphinx-autobuild",
-    "texttable",
-    "myst-parser",
-    # Sphinx 3.3.1 does not require a specific version of docutils
-    # but docutils 0.17 changed the output html markup, breaking the RTD theme
-    # original issue: https://github.com/sphinx-doc/sphinx/issues/9051
-    "docutils",
-    "sphinx_click",
-    "sphinx_gallery",
-    "sphinx_autodoc_typehints",
-    "sphinxcontrib-bibtex",
-    "ipython",
-    "gitpython>=3.1.42",
-    "sphinxcontrib-googleanalytics>=0.5",
+  "jupyter",
+  "sphinx>=8.0.0",
+  "sphinx_rtd_theme",
+  "sphinx-autobuild",
+  "texttable",
+  "myst-parser",
+  # Sphinx 3.3.1 does not require a specific version of docutils
+  # but docutils 0.17 changed the output html markup, breaking the RTD theme
+  # original issue: https://github.com/sphinx-doc/sphinx/issues/9051
+  "docutils",
+  "sphinx_click",
+  "sphinx_gallery",
+  "sphinx_autodoc_typehints",
+  "sphinxcontrib-bibtex",
+  "ipython",
+  "gitpython>=3.1.42",
+  "sphinxcontrib-googleanalytics>=0.5",
 ]
 urls.Documentation = "https://pydeseq2.readthedocs.io/"
 urls.Homepage = "https://github.com/owkin/PyDESeq2"

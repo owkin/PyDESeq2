@@ -113,7 +113,7 @@ class DefaultInference(inference.Inference):
                 )
                 for i in range(counts.shape[1])
             )
-        res = zip(*res)
+        res = zip(*res, strict=False)
         MLE_lfcs_, mu_hat_, hat_diagonals_, converged_ = (np.array(m) for m in res)
 
         return (
@@ -156,7 +156,7 @@ class DefaultInference(inference.Inference):
                 )
                 for i in range(counts.shape[1])
             )
-        res = zip(*res)
+        res = zip(*res, strict=False)
         dispersions_, l_bfgs_b_converged_ = (np.array(m) for m in res)
         return dispersions_, l_bfgs_b_converged_
 
@@ -192,7 +192,7 @@ class DefaultInference(inference.Inference):
                 )
                 for i in range(num_genes)
             )
-        res = zip(*res)
+        res = zip(*res, strict=False)
         pvals, stats, se = (np.array(m) for m in res)
 
         return pvals, stats, se
@@ -259,6 +259,6 @@ class DefaultInference(inference.Inference):
                 )
                 for i in range(num_genes)
             )
-        res = zip(*res)
+        res = zip(*res, strict=False)
         lfcs, inv_hessians, l_bfgs_b_converged_ = (np.array(m) for m in res)
         return lfcs, inv_hessians, l_bfgs_b_converged_

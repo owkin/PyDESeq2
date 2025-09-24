@@ -285,7 +285,7 @@ class DeseqDataSet(ad.AnnData):
             self.design = "~" + " + ".join(design_factors)
 
         if not (
-            isinstance(self.design, (str, pd.DataFrame)) or isinstance(self.design, str)
+            isinstance(self.design, (str | pd.DataFrame)) or isinstance(self.design, str)
         ):
             raise ValueError(
                 "design must be a string representing a formulaic formula,"
