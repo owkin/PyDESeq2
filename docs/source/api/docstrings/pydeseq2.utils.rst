@@ -32,13 +32,3 @@
       trimmed_mean
       trimmed_variance
       wald_test
-
-
-
-
-
-
-
-
-
-

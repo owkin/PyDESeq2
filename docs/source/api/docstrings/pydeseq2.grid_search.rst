@@ -17,13 +17,3 @@
       grid_fit_beta
       grid_fit_shrink_beta
       vec_nb_nll
-
-
-
-
-
-
-
-
-
-

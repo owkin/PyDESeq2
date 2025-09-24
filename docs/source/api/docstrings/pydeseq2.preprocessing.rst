@@ -14,13 +14,3 @@
    .. autosummary::
 
       deseq2_norm
-
-
-
-
-
-
-
-
-
-
