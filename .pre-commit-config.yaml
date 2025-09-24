@@ -32,4 +32,5 @@ repos:
     hooks:
     - id: mypy
       pass_filenames: false
-      args: [-p, pydeseq2, --ignore-missing-imports]
+      args: [-p, pydeseq2]
+      additional_dependencies: ['pandas-stubs', 'scipy-stubs']
