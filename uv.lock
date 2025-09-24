@@ -2203,7 +2203,7 @@ wheels = [
 
 [[package]]
 name = "pydeseq2"
-version = "0.0.1"
+version = "0.5.3"
 source = { editable = "." }
 dependencies = [
     { name = "anndata" },
