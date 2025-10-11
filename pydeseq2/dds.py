@@ -17,6 +17,7 @@ from pydeseq2.inference import Inference
 from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
 from pydeseq2.utils import dispersion_trend
+from pydeseq2.utils import make_rle_plot
 from pydeseq2.utils import make_scatter
 from pydeseq2.utils import mean_absolute_deviation
 from pydeseq2.utils import n_or_more_replicates
@@ -1181,6 +1182,36 @@ class DeseqDataSet(ad.AnnData):
             legend_labels=legend_labels,
             x_val=self.var["_normed_means"],
             log=log,
+            save_path=save_path,
+            **kwargs,
+        )
+
+    def plot_rle(
+        self,
+        normalize: bool = False,
+        save_path: str | None = None,
+        **kwargs,
+    ):
+        """Plot ratio of log expressions (RLE) for each sample.
+
+        Useful for visualizing sample to sample variation.
+
+        Parameters
+        ----------
+        normalize : bool, optional
+            Whether to normalize the counts before plotting. (default: ``False``).
+
+        save_path : str, optional
+            The path where to save the plot. If left None, the plot won't be saved
+            (default: ``None``).
+
+        **kwargs
+            Keyword arguments for the scatter plot.
+        """
+        make_rle_plot(
+            count_matrix=self.X,
+            normalize=normalize,
+            sample_ids=self.obs_names,
             save_path=save_path,
             **kwargs,
         )

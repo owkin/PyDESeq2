@@ -940,3 +940,16 @@ def assert_res_almost_equal(py_res, r_res, tol=0.02):
     ).max() < tol
     assert (abs(r_res.pvalue - py_res.pvalue) / r_res.pvalue).max() < tol
     assert (abs(r_res.padj - py_res.padj) / r_res.padj).max() < tol
+
+
+def test_plot_rle(train_counts, train_metadata):
+    """Test that the RLE plot is generated without error."""
+
+    dds = DeseqDataSet(
+        counts=train_counts,
+        metadata=train_metadata,
+        design="~condition",
+    )
+
+    dds.plot_rle(normalize=False)
+    dds.plot_rle(normalize=True)
