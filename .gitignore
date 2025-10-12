@@ -140,5 +140,6 @@ output_files/
 docs/source/auto_examples/
 docs/source/sg_execution_times.rst
 
-# Binder files
+# Requirement files
+uv.lock
 requirements.txt
