@@ -6,14 +6,14 @@
 [![condaDownloads](https://img.shields.io/conda/dn/bioconda/pydeseq2?logo=Anaconda)](https://anaconda.org/bioconda/pydeseq2)
 [![license](https://img.shields.io/pypi/l/pydeseq2)](LICENSE)
 
-PyDESeq2 is a python implementation of the [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) 
+PyDESeq2 is a python implementation of the [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)
 method [1] for differential expression analysis (DEA) with bulk RNA-seq data, originally in R.
 It aims to facilitate DEA experiments for python users.
 
-As PyDESeq2 is a re-implementation of [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) from 
+As PyDESeq2 is a re-implementation of [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) from
 scratch, you may experience some differences in terms of retrieved values or available features.
 
-Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor and 
+Currently, available features broadly correspond to the default settings of DESeq2 (v1.34.0) for single-factor and
 multi-factor analysis (with categorical or continuous factors) using Wald tests.
 We plan to implement more in the future.
 In case there is a feature you would particularly like to be implemented, feel free to open an issue.
@@ -40,15 +40,23 @@ In case there is a feature you would particularly like to be implemented, feel f
 
 `PyDESeq2` can be installed from PyPI using `pip`:
 
-`pip install pydeseq2`
+```bash
+pip install pydeseq2
+```
 
 We recommend installing within a conda environment:
 
-```
+```bash
 conda create -n pydeseq2
 conda activate pydeseq2
 conda install pip
 pip install pydeseq2
+```
+
+You can also add it to your projects through `uv`:
+
+```bash
+uv add pydeseq2
 ```
 
 ### Bioconda
@@ -61,16 +69,20 @@ If you're interested in contributing or want access to the development version, 
 
 ### Requirements
 
-The list of package version requirements is available in `setup.py`.
+The list of package version requirements is available in `pyproject.toml`.
 
 For reference, the code is being tested in a github workflow (CI) with python
-3.10 to 3.11 and the following package versions:
+3.11 to 3.13 and the latest versions of the following packages:
+
 ```
-- anndata 0.8.0
-- numpy 1.23.0
-- pandas 1.4.3
-- scikit-learn 1.1.1
-- scipy 1.11.0
+- anndata
+- formulaic
+- numpy
+- pandas
+- scikit-learn
+- scipy
+- formulaic-contrasts
+- matplotlib
 ```
 
 Please don't hesitate to open an issue in case you encounter any issue due to possible deprecations.
@@ -84,7 +96,7 @@ contains downloadable examples on how to use PyDESeq2.
 
 ### Documentation
 
-The documentation is hosted [here on ReadTheDocs](https://pydeseq2.readthedocs.io/en/latest/). 
+The documentation is hosted [here on ReadTheDocs](https://pydeseq2.readthedocs.io/en/latest/).
 If you want to have the latest version of the documentation, you can build it from source.
 Please go to the dedicated [README.md](https://github.com/owkin/PyDESeq2/blob/main/docs/README.md) for information on how to do so.
 
@@ -105,12 +117,12 @@ documentation to see how you can contribute to PyDESeq2.
 
 `git clone https://github.com/owkin/PyDESeq2.git`
 
-### 2 - Create a conda environment
+### 2 - Create a uv environment
 
-Run `conda create -n pydeseq2 python=3.10` (or higher python version) to create the `pydeseq2` environment and then activate it:
-`conda activate pydeseq2`.
+Run `uv venv --python 3.13` (or higher python version) to create the `pydeseq2` environment and then activate it:
+`source .venv/bin/activate`.
 
-`cd` to the root of the repo and run `pip install -e ."[dev]"` to install in developer mode.
+`cd` to the root of the repo and run `uv sync --extra dev --extra doc` to install in developer mode.
 
 Then, run `pre-commit install`.
 
@@ -145,4 +157,3 @@ PyDESeq2 is a living project and any contributions are welcome! Feel free to ope
 ## License
 
 PyDESeq2 is released under an [MIT license](https://github.com/owkin/PyDESeq2/blob/main/LICENSE).
-

@@ -8,7 +8,7 @@
     .. rubric:: Methods
 
     .. autosummary::
-   
+
         ~DeseqDataSet.calculate_cooks
         ~DeseqDataSet.cond
         ~DeseqDataSet.deseq2
@@ -22,4 +22,3 @@
         ~DeseqDataSet.refit
         ~DeseqDataSet.to_picklable_anndata
         ~DeseqDataSet.vst
-

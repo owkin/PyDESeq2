@@ -1,1 +1,3 @@
-__version__ = "0.5.2"
+from importlib.metadata import version
+
+__version__ = version("pydeseq2")

@@ -18,7 +18,6 @@ import git
 
 import pydeseq2
 
-
 # -- Project information -----------------------------------------------------
 
 project = "PyDESeq2"
@@ -50,6 +49,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinx_autodoc_typehints",
     "sphinxcontrib.bibtex",
+    "sphinxcontrib.googleanalytics",
 ]
 
 
@@ -61,6 +61,9 @@ intersphinx_mapping = {
 }
 
 autosectionlabel_prefix_document = True
+
+## Google Analytics
+googleanalytics_id = "UA-83738774-2"
 
 # autodoc settings
 autodoc_default_options = {
@@ -155,9 +158,7 @@ html_theme = "sphinx_rtd_theme"
 # documentation.
 #
 html_theme_options = {
-    "analytics_id": "UA-83738774-2",
     "logo_only": True,
-    "display_version": True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -262,7 +263,7 @@ sphinx_gallery_conf = {
         "branch": current_commit,  # Can be any branch, tag, or commit hash.
         # Use a branch that hosts your docs.
         "binderhub_url": "https://mybinder.org",  # public binderhub url
-        "dependencies": str(Path(__file__).parents[2] / "environment.yml"),
+        "dependencies": str(Path(__file__).parents[2] / "requirements.txt"),
         "notebooks_dir": "jupyter_notebooks",
         "use_jupyter_lab": True,
     },
