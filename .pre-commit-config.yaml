@@ -1,5 +1,5 @@
 repos:
--   repo: https://github.com/psf/black
+-   repo: https://github.com/psf/black-pre-commit-mirror
     rev: 25.9.0
     hooks:
     - id: black
@@ -7,7 +7,7 @@ repos:
       args: # arguments to configure black
        - --line-length=89
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.1
+    rev: v0.14.0
     hooks:
     - id: ruff
       args: [ --fix, --exit-non-zero-on-fix]

@@ -1284,7 +1284,7 @@ def make_scatter(
     kwargs.setdefault("s", 0.6)
 
     # create scatter plot per trace
-    for disp, color in list(zip(disps, colors)):
+    for disp, color in list(zip(disps, colors, strict=False)):
         plt.scatter(x=x_val, y=disp, c=color, **kwargs)
 
     # label legend + axes
