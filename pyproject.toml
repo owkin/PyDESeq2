@@ -41,7 +41,7 @@ optional-dependencies.dev = [
   "coverage",
   "mypy==1.18.2",
   "pandas-stubs",
-  "ruff==0.13.1",
+  "ruff==0.14.0",
   "scipy-stubs",
 ]
 optional-dependencies.doc = [
