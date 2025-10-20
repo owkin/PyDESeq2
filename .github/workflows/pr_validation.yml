@@ -2,6 +2,7 @@ name: pr-validation
 
 # Controls when the workflow will run
 on:
+  workflow_dispatch:
   push:
     branches:
       - '**'
@@ -18,31 +19,41 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: "3.10"
-          - os: ubuntu-latest
-            python: "3.10"
-            pip-flags: "--pre"
-          - os: ubuntu-latest
             python: "3.11"
           - os: ubuntu-latest
-            python: "3.11"
+            python: "3.12"
+          - os: ubuntu-latest
+            python: "3.13"
+          - os: ubuntu-latest
+            python: "3.13"
             pip-flags: "--pre"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ."[dev]"
-          pip install -r docs/requirements.txt
+          uv sync --extra doc --extra dev
+      - name: Lint with ruff
+        run: |
+          uv run ruff check --fix --exit-non-zero-on-fix pydeseq2
+      - name: Format with ruff
+        run: |
+          uv run ruff format --check pydeseq2
+      - name: Type check with mypy
+        run: |
+          uv run mypy -p pydeseq2
       - name: Test with pytest
         run: |
-          coverage run -m pytest
+          uv run coverage run -m pytest
       - name: Generate code coverage report
         run: |
-          coverage html
+          uv run coverage html
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -51,5 +62,9 @@ jobs:
           retention-days: 20
       - name: Compile docs
         run: |
+          uv pip freeze > requirements.txt
           cd docs
-          make clean html
+          uv run make clean html
+      - name: Build package
+        run: |
+          uv build

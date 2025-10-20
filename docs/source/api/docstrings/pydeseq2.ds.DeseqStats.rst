@@ -8,13 +8,7 @@
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~DeseqStats.lfc_shrink
       ~DeseqStats.run_wald_test
       ~DeseqStats.summary
-   
-   
-
-   
-   
-   

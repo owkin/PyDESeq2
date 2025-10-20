@@ -64,23 +64,22 @@ repository using the fork button in github. This will create a copy of
     git clone git@github.com:<your-github-username>/pydeseq2.git
     cd pydeseq2
 
-We recommend using conda environment, run:
+We recommend using `uv` with a virtual environment, run:
 
 .. code-block:: bash
 
-    conda env create -n pydeseq2-dev python=3.10
-    conda activate pydeseq2-dev
+    uv venv --python 3.13 # or higher
+    source venv/bin/activate
 
 and then install ``pydeseq2`` in the development mode. This will also install all
 the required dependencies.
 
 .. code-block:: bash
 
-    pip install -e ."[dev]"
-    pre-commit install
+    uv sync --extra dev --extra doc
 
-The pre-commit tool will automatically run ``black`` and ``isort``, and check ``flake8``
-compatibility
+The pre-commit tool will automatically run ``ruff`` and ``isort``, and check ``mypy``
+type compatibility
 
 3. Add the upstream remote:
 
@@ -147,19 +146,22 @@ Improving the documentation
 If you wish to contribute to the documentation you need to follow the same
 guidelines as for the code PR (:ref:`code_contrib`) and additionally install the
 dependencies required for building the documentation.
-Once you have your environment for development ready, navigate to docs directory
-and install required libraries
+Once you have your environment for development ready, make sure that you installed
+the ``dev`` and ``doc`` extra dependencies (see step 2 of :ref:`code_contrib`).
+For the documentation to work, you need to export the requirements to about
+``requirements.txt`` by running:
 
 .. code-block:: bash
 
-    cd docs
-    pip install -r requirements.txt
+    uv sync --extra dev --extra doc
+    uv pip freeze > requirements.txt
 
 After you make the changes in the documentation you can check if it builds
 correctly by running (in the docs directory):
 
 .. code-block:: bash
 
+    cd docs
     make clean html
 
 If the build was correct you can now view the new document in the

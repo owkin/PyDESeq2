@@ -61,9 +61,9 @@ def load_example_data(
         "metadata",
     ], "The modality argument must be one of the following: raw_counts, metadata"
 
-    assert dataset in [
-        "synthetic"
-    ], "The dataset argument must be one of the following: synthetic."
+    assert dataset in ["synthetic"], (
+        "The dataset argument must be one of the following: synthetic."
+    )
 
     # Load data
     datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
@@ -120,9 +120,7 @@ def test_valid_counts(counts: pd.DataFrame | np.ndarray) -> None:
     if isinstance(counts, pd.DataFrame):
         if counts.isna().any().any():
             raise ValueError("NaNs are not allowed in the count matrix.")
-        if ~counts.apply(
-            lambda s: pd.to_numeric(s, errors="coerce").notnull().all()
-        ).all():
+        if not np.issubdtype(counts.to_numpy().dtype, np.number):
             raise ValueError("The count matrix should only contain numbers.")
     else:
         if np.isnan(counts).any().any():
@@ -419,7 +417,7 @@ def irls_solver(
         # Compute deviation
         old_dev = dev
         # Replaced deviation with -2 * nll, as in the R code
-        dev = -2 * nb_nll(counts, mu, disp)
+        dev = -2 * cast(float, nb_nll(counts, mu, disp))
         dev_ratio = np.abs(dev - old_dev) / (np.abs(dev) + 0.1)
 
     # Compute H diagonal (useful for Cook distance outlier filtering)
@@ -502,9 +500,9 @@ def fit_alpha_mle(
 
     if prior_reg:
         # Note: assertion is not working when using numpy
-        assert (
-            prior_disp_var is not None
-        ), "Sigma_prior is required for prior regularization"
+        assert prior_disp_var is not None, (
+            "Sigma_prior is required for prior regularization"
+        )
 
     log_alpha_hat = np.log(alpha_hat)
 
@@ -519,7 +517,7 @@ def fit_alpha_mle(
             if prior_disp_var is None:
                 raise ValueError("Sigma_prior is required for prior regularization")
             reg += (log_alpha - log_alpha_hat) ** 2 / (2 * prior_disp_var)
-        return nb_nll(counts, mu, alpha) + reg
+        return cast(float, nb_nll(counts, mu, alpha)) + reg
 
     def dloss(log_alpha: float) -> float:
         # gradient closure
@@ -547,8 +545,8 @@ def fit_alpha_mle(
 
     res = minimize(
         lambda x: loss(x[0]),
-        x0=np.log(alpha_hat),
-        jac=lambda x: dloss(x[0]),
+        x0=np.asarray([np.log(alpha_hat)]),
+        jac=lambda x: np.asarray([dloss(x[0])]),
         method=optimizer,
         bounds=(
             [(np.log(min_disp), np.log(max_disp))] if optimizer == "L-BFGS-B" else None
@@ -589,7 +587,7 @@ def trimmed_mean(x: np.ndarray, trim: float = 0.1, **kwargs) -> float | np.ndarr
     """
     assert trim <= 0.5
     if "axis" in kwargs:
-        axis = kwargs.get("axis")
+        axis = kwargs["axis"]
         s = np.sort(x, axis=axis)
         n = x.shape[axis]
         ntrim = floor(n * trim)
@@ -799,7 +797,7 @@ def wald_test(
 
     wald_statistic: float
     wald_p_value: float
-    if alt_hypothesis:
+    if alt_hypothesis is not None:
         wald_statistic, wald_p_value = {
             "greaterAbs": greater_abs(lfc_null),
             "lessAbs": less_abs(lfc_null),
@@ -807,7 +805,7 @@ def wald_test(
             "less": less(lfc_null),
         }[alt_hypothesis]
     else:
-        wald_statistic = contrast @ (lfc - lfc_null) / wald_se
+        wald_statistic = float(contrast @ (lfc - lfc_null) / wald_se)
         wald_p_value = 2 * norm.sf(np.abs(wald_statistic))
 
     return wald_p_value, wald_statistic, wald_se
@@ -941,7 +939,7 @@ def robust_method_of_moments_disp(
         # 1 - group rows by unique combinations of design factors
         # 2 - keep only groups with 3 or more replicates
         # 3 - filter the counts matrix to only keep rows in those groups
-        filtered_counts = normed_counts[three_or_more.values, :]
+        filtered_counts = normed_counts[three_or_more.to_numpy(), :]
         filtered_design = design_matrix.loc[three_or_more, :]
         cell_id = pd.Series(
             filtered_design.groupby(filtered_design.columns.values.tolist()).ngroup(),
@@ -949,7 +947,9 @@ def robust_method_of_moments_disp(
         )
         v = trimmed_cell_variance(filtered_counts, cell_id)
     else:
-        v = trimmed_variance(normed_counts)
+        v = cast(
+            np.ndarray, trimmed_variance(normed_counts)
+        )  # Since normed_counts is always 2D, trimmed_variance returns ndarray
 
     m = normed_counts.mean(0)
     alpha = (v - m) / m**2
@@ -1080,7 +1080,7 @@ def nbinomGLM(
         # Gradient of the function to optimize
         xbeta = design_matrix @ beta
         d_neg_prior = (
-            beta * no_shrink_mask / prior_no_shrink_scale**2
+            beta * no_shrink_mask / prior_no_shrink_scale** 2
             + 2 * beta * shrink_mask / (prior_scale**2 + beta[shrink_index] ** 2)
         )
 
@@ -1230,7 +1230,7 @@ def mean_absolute_deviation(x: np.ndarray) -> float:
 def make_scatter(
     disps: list,
     legend_labels: list,
-    x_val: np.array,
+    x_val: np.ndarray,
     log: bool = True,
     save_path: str | None = None,
     **kwargs,

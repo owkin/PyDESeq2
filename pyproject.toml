@@ -1,8 +1,73 @@
-[tool.black]
-line-length = 89
+[build-system]
+build-backend = "hatchling.build"
+requires = [ "hatchling" ]
+
+[project]
+name = "pydeseq2"
+version = "0.5.3"
+description = "A python implementation of DESeq2."
+readme = "README.md"
+license = { file = "LICENSE" }
+maintainers = [
+  { name = "Boris Muzellec", email = "boris.muzellec@owkin.com" },
+]
+authors = [
+  { name = "Boris Muzellec" },
+  { name = "Maria Telenczuk" },
+  { name = "Vincent Cabelli" },
+  { name = "Mathieu Andreux" },
+]
+requires-python = ">=3.11"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "anndata>=0.11.0",
+  "formulaic>=1.0.2",
+  "numpy>=2.0.0",
+  "pandas>=2.2.0",
+  "scikit-learn>=1.4.0",
+  "scipy>=1.12.0",
+  "formulaic-contrasts>=0.2.0",
+  "matplotlib>=3.9.0",
+]
+optional-dependencies.dev = [
+  "pytest>=8.4.0",
+  "pre-commit>=2.16.0",
+  "numpydoc",
+  "coverage",
+  "mypy==1.18.2",
+  "pandas-stubs",
+  "ruff==0.14.0",
+  "scipy-stubs",
+]
+optional-dependencies.doc = [
+  "jupyter",
+  "sphinx>=8.0.0",
+  "sphinx_rtd_theme",
+  "sphinx-autobuild",
+  "texttable",
+  "myst-parser",
+  "docutils",
+  "sphinx_click",
+  "sphinx_gallery",
+  "sphinx_autodoc_typehints",
+  "sphinxcontrib-bibtex",
+  "ipython",
+  "gitpython>=3.1.42",
+  "sphinxcontrib-googleanalytics>=0.5",
+]
+urls.Documentation = "https://pydeseq2.readthedocs.io/"
+urls.Homepage = "https://github.com/owkin/PyDESeq2"
+urls.Source = "https://github.com/owkin/PyDESeq2"
 
 [tool.ruff]
 line-length = 89
+
+[tool.ruff.lint]
 select = [
     "F",  # Errors detected by Pyflakes
     "E",  # Error detected by Pycodestyle
@@ -29,13 +94,13 @@ ignore = [
     "D213",
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 force-single-line = true
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "docs/*" = ["I"]
 "tests/*" = ["D"]
 # Ignore errors linked to sphinx gallery syntax
