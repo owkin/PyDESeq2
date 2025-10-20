@@ -511,7 +511,7 @@ class DeseqStats:
             U2 = self.p_values[use]
             if not U2.empty:
                 result.loc[use, i] = false_discovery_control(U2, method="bh")
-        num_rej = (result < self.alpha).sum(0).to_numpy()
+        num_rej = (result < self.alpha).sum(0).to_numpy().astype(int)
         lowess_res = lowess(theta, num_rej, frac=1 / 5)
 
         if num_rej.max() <= 10:
