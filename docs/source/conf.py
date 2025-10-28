@@ -12,7 +12,6 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 from datetime import date
-from pathlib import Path
 
 import git
 
@@ -257,14 +256,4 @@ current_commit = git.Repo(search_parent_directories=True).head.object.hexsha
 sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "binder": {
-        "org": "Owkin",
-        "repo": "PyDESeq2",
-        "branch": current_commit,  # Can be any branch, tag, or commit hash.
-        # Use a branch that hosts your docs.
-        "binderhub_url": "https://mybinder.org",  # public binderhub url
-        "dependencies": str(Path(__file__).parents[2] / "requirements.txt"),
-        "notebooks_dir": "jupyter_notebooks",
-        "use_jupyter_lab": True,
-    },
 }
