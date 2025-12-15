@@ -130,6 +130,11 @@ The `pre-commit` tool will automatically run [ruff](https://docs.astral.sh/ruff/
 
 PyDESeq2 is a living project and any contributions are welcome! Feel free to open new PRs or issues.
 
+## Credits
+
+PyDESeq2 has been originally developed by Boris Muzellec, Maria Teleńczuk, Vincent Cabeli, and Mathieu Andreux and funded by [Owkin](https://www.owkin.com/).
+In Dec 2025, the maintenance of PyDESeq2 was taken over by the scverse community.
+
 ## Citing this work
 
 ```
