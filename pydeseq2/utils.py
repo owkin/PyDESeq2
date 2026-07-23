@@ -2,6 +2,7 @@ import multiprocessing
 from math import ceil
 from math import floor
 from pathlib import Path
+from typing import Any
 from typing import Literal
 from typing import cast
 
@@ -10,6 +11,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.linalg import solve  # type: ignore
 from scipy.optimize import minimize  # type: ignore
+from scipy.sparse import sparray  # type: ignore
+from scipy.sparse import spmatrix  # type: ignore
 from scipy.special import gammaln  # type: ignore
 from scipy.special import polygamma  # type: ignore
 from scipy.stats import norm  # type: ignore
@@ -107,14 +110,16 @@ def load_example_data(
     return df
 
 
-def test_valid_counts(counts: pd.DataFrame | np.ndarray) -> None:
+def test_valid_counts(
+    counts: pd.DataFrame | np.ndarray | spmatrix | sparray,
+) -> None:
     """Test that the count matrix contains valid inputs.
 
     More precisely, test that inputs are non-negative integers.
 
     Parameters
     ----------
-    counts : pandas.DataFrame or ndarray
+    counts : pandas.DataFrame, ndarray, scipy.sparse.spmatrix or scipy.sparse.sparray
         Raw counts. One column per gene, rows are indexed by sample barcodes.
     """
     if isinstance(counts, pd.DataFrame):
@@ -122,6 +127,17 @@ def test_valid_counts(counts: pd.DataFrame | np.ndarray) -> None:
             raise ValueError("NaNs are not allowed in the count matrix.")
         if not np.issubdtype(counts.to_numpy().dtype, np.number):
             raise ValueError("The count matrix should only contain numbers.")
+    elif isinstance(counts, (spmatrix, sparray)):
+        sparse_counts = cast(Any, counts)
+        if sparse_counts.format not in {"coo", "csc", "csr"}:
+            values = np.asarray(sparse_counts.tocoo(copy=False).data)
+        else:
+            values = np.asarray(sparse_counts.data)
+        if not np.issubdtype(values.dtype, np.number):
+            raise ValueError("The count matrix should only contain numbers.")
+        if np.isnan(values).any():
+            raise ValueError("NaNs are not allowed in the count matrix.")
+        counts = values
     else:
         if np.isnan(counts).any().any():
             raise ValueError("NaNs are not allowed in the count matrix.")
@@ -875,9 +891,14 @@ def fit_moments_dispersions(
         Estimated dispersion parameter for each gene.
     """
     # Exclude genes with all zeroes
-    normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
-    # mean inverse size factor
-    s_mean_inv = (1 / size_factors).mean(axis=0)
+    nonzero_genes = ~(normed_counts == 0).all(axis=0)
+    normed_counts = normed_counts[:, nonzero_genes]
+    # Mean inverse size factor. For gene-specific normalization factors, DESeq2
+    # first averages factors across genes within each sample, then averages the
+    # inverse sample means into one scalar shared by all genes.
+    if size_factors.ndim != 1:
+        size_factors = size_factors[:, nonzero_genes].mean(axis=1)
+    s_mean_inv = (1 / size_factors).mean()
     mu = normed_counts.mean(0)
     sigma = normed_counts.var(0, ddof=1)
     # ddof=1 is to use an unbiased estimator, as in R
