@@ -929,6 +929,247 @@ def test_vst_transform_no_fit(train_counts, train_metadata, test_counts):
         train_dds.vst_transform(test_counts.to_numpy())
 
 
+# Likelihood ratio test (LRT)
+
+
+@pytest.mark.parametrize(
+    "design, reduced, ref_file",
+    [
+        ("~condition", "~1", "data/single_factor/r_test_res_lrt.csv"),
+        ("~group + condition", "~group", "data/multi_factor/r_test_res_lrt.csv"),
+        (
+            "~group + condition",
+            "~1",
+            "data/multi_factor/r_test_res_lrt_reduced_intercept.csv",
+        ),
+    ],
+)
+def test_lrt_matches_r(counts_df, metadata, design, reduced, ref_file):
+    """The likelihood ratio test matches R DESeq2's ``DESeq(dds, test="LRT")``.
+
+    Covers a single-factor model (``df=1``), a multi-factor model testing one
+    factor adjusting for another (``df=1``), and a joint test of both factors
+    (``df=2``).
+    """
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_res = pd.read_csv(os.path.join(test_path, ref_file), index_col=0)
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design=design)
+    dds.deseq2()
+
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"], test="LRT", reduced=reduced)
+    ds.summary()
+
+    assert_lrt_res_almost_equal(ds.results_df, r_res)
+
+
+def test_lrt_no_independent_filtering(counts_df, metadata):
+    """The raw LRT statistic and p-value match R with independent filtering off."""
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_res = pd.read_csv(
+        os.path.join(
+            test_path, "data/multi_factor/r_test_res_lrt_no_independent_filtering.csv"
+        ),
+        index_col=0,
+    )
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
+    dds.deseq2()
+
+    ds = DeseqStats(
+        dds,
+        contrast=["condition", "B", "A"],
+        test="LRT",
+        reduced="~group",
+        independent_filter=False,
+    )
+    ds.summary()
+
+    assert_lrt_res_almost_equal(ds.results_df, r_res)
+
+
+def test_lrt_with_outliers(counts_df, metadata, tol=0.04):
+    """The LRT matches R when Cooks outliers are replaced and models refitted.
+
+    Uses the same mild outlier injection as the Wald outlier test. The outlier
+    counts are replaced and both the full and reduced models are refitted on the
+    imputed counts, matching R's ``counts(dds, replaced=TRUE)`` behaviour.
+    """
+    test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
+    r_res = pd.read_csv(
+        os.path.join(test_path, "data/multi_factor/r_test_res_lrt_outliers.csv"),
+        index_col=0,
+    )
+
+    counts_df.loc["sample1", "gene1"] = 2000
+    counts_df.loc["sample11", "gene7"] = 1000
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
+    dds.deseq2()
+
+    # At least one gene should have been flagged as an outlier and refitted.
+    assert dds.var["replaced"].sum() > 0
+
+    counts_before = dds.X.copy()
+
+    ds = DeseqStats(dds, contrast=["condition", "B", "A"], test="LRT", reduced="~group")
+    ds.summary()
+
+    # The LRT must not mutate the raw counts when reconstructing replaced counts.
+    np.testing.assert_array_equal(dds.X, counts_before)
+
+    assert_lrt_res_almost_equal(ds.results_df, r_res, tol=tol)
+
+
+def test_lrt_reduced_as_design_matrix(counts_df, metadata):
+    """A reduced model given as a design matrix matches the equivalent formula."""
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
+    dds.deseq2()
+
+    ds_formula = DeseqStats(
+        dds, contrast=["condition", "B", "A"], test="LRT", reduced="~group"
+    )
+    ds_formula.summary()
+
+    # Build the same reduced design as an explicit matrix.
+    reduced_matrix = model_matrix("~group", metadata).to_numpy()
+    ds_matrix = DeseqStats(
+        dds, contrast=["condition", "B", "A"], test="LRT", reduced=reduced_matrix
+    )
+    ds_matrix.summary()
+
+    pd.testing.assert_series_equal(
+        ds_formula.statistics, ds_matrix.statistics, check_names=False
+    )
+    pd.testing.assert_series_equal(
+        ds_formula.p_values, ds_matrix.p_values, check_names=False
+    )
+
+
+def test_lrt_statistic_definition(counts_df, metadata):
+    """The LRT is internally consistent, independent of the R reference.
+
+    Checks that the statistic is non-negative, that the p-value is exactly the
+    chi-squared survival function of the statistic, and that for a single removed
+    coefficient (``df=1``) the LRT statistic is close to the squared Wald
+    statistic (their asymptotic relationship) for genes with signal.
+    """
+    from scipy.stats import chi2
+
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
+    dds.deseq2()
+
+    ds_lrt = DeseqStats(dds, contrast=["condition", "B", "A"], test="LRT", reduced="~1")
+    ds_lrt.summary()
+
+    stat = ds_lrt.statistics.dropna()
+    # Statistic is non-negative.
+    assert (stat >= 0).all()
+    # p-value is the chi2 survival function of the statistic (df = 1 here).
+    df = ds_lrt.design_matrix.shape[1] - ds_lrt.reduced_design_matrix.shape[1]
+    assert df == 1
+    np.testing.assert_allclose(
+        ds_lrt.p_values.dropna().values, chi2.sf(stat.values, df), rtol=1e-10
+    )
+
+    # LRT statistic ~ (Wald statistic)^2 for genes with signal (df = 1).
+    ds_wald = DeseqStats(dds, contrast=["condition", "B", "A"], test="Wald")
+    ds_wald.summary()
+    signal = ds_wald.p_values < 0.1
+    ratio = (stat[signal] / ds_wald.statistics[signal] ** 2).dropna()
+    assert ((ratio > 0.9) & (ratio < 1.1)).all()
+
+
+def test_lrt_lfc_matches_wald(counts_df, metadata):
+    """The LRT reports the same LFC as the Wald test (both use the full model)."""
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
+    dds.deseq2()
+
+    ds_wald = DeseqStats(dds, contrast=["condition", "B", "A"], test="Wald")
+    ds_wald.summary()
+
+    ds_lrt = DeseqStats(
+        dds, contrast=["condition", "B", "A"], test="LRT", reduced="~group"
+    )
+    ds_lrt.summary()
+
+    pd.testing.assert_series_equal(
+        ds_wald.results_df["log2FoldChange"],
+        ds_lrt.results_df["log2FoldChange"],
+        check_names=False,
+    )
+
+
+def test_lrt_input_validation(counts_df, metadata):
+    """Invalid ``test``/``reduced`` combinations raise informative errors."""
+    dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
+    dds.deseq2()
+
+    # LRT requires a reduced model.
+    with pytest.raises(ValueError, match="reduced"):
+        DeseqStats(dds, contrast=["condition", "B", "A"], test="LRT")
+
+    # reduced is not allowed for the Wald test.
+    with pytest.raises(ValueError, match="reduced"):
+        DeseqStats(dds, contrast=["condition", "B", "A"], test="Wald", reduced="~group")
+
+    # Unknown test.
+    with pytest.raises(ValueError, match="test"):
+        DeseqStats(dds, contrast=["condition", "B", "A"], test="chi2")
+
+    # Reduced model not smaller than the full model.
+    with pytest.raises(ValueError, match="fewer coefficients"):
+        DeseqStats(
+            dds,
+            contrast=["condition", "B", "A"],
+            test="LRT",
+            reduced="~group + condition",
+        )
+
+    # Reduced model not nested in the full model (a factor absent from the design).
+    dds_single = DeseqDataSet(counts=counts_df, metadata=metadata, design="~condition")
+    dds_single.deseq2()
+    with pytest.raises(ValueError, match="nested"):
+        DeseqStats(
+            dds_single, contrast=["condition", "B", "A"], test="LRT", reduced="~group"
+        )
+
+
+def assert_lrt_res_almost_equal(py_res, r_res, tol=0.02, stat_atol=0.1, pval_tol=0.03):
+    """Compare PyDESeq2 LRT results to an R DESeq2 reference.
+
+    The full-model log-fold changes match R tightly. The LRT statistic matches
+    with a relative tolerance for genes with signal and an absolute tolerance for
+    near-null genes, whose statistic is ~0 and therefore dominated by IRLS
+    convergence noise (in R as well as here). For genes R deems differentially
+    expressed, p-values and adjusted p-values match R; very small p-values may
+    differ by a few percent because the chi-squared tail amplifies tiny
+    differences in the statistic.
+    """
+    # Same genes flagged NaN (Cooks / all-zero filtering).
+    assert (py_res.pvalue.isna() == r_res.pvalue.isna()).all()
+    assert (py_res.padj.isna() == r_res.padj.isna()).all()
+
+    # Full-model LFCs.
+    assert (
+        abs(r_res.log2FoldChange - py_res.log2FoldChange) / abs(r_res.log2FoldChange)
+    ).max() < tol
+
+    # LRT statistics.
+    common = py_res.stat.dropna().index
+    np.testing.assert_allclose(
+        py_res.stat.loc[common].values,
+        r_res.stat.loc[common].values,
+        rtol=tol,
+        atol=stat_atol,
+    )
+
+    # p-values / adjusted p-values for genes R deems significant.
+    signal = r_res.pvalue < 0.1
+    assert (abs(r_res.pvalue - py_res.pvalue) / r_res.pvalue)[signal].max() < pval_tol
+    assert (abs(r_res.padj - py_res.padj) / r_res.padj)[signal].max() < pval_tol
+
+
 def assert_res_almost_equal(py_res, r_res, tol=0.02):
     # check that the same p-values are NaN
     assert (py_res.pvalue.isna() == r_res.pvalue.isna()).all()
