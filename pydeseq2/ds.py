@@ -2,6 +2,7 @@ import sys
 import time
 import warnings
 from typing import Literal
+from typing import cast
 
 # import anndata as ad
 import numpy as np
@@ -199,8 +200,8 @@ class DeseqStats:
 
         # Initialize the design matrix and LFCs. If the chosen reference level are the
         # same as in dds, keep them unchanged. Otherwise, change reference level.
-        self.design_matrix = self.dds.obsm["design_matrix"].copy()
-        self.LFC = self.dds.varm["LFC"].copy()
+        self.design_matrix = cast(pd.DataFrame, self.dds.obsm["design_matrix"].copy())
+        self.LFC = cast(pd.DataFrame, self.dds.varm["LFC"].copy())
 
         # Build the reduced-model design matrix for the likelihood ratio test.
         self.reduced_design_matrix = self._build_reduced_design_matrix(reduced)
@@ -449,8 +450,8 @@ class DeseqStats:
         reduced_design_matrix = self.reduced_design_matrix.values
         df = full_design_matrix.shape[1] - reduced_design_matrix.shape[1]
 
-        size_factors = self.dds.obs["size_factors"].values
-        disp = self.dds.var["dispersions"].values[non_zero_idx]
+        size_factors = np.asarray(self.dds.obs["size_factors"], dtype=float)
+        disp = np.asarray(self.dds.var["dispersions"], dtype=float)[non_zero_idx]
 
         # Counts the full model was fit on: original counts, with Cooks outliers
         # replaced by imputed values for refitted genes (as in R's
@@ -500,7 +501,7 @@ class DeseqStats:
             mu=mu_full,
             ridge_factor=ridge_factor,
             contrast=self.contrast_vector,
-            lfc_null=0.0,
+            lfc_null=np.array(0.0),
             alt_hypothesis=None,
         )
 
