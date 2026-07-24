@@ -6,7 +6,9 @@ from typing import Literal
 # import anndata as ad
 import numpy as np
 import pandas as pd
+from formulaic_contrasts import FormulaicContrasts
 from scipy.optimize import root_scalar  # type: ignore
+from scipy.stats import chi2  # type: ignore
 from scipy.stats import false_discovery_control  # type: ignore
 
 from pydeseq2.dds import DeseqDataSet
@@ -14,6 +16,7 @@ from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
 from pydeseq2.utils import lowess
 from pydeseq2.utils import make_MA_plot
+from pydeseq2.utils import nb_nll
 
 
 class DeseqStats:
@@ -28,6 +31,21 @@ class DeseqStats:
     ----------
     dds : DeseqDataSet
         DeseqDataSet for which dispersion and LFCs were already estimated.
+
+    test : str
+        The statistical test to use for p-value estimation. One of ``["Wald", "LRT"]``.
+        The Wald test assesses the significance of a single coefficient (or contrast),
+        while the likelihood ratio test (``"LRT"``) compares the full model to a nested
+        ``reduced`` model, as in R DESeq2's ``DESeq(dds, test="LRT", reduced=...)``.
+        (default: ``"Wald"``).
+
+    reduced : str, ndarray, pandas.DataFrame, optional
+        The reduced model to compare against the full model when ``test="LRT"``.
+        Either a formulaic formula string (e.g. ``"~group"``, which must be nested in the
+        design of ``dds``), or an explicit design matrix (as a numpy array or a pandas
+        DataFrame whose columns are a subset of the full design matrix columns).
+        Required when ``test="LRT"``, and must be left to ``None`` for the Wald test.
+        (default: ``None``).
 
     contrast : list or ndarray
         Either a list of three strings or a numpy array.
@@ -102,10 +120,19 @@ class DeseqStats:
         Standard LFC error.
 
     statistics : pandas.Series
-        Wald statistics.
+        Wald statistics (``test="Wald"``) or likelihood ratio statistics
+        (``test="LRT"``).
 
     p_values : pandas.Series
-        P-values estimated from Wald statistics.
+        P-values estimated from the Wald statistics (``test="Wald"``) or from the
+        likelihood ratio statistics using a chi-squared distribution (``test="LRT"``).
+
+    test : str
+        The statistical test used for p-value estimation, one of ``["Wald", "LRT"]``.
+
+    reduced_design_matrix : pandas.DataFrame, optional
+        The reduced-model design matrix used for the likelihood ratio test
+        (``None`` for the Wald test).
 
     padj : pandas.Series
         P-values adjusted for multiple testing.
@@ -132,6 +159,8 @@ class DeseqStats:
         self,
         dds: DeseqDataSet,
         contrast: list[str] | np.ndarray,
+        test: Literal["Wald", "LRT"] = "Wald",
+        reduced: str | np.ndarray | pd.DataFrame | None = None,
         alpha: float = 0.05,
         cooks_filter: bool = True,
         independent_filter: bool = True,
@@ -149,6 +178,10 @@ class DeseqStats:
         )
 
         self.dds = dds
+
+        if test not in ("Wald", "LRT"):
+            raise ValueError(f"test must be one of 'Wald' or 'LRT', got '{test}'.")
+        self.test = test
 
         self.alpha = alpha
         self.cooks_filter = cooks_filter
@@ -168,6 +201,9 @@ class DeseqStats:
         # same as in dds, keep them unchanged. Otherwise, change reference level.
         self.design_matrix = self.dds.obsm["design_matrix"].copy()
         self.LFC = self.dds.varm["LFC"].copy()
+
+        # Build the reduced-model design matrix for the likelihood ratio test.
+        self.reduced_design_matrix = self._build_reduced_design_matrix(reduced)
 
         # Check the validity of the contrast (if provided) or build it.
         self.contrast: list[str] | np.ndarray
@@ -252,16 +288,29 @@ class DeseqStats:
                 f"positive lfc_null value (got {lfc_null}).",
             )
 
+        if self.test == "LRT" and (
+            new_lfc_null != "default" or new_alt_hypothesis != "default"
+        ):
+            warnings.warn(
+                "`lfc_null` and `alt_hypothesis` are only supported for the Wald test "
+                "and are ignored when `test='LRT'`.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         if (
             not hasattr(self, "p_values")
             or self.lfc_null != lfc_null
             or self.alt_hypothesis != alt_hypothesis
         ):
-            # Estimate p-values with Wald test
+            # Estimate p-values with the Wald test or the likelihood ratio test
             self.lfc_null = lfc_null
             self.alt_hypothesis = alt_hypothesis
             rerun_summary = True
-            self.run_wald_test()
+            if self.test == "Wald":
+                self.run_wald_test()
+            else:
+                self.run_likelihood_ratio_test()
 
         if self.cooks_filter:
             # Filter p-values based on Cooks outliers
@@ -286,16 +335,20 @@ class DeseqStats:
         self.results_df["padj"] = self.padj
 
         if not self.quiet:
+            pval_desc = (
+                "Wald test p-value"
+                if self.test == "Wald"
+                else "likelihood ratio test p-value"
+            )
             if isinstance(self.contrast, np.ndarray):
                 # The contrast vector was directly provided
                 print(
-                    f"Log2 fold change & Wald test p-value, contrast vector: "
-                    f"{self.contrast}"
+                    f"Log2 fold change & {pval_desc}, contrast vector: {self.contrast}"
                 )
             else:
                 # The factor is categorical
                 print(
-                    f"Log2 fold change & Wald test p-value: "
+                    f"Log2 fold change & {pval_desc}: "
                     f"{self.contrast[0]} {self.contrast[1]} vs {self.contrast[2]}"
                 )
             print(self.results_df)
@@ -352,6 +405,123 @@ class DeseqStats:
         self.p_values: pd.Series = pd.Series(pvals, index=self.dds.var_names)
         self.statistics: pd.Series = pd.Series(stats, index=self.dds.var_names)
         self.SE: pd.Series = pd.Series(se, index=self.dds.var_names)
+
+        # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
+        if self.dds.refit_cooks and self.dds.var["replaced"].sum() > 0:
+            self.SE.loc[self.dds.new_all_zeroes_genes] = 0.0
+            self.statistics.loc[self.dds.new_all_zeroes_genes] = 0.0
+            self.p_values.loc[self.dds.new_all_zeroes_genes] = 1.0
+
+    def run_likelihood_ratio_test(self) -> None:
+        r"""Perform a likelihood ratio test (LRT).
+
+        Compares the full model (the design of the ``DeseqDataSet``) to a nested
+        ``reduced`` model, using the same gene-wise dispersions for both. This is the
+        Python equivalent of R DESeq2's ``DESeq(dds, test="LRT", reduced=...)``.
+
+        For each gene, the test statistic is
+
+        .. math::
+            \Lambda = 2 \left( \ell_{\text{full}} - \ell_{\text{reduced}} \right),
+
+        where :math:`\ell` is the negative-binomial log-likelihood evaluated at the
+        maximum-likelihood fit of each model. Under the null hypothesis that the extra
+        full-model coefficients are zero, :math:`\Lambda` follows a chi-squared
+        distribution with degrees of freedom equal to the difference in the number of
+        coefficients between the two models. The reported ``log2FoldChange`` and
+        ``lfcSE`` still correspond to the requested ``contrast`` of the full model,
+        exactly as in R DESeq2.
+        """
+        if self.shrunk_LFCs and not self.quiet:
+            print(
+                "Note: running the likelihood ratio test on shrunk LFCs. The LRT is "
+                "usually run on the maximum-likelihood (unshrunk) estimates.",
+                file=sys.stderr,
+            )
+
+        # A reduced design matrix is always set when test="LRT".
+        assert self.reduced_design_matrix is not None
+
+        non_zero_idx = self.dds.non_zero_idx
+        non_zero_genes = self.dds.non_zero_genes
+
+        full_design_matrix = self.design_matrix.values
+        reduced_design_matrix = self.reduced_design_matrix.values
+        df = full_design_matrix.shape[1] - reduced_design_matrix.shape[1]
+
+        size_factors = self.dds.obs["size_factors"].values
+        disp = self.dds.var["dispersions"].values[non_zero_idx]
+
+        # Counts the full model was fit on: original counts, with Cooks outliers
+        # replaced by imputed values for refitted genes (as in R's
+        # ``counts(dds, replaced=TRUE)``). This keeps the reduced-model fit and the
+        # deviances consistent with the (possibly refitted) full-model LFCs.
+        # ``np.array`` (not ``asarray``) to guarantee a copy, so the in-place
+        # replacement below never mutates ``dds.X``.
+        counts = np.array(self.dds.X, dtype=float)
+        if self.dds.refit_cooks and hasattr(self.dds, "counts_to_refit"):
+            refit_pos = self.dds.var_names.get_indexer(
+                self.dds.counts_to_refit.var_names
+            )
+            counts[:, refit_pos] = np.asarray(self.dds.counts_to_refit.X, dtype=float)
+        counts = counts[:, non_zero_idx]
+
+        # Full-model mean, recomputed from the stored LFCs (natural log scale),
+        # matching the convention used by the Wald test.
+        lfc = self.LFC.values[non_zero_idx]
+        mu_full = np.exp(full_design_matrix @ lfc.T) * size_factors[:, None]
+
+        # Set regularization factors (identical to the Wald test).
+        if self.prior_LFC_var is not None:
+            ridge_factor = np.diag(1 / self.prior_LFC_var**2)
+        else:
+            ridge_factor = np.diag(np.repeat(1e-6, full_design_matrix.shape[1]))
+
+        if not self.quiet:
+            print("Running LRT tests...", file=sys.stderr)
+        start = time.time()
+
+        # Fit the reduced model with the SAME dispersions as the full model.
+        _, mu_reduced, _, _ = self.inference.irls(
+            counts=counts,
+            size_factors=size_factors,
+            design_matrix=reduced_design_matrix,
+            disp=disp,
+            min_mu=self.dds.min_mu,
+            beta_tol=self.dds.beta_tol,
+        )
+
+        # Standard error of the requested contrast, from the full-model fit, so that
+        # the ``lfcSE`` column matches the Wald test output.
+        _, _, se = self.inference.wald_test(
+            design_matrix=full_design_matrix,
+            disp=disp,
+            lfc=lfc,
+            mu=mu_full,
+            ridge_factor=ridge_factor,
+            contrast=self.contrast_vector,
+            lfc_null=0.0,
+            alt_hypothesis=None,
+        )
+
+        # LRT statistic and chi-squared p-value. ``nb_nll`` is the negative
+        # log-likelihood, so 2 * (ll_full - ll_reduced) = 2 * (nll_reduced - nll_full).
+        stats = 2.0 * (nb_nll(counts, mu_reduced, disp) - nb_nll(counts, mu_full, disp))
+        # Clip tiny negative values that can arise from numerical noise when the two
+        # models fit essentially identically (the true statistic is non-negative).
+        stats = np.maximum(stats, 0.0)
+        pvals = chi2.sf(stats, df)
+
+        end = time.time()
+        if not self.quiet:
+            print(f"... done in {end - start:.2f} seconds.\n", file=sys.stderr)
+
+        self.p_values = pd.Series(np.nan, index=self.dds.var_names)
+        self.statistics = pd.Series(np.nan, index=self.dds.var_names)
+        self.SE = pd.Series(np.nan, index=self.dds.var_names)
+        self.p_values.loc[non_zero_genes] = pvals
+        self.statistics.loc[non_zero_genes] = stats
+        self.SE.loc[non_zero_genes] = se
 
         # Account for possible all_zeroes due to outlier refitting in DESeqDataSet
         if self.dds.refit_cooks and self.dds.var["replaced"].sum() > 0:
@@ -494,7 +664,7 @@ class DeseqStats:
         """
         # Check that p-values are available. If not, compute them.
         if not hasattr(self, "p_values"):
-            self.run_wald_test()
+            self._run_test()
 
         lower_quantile = np.mean(self.base_mean == 0)
 
@@ -537,8 +707,8 @@ class DeseqStats:
         This method and the `_independent_filtering` are mutually exclusive.
         """
         if not hasattr(self, "p_values"):
-            # Estimate p-values with Wald test
-            self.run_wald_test()
+            # Estimate p-values with the configured test
+            self._run_test()
 
         self.padj = pd.Series(np.nan, index=self.dds.var_names)
         self.padj.loc[~self.p_values.isna()] = false_discovery_control(
@@ -549,7 +719,7 @@ class DeseqStats:
         """Filter p-values based on Cooks outliers."""
         # Check that p-values are available. If not, compute them.
         if not hasattr(self, "p_values"):
-            self.run_wald_test()
+            self._run_test()
 
         self.p_values[self.dds.cooks_outlier()] = np.nan
 
@@ -603,3 +773,92 @@ class DeseqStats:
         self.contrast_vector = self.dds.contrast(
             column=factor, baseline=ref, group_to_compare=alternative
         )
+
+    def _run_test(self) -> None:
+        """Run the configured statistical test (Wald or LRT)."""
+        if self.test == "Wald":
+            self.run_wald_test()
+        else:
+            self.run_likelihood_ratio_test()
+
+    def _build_reduced_design_matrix(
+        self, reduced: str | np.ndarray | pd.DataFrame | None
+    ) -> pd.DataFrame | None:
+        """Validate and build the reduced-model design matrix for the LRT.
+
+        Parameters
+        ----------
+        reduced : str, ndarray, pandas.DataFrame, optional
+            The reduced model, as passed to the constructor.
+
+        Returns
+        -------
+        pandas.DataFrame or None
+            The reduced-model design matrix (``None`` for the Wald test).
+        """
+        if self.test == "Wald":
+            if reduced is not None:
+                raise ValueError(
+                    "`reduced` is only used for the likelihood ratio test "
+                    "(`test='LRT'`); leave it to None for the Wald test."
+                )
+            return None
+
+        # test == "LRT"
+        if reduced is None:
+            raise ValueError("A `reduced` model must be provided when `test='LRT'`.")
+
+        if isinstance(reduced, str):
+            if not isinstance(self.dds.design, str):
+                raise ValueError(
+                    "A formula string can only be used for `reduced` when the "
+                    "DeseqDataSet design is itself a formula. Provide `reduced` as a "
+                    "design matrix (numpy array or pandas DataFrame) instead."
+                )
+            reduced_design_matrix = FormulaicContrasts(
+                self.dds.obs, reduced
+            ).design_matrix
+            # The reduced model must be nested in the full model.
+            full_columns = set(self.design_matrix.columns)
+            if not set(reduced_design_matrix.columns).issubset(full_columns):
+                raise ValueError(
+                    "The reduced model must be nested in the full model: its columns "
+                    f"{list(reduced_design_matrix.columns)} must be a subset of the "
+                    f"full design matrix columns {list(self.design_matrix.columns)}."
+                )
+        elif isinstance(reduced, pd.DataFrame):
+            reduced_design_matrix = reduced.copy()
+        elif isinstance(reduced, np.ndarray):
+            if reduced.ndim != 2 or reduced.shape[0] != self.dds.n_obs:
+                raise ValueError(
+                    "The reduced design matrix must be 2D with one row per sample "
+                    f"({self.dds.n_obs}); got shape {reduced.shape}."
+                )
+            reduced_design_matrix = pd.DataFrame(
+                reduced,
+                index=self.design_matrix.index,
+                columns=[f"reduced_{i}" for i in range(reduced.shape[1])],
+            )
+        else:
+            raise TypeError(
+                "`reduced` must be a formula string, a numpy array, or a pandas "
+                f"DataFrame; got {type(reduced).__name__}."
+            )
+
+        # The reduced model must have strictly fewer coefficients than the full model.
+        n_df = self.design_matrix.shape[1] - reduced_design_matrix.shape[1]
+        if n_df < 1:
+            raise ValueError(
+                "The reduced model must have fewer coefficients than the full model "
+                f"(full: {self.design_matrix.shape[1]}, "
+                f"reduced: {reduced_design_matrix.shape[1]}). "
+                "The likelihood ratio test compares nested models."
+            )
+        if reduced_design_matrix.shape[0] != self.design_matrix.shape[0]:
+            raise ValueError(
+                "The reduced design matrix must have one row per sample "
+                f"({self.design_matrix.shape[0]}); got "
+                f"{reduced_design_matrix.shape[0]}."
+            )
+
+        return reduced_design_matrix

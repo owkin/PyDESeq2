@@ -382,6 +382,31 @@ ds_Y_vs_X = DeseqStats(dds, contrast=["group", "Y", "X"], inference=inference)
 ds_Y_vs_X.summary()
 
 # %%
+# .. _lrt_ref:
+#
+# Likelihood ratio test
+# """""""""""""""""""""
+#
+# Instead of the Wald test, we may assess significance with a likelihood ratio test
+# (LRT), as in R DESeq2's ``DESeq(dds, test="LRT", reduced=...)``. The LRT compares the
+# full model to a nested ``reduced`` model that drops the term(s) being tested, and is
+# especially useful to test a factor with several levels jointly, or to compare nested
+# models in general. Here we test the effect of ``condition`` on top of ``group`` by
+# comparing the full ``~group + condition`` model to a reduced ``~group`` model.
+#
+# The p-value reflects the model comparison, while the reported ``log2FoldChange`` still
+# corresponds to the requested ``contrast`` of the full model.
+
+ds_lrt = DeseqStats(
+    dds,
+    contrast=["condition", "B", "A"],
+    test="LRT",
+    reduced="~group",
+    inference=inference,
+)
+ds_lrt.summary()
+
+# %%
 # LFC shrinkage (multifactor)
 # """""""""""""""""""""""""""
 #
