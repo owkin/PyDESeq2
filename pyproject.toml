@@ -50,11 +50,6 @@ test = [
   "pytest>=8.4",
   "pytest-cov",     # For VS Code's coverage functionality
 ]
-typecheck = [
-  "mypy==1.18.2",
-  "pandas-stubs",
-  "scipy-stubs",
-]
 doc = [
   "docutils>=0.8,!=0.18.*,!=0.19.*",
   "gitpython>=3.1.42",
@@ -71,6 +66,11 @@ doc = [
   "sphinxcontrib-bibtex",
   "sphinxcontrib-googleanalytics>=0.5",
   "texttable",
+]
+typecheck = [
+  "mypy==1.18.2",
+  "pandas-stubs",
+  "scipy-stubs",
 ]
 
 [tool.hatch]
@@ -130,17 +130,17 @@ lint.per-file-ignores."tests/*" = [ "D" ]
 lint.isort.force-single-line = true
 lint.pydocstyle.convention = "numpy"
 
-[tool.pytest.ini_options]
-addopts = [
+[tool.pytest]
+ini_options.testpaths = [ "tests" ]
+ini_options.addopts = [
   "--import-mode=importlib", # allow using test files with same name
 ]
-testpaths = [ "tests" ]
-filterwarnings = [
+ini_options.filterwarnings = [
   "error",
   # ignore Pyarrow deprecation warnings
-  '''ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning''',
-  '''ignore:\s*A value is trying to be set on a copy of a DataFrame:FutureWarning''',
-  '''ignore:\s*Setting an item of incompatible dtype:FutureWarning''',
+  'ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning',
+  'ignore:\s*A value is trying to be set on a copy of a DataFrame:FutureWarning',
+  'ignore:\s*Setting an item of incompatible dtype:FutureWarning',
 ]
 
 [tool.coverage]
