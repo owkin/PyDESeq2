@@ -22,8 +22,8 @@ __pycache__/
 
 # Sphinx gallery output
 output_files/
-docs/source/auto_examples/
-docs/source/sg_execution_times.rst
+docs/auto_examples/
+docs/sg_execution_times.rst
 
 # Requirement files
 uv.lock

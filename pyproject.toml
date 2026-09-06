@@ -57,14 +57,18 @@ doc = [
   "jupyter",
   "myst-parser",
   "numpydoc",
+  "scanpydoc>=0.15",
   "sphinx>=8",
   "sphinx-autobuild",
   "sphinx-autodoc-typehints",
+  "sphinx-book-theme>=1",
   "sphinx-click",
+  "sphinx-copybutton",
+  "sphinx-design",
   "sphinx-gallery",
-  "sphinx-rtd-theme",
   "sphinxcontrib-bibtex",
   "sphinxcontrib-googleanalytics>=0.5",
+  "sphinxext-opengraph",
   "texttable",
 ]
 typecheck = [
@@ -78,7 +82,7 @@ version.source = "vcs"
 build.targets.wheel.packages = [ "src/pydeseq2" ]
 envs.default.installer = "uv"
 envs.default.dependency-groups = [ "dev" ]
-envs.docs.scripts.build = "sphinx-build -M html docs/source docs/_build -W {args}"
+envs.docs.scripts.build = "sphinx-build -M html docs docs/_build -W {args}"
 envs.docs.scripts.clean = "git clean -fdX -- {args:docs}"
 envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 envs.docs.dependency-groups = [ "doc" ]

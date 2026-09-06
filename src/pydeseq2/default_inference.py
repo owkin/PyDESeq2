@@ -55,7 +55,8 @@ class DefaultInference(inference.Inference):
         self._backend = backend
 
     @property
-    def n_cpus(self) -> int:  # noqa: D102
+    def n_cpus(self) -> int:
+        """Number of cpus to use for multiprocessing."""
         return self._n_cpus
 
     @n_cpus.setter

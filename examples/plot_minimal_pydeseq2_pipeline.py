@@ -157,7 +157,7 @@ dds = DeseqDataSet(
 #   You might need to change it according to your own dataset.
 #
 # Several other arguments may be optionally specified (see the :doc:`API documentation
-# </api/docstrings/pydeseq2.dds.DeseqDataSet>`).
+# </generated/pydeseq2.dds.DeseqDataSet>`).
 # Among those, the ``refit_cooks`` argument (set to ``True`` by default), controls
 # whether Cooks outlier should be refitted (which is advised, in general) and ``n_cpus``
 # sets the number of CPUs to use for computation. Here, we use 8 threads. Feel free to
@@ -229,7 +229,7 @@ ds = DeseqStats(dds, contrast=["condition", "B", "A"], inference=inference)
 
 # %%
 # It also has a set of optional keyword arguments (see the :doc:`API documentation
-# </api/docstrings/pydeseq2.ds.DeseqStats>`), among which:
+# </generated/pydeseq2.ds.DeseqStats>`), among which:
 #
 # - ``alpha``: the p-value and adjusted p-value significance threshold (``0.05``
 #   by default),
