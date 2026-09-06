@@ -66,7 +66,7 @@ def load_example_data(
     )
 
     # Load data
-    datasets_path = Path(pydeseq2.__file__).parent.parent / "datasets"
+    datasets_path = Path(pydeseq2.__file__).parents[2] / "datasets"
 
     if dataset == "synthetic":
         path_to_data = datasets_path / "synthetic"
@@ -78,7 +78,7 @@ def load_example_data(
         else:
             # if the path does not exist (as is the case in RDT) load it from github
             url_to_data = (
-                "https://raw.githubusercontent.com/owkin/"
+                "https://raw.githubusercontent.com/scverse/"
                 "PyDESeq2/main/datasets/synthetic/"
             )
             path_to_data_counts = url_to_data + "/test_counts.csv"
