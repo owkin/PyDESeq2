@@ -19,13 +19,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: "3.11"
-          - os: ubuntu-latest
             python: "3.12"
           - os: ubuntu-latest
-            python: "3.13"
+            python: "3.14"
           - os: ubuntu-latest
-            python: "3.13"
+            python: "3.14"
             pip-flags: "--pre"
     steps:
       - uses: actions/checkout@v3
