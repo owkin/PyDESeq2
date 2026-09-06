@@ -8,12 +8,12 @@ import pytest
 from formulaic import model_matrix
 
 import tests
+from pydeseq2.datasets import load_example_data
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
 from pydeseq2.preprocessing import deseq2_norm
 from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
-from pydeseq2.utils import load_example_data
 
 
 @pytest.fixture

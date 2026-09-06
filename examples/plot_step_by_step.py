@@ -23,10 +23,10 @@ import pickle as pkl
 
 import numpy as np
 
+from pydeseq2.datasets import load_example_data
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.ds import DeseqStats
-from pydeseq2.utils import load_example_data
 
 SAVE = False  # whether to save the outputs of this notebook
 
@@ -57,7 +57,7 @@ if SAVE:
 #
 # To illustrate the required data format, we load a synthetic example dataset
 # that may be
-# obtained through PyDESeq2's API using :func:`utils.load_example_data`.
+# obtained through PyDESeq2's API using :func:`datasets.load_example_data`.
 # You may replace it with your own dataset.
 
 counts_df = load_example_data(

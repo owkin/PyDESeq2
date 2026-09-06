@@ -8,7 +8,14 @@ from joblib import parallel_backend
 from scipy.optimize import minimize  # type: ignore
 
 from pydeseq2 import inference
-from pydeseq2 import utils
+from pydeseq2.dispersions import fit_alpha_mle
+from pydeseq2.dispersions import fit_moments_dispersions
+from pydeseq2.dispersions import fit_rough_dispersions
+from pydeseq2.distributions import nbinomGLM
+from pydeseq2.glm import fit_lin_mu
+from pydeseq2.glm import irls_solver
+from pydeseq2.glm import wald_test
+from pydeseq2.misc import get_num_processes
 
 
 class DefaultInference(inference.Inference):
@@ -32,8 +39,8 @@ class DefaultInference(inference.Inference):
         Joblib backend.
     """
 
-    fit_rough_dispersions = staticmethod(utils.fit_rough_dispersions)  # type: ignore
-    fit_moments_dispersions = staticmethod(utils.fit_moments_dispersions)  # type: ignore
+    fit_rough_dispersions = staticmethod(fit_rough_dispersions)  # type: ignore
+    fit_moments_dispersions = staticmethod(fit_moments_dispersions)  # type: ignore
 
     def __init__(
         self,
@@ -44,7 +51,7 @@ class DefaultInference(inference.Inference):
     ):
         self._joblib_verbosity = joblib_verbosity
         self._batch_size = batch_size
-        self._n_cpus = utils.get_num_processes(n_cpus)
+        self._n_cpus = get_num_processes(n_cpus)
         self._backend = backend
 
     @property
@@ -53,7 +60,7 @@ class DefaultInference(inference.Inference):
 
     @n_cpus.setter
     def n_cpus(self, n_cpus: int) -> None:
-        self._n_cpus = utils.get_num_processes(n_cpus)
+        self._n_cpus = get_num_processes(n_cpus)
 
     def lin_reg_mu(  # noqa: D102
         self,
@@ -69,7 +76,7 @@ class DefaultInference(inference.Inference):
                     verbose=self._joblib_verbosity,
                     batch_size=self._batch_size,
                 )(
-                    delayed(utils.fit_lin_mu)(
+                    delayed(fit_lin_mu)(
                         counts=counts[:, i],
                         size_factors=size_factors,
                         design_matrix=design_matrix,
@@ -99,7 +106,7 @@ class DefaultInference(inference.Inference):
                 verbose=self._joblib_verbosity,
                 batch_size=self._batch_size,
             )(
-                delayed(utils.irls_solver)(
+                delayed(irls_solver)(
                     counts=counts[:, i],
                     size_factors=size_factors,
                     design_matrix=design_matrix,
@@ -142,7 +149,7 @@ class DefaultInference(inference.Inference):
                 verbose=self._joblib_verbosity,
                 batch_size=self._batch_size,
             )(
-                delayed(utils.fit_alpha_mle)(
+                delayed(fit_alpha_mle)(
                     counts=counts[:, i],
                     design_matrix=design_matrix,
                     mu=mu[:, i],
@@ -180,7 +187,7 @@ class DefaultInference(inference.Inference):
                 verbose=self._joblib_verbosity,
                 batch_size=self._batch_size,
             )(
-                delayed(utils.wald_test)(
+                delayed(wald_test)(
                     design_matrix=design_matrix,
                     disp=disp[i],
                     lfc=lfc[i],
@@ -247,7 +254,7 @@ class DefaultInference(inference.Inference):
                 verbose=self._joblib_verbosity,
                 batch_size=self._batch_size,
             )(
-                delayed(utils.nbinomGLM)(
+                delayed(nbinomGLM)(
                     design_matrix=design_matrix,
                     counts=counts[:, i],
                     size=size[i],

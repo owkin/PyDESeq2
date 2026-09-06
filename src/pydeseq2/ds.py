@@ -12,8 +12,8 @@ from scipy.stats import false_discovery_control  # type: ignore
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.inference import Inference
-from pydeseq2.utils import lowess
-from pydeseq2.utils import make_MA_plot
+from pydeseq2.plotting import make_MA_plot
+from pydeseq2.stats import lowess
 
 
 class DeseqStats:
