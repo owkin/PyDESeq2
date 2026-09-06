@@ -13,6 +13,12 @@ PyDESeq2
     ~ds.DeseqStats
     ~inference.Inference
     ~default_inference.DefaultInference
-    ~utils
+    ~datasets
+    ~dispersions
+    ~distributions
+    ~glm
     ~grid_search
+    ~misc
+    ~plotting
     ~preprocessing
+    ~stats

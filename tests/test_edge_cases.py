@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from pydeseq2.datasets import load_example_data
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
-from pydeseq2.utils import load_example_data
 
 
 def test_zero_genes():

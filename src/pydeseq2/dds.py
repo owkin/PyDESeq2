@@ -17,17 +17,17 @@ from scipy.stats import f  # type: ignore
 from scipy.stats import trim_mean  # type: ignore
 
 from pydeseq2.default_inference import DefaultInference
+from pydeseq2.dispersions import dispersion_trend
+from pydeseq2.dispersions import robust_method_of_moments_disp
+from pydeseq2.distributions import nb_nll
 from pydeseq2.inference import Inference
+from pydeseq2.misc import n_or_more_replicates
+from pydeseq2.misc import test_valid_counts
+from pydeseq2.plotting import make_scatter
 from pydeseq2.preprocessing import deseq2_norm_fit
 from pydeseq2.preprocessing import deseq2_norm_transform
-from pydeseq2.utils import dispersion_trend
-from pydeseq2.utils import make_scatter
-from pydeseq2.utils import mean_absolute_deviation
-from pydeseq2.utils import n_or_more_replicates
-from pydeseq2.utils import nb_nll
-from pydeseq2.utils import robust_method_of_moments_disp
-from pydeseq2.utils import test_valid_counts
-from pydeseq2.utils import trimmed_mean
+from pydeseq2.stats import mean_absolute_deviation
+from pydeseq2.stats import trimmed_mean
 
 # Ignore AnnData's FutureWarning about implicit data conversion.
 warnings.simplefilter("ignore", FutureWarning)

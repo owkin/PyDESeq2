@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.special import gammaln  # type: ignore
 
-import pydeseq2.utils
+import pydeseq2.distributions
 
 
 def vec_nb_nll(
@@ -282,7 +282,7 @@ def grid_fit_shrink_beta(
     def loss(beta: np.ndarray) -> float:
         # closure to minimize
         return (
-            pydeseq2.utils.nbinomFn(
+            pydeseq2.distributions.nbinomFn(
                 beta,
                 design_matrix,
                 counts,
