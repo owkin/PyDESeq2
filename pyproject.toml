@@ -68,7 +68,7 @@ doc = [
   "texttable",
 ]
 typecheck = [
-  "mypy==1.18.2",
+  "mypy",
   "pandas-stubs",
   "scipy-stubs",
 ]
