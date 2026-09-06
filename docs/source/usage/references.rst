@@ -1,5 +1,0 @@
-References
-----------
-
-.. bibliography::
-    :all:
