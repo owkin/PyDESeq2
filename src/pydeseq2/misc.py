@@ -13,8 +13,9 @@ def test_valid_counts(counts: pd.DataFrame | np.ndarray) -> None:
 
     Parameters
     ----------
-    counts : pandas.DataFrame or ndarray
-        Raw counts. One column per gene, rows are indexed by sample barcodes.
+    counts
+        Raw counts.
+        One column per gene, rows are indexed by sample barcodes.
     """
     if isinstance(counts, pd.DataFrame):
         if counts.isna().any().any():
@@ -36,21 +37,18 @@ def n_or_more_replicates(design_matrix: pd.DataFrame, min_replicates: int) -> pd
     """
     Return a  series indicating whether samples have a minimum number of replicates.
 
-    Checks whether each sample has at least ``min_replicates`` replicates, based on its
-    combination of design factors.
+    Checks whether each sample has at least ``min_replicates`` replicates, based on its combination of design factors.
 
     Parameters
     ----------
-    design_matrix : pandas.DataFrame
+    design_matrix
         A DataFrame with experiment design information (to split cohorts).
-    min_replicates : int
+    min_replicates
         The minimum number of replicates to have to pass the threshold.
 
     Returns
     -------
-    pandas.Series
-        A boolean series indicating whether each sample has at least ``min_replicates``
-        replicates.
+    A boolean series indicating whether each sample has at least ``min_replicates`` replicates.
     """
     n_or_more = design_matrix.value_counts() >= min_replicates
     replaceable = n_or_more[pd.MultiIndex.from_frame(design_matrix)]
@@ -65,14 +63,13 @@ def get_num_processes(n_cpus: int | None) -> int:
 
     Parameters
     ----------
-    n_cpus : int, optional
-        Desired number of cpus. If ``None``, will return the number of available cpus.
-        (default: ``None``).
+    n_cpus
+        Desired number of cpus.
+        If ``None``, will return the number of available cpus. (default: ``None``).
 
     Returns
     -------
-    int
-        Number of processes to spawn.
+    Number of processes to spawn.
     """
     if n_cpus is None:
         try:

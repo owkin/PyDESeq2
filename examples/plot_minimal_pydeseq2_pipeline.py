@@ -2,8 +2,7 @@
 A simple PyDESeq2 workflow
 ===========================
 
-In this example, we show how to perform a simple differential expression analysis on bulk
-RNAseq data, using PyDESeq2.
+In this example, we show how to perform a simple differential expression analysis on bulk RNAseq data, using PyDESeq2.
 
 .. contents:: Contents
     :local:

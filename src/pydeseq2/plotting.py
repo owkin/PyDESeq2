@@ -22,22 +22,17 @@ def make_scatter(
 
     Parameters
     ----------
-    disps : list
+    disps
         List of ndarrays to plot.
-
-    legend_labels : list
+    legend_labels
         List of strings that correspond to plotted targets values for legend.
-
-    x_val : ndarray
+    x_val
         1D array to plot (example: ``dds.varm['_normed_means']``).
-
-    log : bool
+    log
         Whether or not to log scale features and targets axes (``default=True``).
-
-    save_path : str, optional
-        The path where to save the plot. If left None, the plot won't be saved
-        (``default=None``).
-
+    save_path
+        The path where to save the plot.
+        If left None, the plot won't be saved (``default=None``).
     **kwargs
         Matplotlib keyword arguments for the scatter plot.
     """
@@ -89,31 +84,24 @@ def make_MA_plot(
     """
     Create an log ratio (M)-average (A) plot using matplotlib.
 
-    Useful for looking at log fold-change versus mean expression
-    between two groups/samples/etc.
+    Useful for looking at log fold-change versus mean expression between two groups/samples/etc.
     Uses matplotlib to emulate the ``make_MA()`` function in DESeq2 in R.
 
     Parameters
     ----------
-    results_df : pd.DataFrame
+    results_df
         Resultant dataframe after running DeseqStats() and .summary().
-
-    padj_thresh : float
+    padj_thresh
         P-value threshold to subset scatterplot colors on.
-
-    log : bool
+    log
         Whether or not to log scale features and targets axes (``default=True``).
-
-    save_path : str, optional
-        The path where to save the plot. If left None, the plot won't be saved
-        (``default=None``).
-
-    lfc_null : float
+    save_path
+        The path where to save the plot.
+        If left None, the plot won't be saved (``default=None``).
+    lfc_null
         The (log2) log fold change under the null hypothesis. (default: ``0``).
-
-    alt_hypothesis : str, optional
+    alt_hypothesis
         The alternative hypothesis for computing wald p-values. (default: ``None``).
-
     **kwargs
         Matplotlib keyword arguments for the scatter plot.
     """

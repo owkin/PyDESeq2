@@ -23,23 +23,18 @@ class Inference(ABC):
 
         Parameters
         ----------
-        counts : ndarray
+        counts
             Raw counts.
-
-        size_factors : ndarray
+        size_factors
             Sample-wise scaling factors (obtained from median-of-ratios).
-
-        design_matrix : ndarray
+        design_matrix
             Design matrix.
-
-        min_mu : float
-            Lower threshold for fitted means, for numerical stability.
-            (default: ``0.5``).
+        min_mu
+            Lower threshold for fitted means, for numerical stability. (default: ``0.5``).
 
         Returns
         -------
-        ndarray
-            Estimated mean.
+        Estimated mean.
         """
 
     @abstractmethod
@@ -62,59 +57,40 @@ class Inference(ABC):
 
         Parameters
         ----------
-        counts : ndarray
+        counts
             Raw counts.
-
-        size_factors : ndarray
+        size_factors
             Sample-wise scaling factors (obtained from median-of-ratios).
-
-        design_matrix : ndarray
+        design_matrix
             Design matrix.
-
-        disp : ndarray
+        disp
             Gene-wise dispersion prior.
-
-        min_mu : ndarray
-            Lower bound on estimated means, to ensure numerical stability.
-            (default: ``0.5``).
-
-        beta_tol : float
-            Stopping criterion for IRWLS:
-            :math:`\vert dev - dev_{old}\vert / \vert dev + 0.1 \vert < \beta_{tol}`.
-            (default: ``1e-8``).
-
-        min_beta : float
+        min_mu
+            Lower bound on estimated means, to ensure numerical stability. (default: ``0.5``).
+        beta_tol
+            Stopping criterion for IRWLS: :math:`\vert dev - dev_{old}\vert / \vert dev + 0.1 \vert < \beta_{tol}`. (default: ``1e-8``).
+        min_beta
             Lower-bound on LFC. (default: ``-30``).
-
-        max_beta : float
+        max_beta
             Upper-bound on LFC. (default: ``-30``).
-
-        optimizer : str
+        optimizer
             Optimizing method to use in case IRLS starts diverging.
             Accepted values: 'BFGS' or 'L-BFGS-B'.
-            NB: only 'L-BFGS-B' ensures that LFCS will
-            lay in the [min_beta, max_beta] range. (default: ``'L-BFGS-B'``).
-
-        maxiter : int
-            Maximum number of IRLS iterations to perform before switching to L-BFGS-B.
-            (default: ``250``).
+            NB: only 'L-BFGS-B' ensures that LFCS will lay in the [min_beta, max_beta] range. (default: ``'L-BFGS-B'``).
+        maxiter
+            Maximum number of IRLS iterations to perform before switching to L-BFGS-B. (default: ``250``).
 
         Returns
         -------
-        beta: ndarray
+        beta
             Fitted (basemean, lfc) coefficients of negative binomial GLM.
-
-        mu: ndarray
-            Means estimated from size factors and beta:
-            :math:`\mu = s_{ij} \exp(\beta^t X)`.
-
-        H: ndarray
-            Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}`
-            covariance matrix.
-
-        converged: ndarray
-            Whether IRLS or the optimizer converged. If not and if dimension allows it,
-            perform grid search.
+        mu
+            Means estimated from size factors and beta: :math:`\mu = s_{ij} \exp(\beta^t X)`.
+        H
+            Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}` covariance matrix.
+        converged
+            Whether IRLS or the optimizer converged.
+            If not and if dimension allows it, perform grid search.
         """
 
     @abstractmethod
@@ -135,45 +111,34 @@ class Inference(ABC):
 
         Parameters
         ----------
-        counts : ndarray
+        counts
             Raw counts.
-
-        design_matrix : ndarray
+        design_matrix
             Design matrix.
-
-        mu : ndarray
+        mu
             Mean estimation for the NB model.
-
-        alpha_hat : ndarray
+        alpha_hat
             Initial dispersion estimate.
-
-        min_disp : float
+        min_disp
             Lower threshold for dispersion parameters.
-
-        max_disp : float
+        max_disp
             Upper threshold for dispersion parameters.
-
-        prior_disp_var : float, optional
+        prior_disp_var
             Prior dispersion variance.
-
-        cr_reg : bool
+        cr_reg
             Whether to use Cox-Reid regularization. (default: ``True``).
-
-        prior_reg : bool
+        prior_reg
             Whether to use prior log-residual regularization. (default: ``False``).
-
-        optimizer : str
-            Optimizing method to use. Accepted values: 'BFGS' or 'L-BFGS-B'.
-            (default: ``'L-BFGS-B'``).
+        optimizer
+            Optimizing method to use.
+            Accepted values: 'BFGS' or 'L-BFGS-B'. (default: ``'L-BFGS-B'``).
 
         Returns
         -------
-        ndarray
-            Dispersion estimate.
+        Dispersion estimate.
 
-        ndarray
-            Whether L-BFGS-B converged. If not, dispersion is estimated
-            using grid search.
+        Whether L-BFGS-B converged.
+        If not, dispersion is estimated using grid search.
         """
 
     @abstractmethod
@@ -192,44 +157,34 @@ class Inference(ABC):
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Run Wald test for differential expression.
 
-        Computes Wald statistics, standard error and p-values from
-        dispersion and LFC estimates.
+        Computes Wald statistics, standard error and p-values from dispersion and LFC estimates.
 
         Parameters
         ----------
-        design_matrix : ndarray
+        design_matrix
             Design matrix.
-
-        disp : float
+        disp
             Dispersion estimate.
-
-        lfc : ndarray
+        lfc
             Log-fold change estimate (in natural log scale).
-
-        mu : float
+        mu
             Mean estimation for the NB model.
-
-        ridge_factor : ndarray
+        ridge_factor
             Regularization factors.
-
-        contrast : ndarray
+        contrast
             Vector encoding the contrast that is being tested.
-
-        lfc_null : float
+        lfc_null
             The (log2) log fold change under the null hypothesis.
-
-        alt_hypothesis : str or None
+        alt_hypothesis
             The alternative hypothesis for computing wald p-values.
 
         Returns
         -------
-        wald_p_value : ndarray
+        wald_p_value
             Estimated p-value.
-
-        wald_statistic : ndarray
+        wald_statistic
             Wald statistic.
-
-        wald_se : ndarray
+        wald_se
             Standard error of the Wald statistic.
         """
 
@@ -239,22 +194,21 @@ class Inference(ABC):
     ) -> np.ndarray:
         """'Rough dispersion' estimates from linear model, as per the R code.
 
-        Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions()
-        <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
+        Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions() <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
 
         Parameters
         ----------
-        normed_counts : ndarray
-            Array of deseq2-normalized read counts. Rows: samples, columns: genes.
-
-        design_matrix : pandas.DataFrame
+        normed_counts
+            Array of deseq2-normalized read counts.
+            Rows: samples, columns: genes.
+        design_matrix
             A DataFrame with experiment design information (to split cohorts).
-            Indexed by sample barcodes. Unexpanded, *with* intercept.
+            Indexed by sample barcodes.
+            Unexpanded, *with* intercept.
 
         Returns
         -------
-        ndarray
-            Estimated dispersion parameter for each gene.
+        Estimated dispersion parameter for each gene.
         """
 
     @abstractmethod
@@ -263,21 +217,19 @@ class Inference(ABC):
     ) -> np.ndarray:
         """Dispersion estimates based on moments, as per the R code.
 
-        Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions()
-        <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
+        Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions() <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
 
         Parameters
         ----------
-        normed_counts : ndarray
-            Array of deseq2-normalized read counts. Rows: samples, columns: genes.
-
-        size_factors : ndarray
+        normed_counts
+            Array of deseq2-normalized read counts.
+            Rows: samples, columns: genes.
+        size_factors
             DESeq2 normalization factors.
 
         Returns
         -------
-        ndarray
-            Estimated dispersion parameter for each gene.
+        Estimated dispersion parameter for each gene.
         """
 
     @abstractmethod
@@ -286,23 +238,22 @@ class Inference(ABC):
     ) -> tuple[np.ndarray, np.ndarray, bool]:
         """Fit a gamma glm on gene dispersions.
 
-        The intercept should be concatenated in this method
-        and the first returned coefficient should be the intercept.
+        The intercept should be concatenated in this method and the first returned coefficient should be the intercept.
 
         Parameters
         ----------
-        covariates : pd.Series
+        covariates
             Covariates for the regression (num_genes,).
-        targets : pd.Series
+        targets
             Targets for the regression (num_genes,).
 
         Returns
         -------
-        coeffs : ndarray
+        coeffs
             Coefficients of the regression.
-        predictions : ndarray
+        predictions
             Predictions of the regression.
-        converged : bool
+        converged
             Whether the optimization converged.
         """
 
@@ -324,39 +275,30 @@ class Inference(ABC):
 
         Parameters
         ----------
-        design_matrix : ndarray
+        design_matrix
             Design matrix.
-
-        counts : ndarray
+        counts
             Raw counts.
-
-        size : ndarray
+        size
             Size parameter of NB family (inverse of dispersion).
-
-        offset : ndarray
+        offset
             Natural logarithm of size factor.
-
-        prior_no_shrink_scale : float
+        prior_no_shrink_scale
             Prior variance for the intercept.
-
-        prior_scale : float
+        prior_scale
             Prior variance for the LFC parameter.
-
-        optimizer : str
+        optimizer
             Optimizing method to use in case IRLS starts diverging.
             Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'.
-
-        shrink_index : int
+        shrink_index
             Index of the LFC coordinate to shrink. (default: ``1``).
 
         Returns
         -------
-        beta: ndarray
+        beta
             2-element array, containing the intercept (first) and the LFC (second).
-
-        inv_hessian: ndarray
+        inv_hessian
             Inverse of the Hessian of the objective at the estimated MAP LFC.
-
-        converged: ndarray
+        converged
             Whether L-BFGS-B converged for each optimization problem.
         """

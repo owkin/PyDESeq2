@@ -16,32 +16,25 @@ def load_example_data(
 ) -> pd.DataFrame:
     """Load synthetic example data.
 
-    May load either metadata or rna-seq data. For now, this function may only return the
-    synthetic data provided as part of this repo, but new datasets might be added in the
-    future.
+    May load either metadata or rna-seq data.
+    For now, this function may only return the synthetic data provided as part of this repo, but new datasets might be added in the future.
 
     Parameters
     ----------
-    modality : str
+    modality
         Data modality. "raw_counts" or "metadata".
-
-    dataset : str
+    dataset
         The dataset for which to return gene expression data.
-        If "synthetic", will return the synthetic data that is used for CI unit tests.
-        (default: ``"synthetic"``).
-
-    debug : bool
+        If "synthetic", will return the synthetic data that is used for CI unit tests. (default: ``"synthetic"``).
+    debug
         If true, subsample 10 samples and 100 genes at random.
-        (Note that the "synthetic" dataset is already 10 features 100.)
-        (default: ``False``).
-
-    debug_seed : int
+        (Note that the "synthetic" dataset is already 10 features 100.) (default: ``False``).
+    debug_seed
         Seed for the debug mode. (default: ``42``).
 
     Returns
     -------
-    pandas.DataFrame
-        Requested data modality.
+    Requested data modality.
     """
     assert modality in [
         "raw_counts",

@@ -2,12 +2,9 @@
 Loading data and saving results with pandas and pickle
 ======================================================
 
-In this example, we show how load data in order to perform a DEA analysis with PyDESeq2,
-and how to save its results, using `pandas <https://pandas.pydata.org/>`_ and
-`pickle <https://docs.python.org/3/library/pickle.html>`_.
+In this example, we show how load data in order to perform a DEA analysis with PyDESeq2, and how to save its results, using `pandas <https://pandas.pydata.org/>`_ and `pickle <https://docs.python.org/3/library/pickle.html>`_.
 
-We refer to the :doc:`getting started example <plot_minimal_pydeseq2_pipeline>` for more
-details on the analysis itself.
+We refer to the :doc:`getting started example <plot_minimal_pydeseq2_pipeline>` for more details on the analysis itself.
 
 .. contents:: Contents
     :local:

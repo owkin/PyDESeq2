@@ -25,16 +25,14 @@ def dispersion_trend(
 
     Parameters
     ----------
-    normed_mean : float or ndarray
+    normed_mean
         Mean of normalized counts for a given gene or set of genes.
-
-    coeffs : ndarray or pd.Series
+    coeffs
         Fitted dispersion trend coefficients :math:`a_0` and :math:`a_1`.
 
     Returns
     -------
-    float or ndarray
-        Dispersion trend :math:`a_1/ \mu + a_0`.
+    Dispersion trend :math:`a_1/ \mu + a_0`.
     """
     if isinstance(coeffs, pd.Series):
         return coeffs["a0"] + coeffs["a1"] / normed_mean
@@ -45,22 +43,19 @@ def dispersion_trend(
 def trimmed_cell_variance(counts: np.ndarray, cells: pd.Series) -> np.ndarray:
     """Return trimmed variance of counts according to condition.
 
-    Compute the variance after trimming data of its smallest and largest elements,
-    grouped by cohorts, and return the max across cohorts.
+    Compute the variance after trimming data of its smallest and largest elements, grouped by cohorts, and return the max across cohorts.
     The trim factor is a function of data size.
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Sample-wise gene counts.
-
-    cells : pandas.Series
+    cells
         Cohort affiliation of each sample.
 
     Returns
     -------
-    ndarray :
-        Gene-wise trimmed variance estimate.
+    Gene-wise trimmed variance estimate.
     """
     # how much to trim at different n
     trimratio = (1 / 3, 1 / 4, 1 / 8)
@@ -102,19 +97,16 @@ def trimmed_variance(
 
     Parameters
     ----------
-    features : ndarray
+    features
         Data whose trimmed variance to compute.
-
-    trim : float
+    trim
         Fraction of data to trim at each end. (default: ``0.125``).
-
-    axis : int
+    axis
         Dimension along which to compute variance. (default: ``0``).
 
     Returns
     -------
-    float or ndarray
-        Trimmed variances.
+    Trimmed variances.
     """
     rm = trimmed_mean(x, trim=trim, axis=axis)
     sqerror = (x - rm) ** 2
@@ -136,49 +128,38 @@ def fit_alpha_mle(
 ) -> tuple[float, bool]:
     """Estimate the dispersion parameter of a negative binomial GLM.
 
-    Note: it is possible to pass counts, design_matrix and mu arguments in the form of
-    pandas Series, but using numpy arrays makes the code significantly faster.
+    Note: it is possible to pass counts, design_matrix and mu arguments in the form of pandas Series, but using numpy arrays makes the code significantly faster.
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Raw counts for a given gene.
-
-    design_matrix : ndarray
+    design_matrix
         Design matrix.
-
-    mu : ndarray
+    mu
         Mean estimation for the NB model.
-
-    alpha_hat : float
+    alpha_hat
         Initial dispersion estimate.
-
-    min_disp : float
+    min_disp
         Lower threshold for dispersion parameters.
-
-    max_disp : float
+    max_disp
         Upper threshold for dispersion parameters.
-
-    prior_disp_var : float
+    prior_disp_var
         Prior dispersion variance.
-
-    cr_reg : bool
+    cr_reg
         Whether to use Cox-Reid regularization. (default: ``True``).
-
-    prior_reg : bool
+    prior_reg
         Whether to use prior log-residual regularization. (default: ``False``).
-
-    optimizer : str
-        Optimizing method to use. Accepted values: 'BFGS' or 'L-BFGS-B'.
-        (default: ``'L-BFGS-B'``).
+    optimizer
+        Optimizing method to use.
+        Accepted values: 'BFGS' or 'L-BFGS-B'. (default: ``'L-BFGS-B'``).
 
     Returns
     -------
-    float
-        Dispersion estimate.
+    Dispersion estimate.
 
-    bool
-        Whether L-BFGS-B converged. If not, dispersion is estimated using grid search.
+    Whether L-BFGS-B converged.
+    If not, dispersion is estimated using grid search.
     """
     assert optimizer in ["BFGS", "L-BFGS-B"]
 
@@ -253,22 +234,21 @@ def fit_rough_dispersions(
 ) -> np.ndarray:
     """Rough dispersion estimates from linear model, as per the R code.
 
-    Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions()
-    <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
+    Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions() <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
 
     Parameters
     ----------
-    normed_counts : ndarray
-        Array of deseq2-normalized read counts. Rows: samples, columns: genes.
-
-    design_matrix : pandas.DataFrame
+    normed_counts
+        Array of deseq2-normalized read counts.
+        Rows: samples, columns: genes.
+    design_matrix
         A DataFrame with experiment design information (to split cohorts).
-        Indexed by sample barcodes. Unexpanded, *with* intercept.
+        Indexed by sample barcodes.
+        Unexpanded, *with* intercept.
 
     Returns
     -------
-    ndarray
-        Estimated dispersion parameter for each gene.
+    Estimated dispersion parameter for each gene.
     """
     num_samples, num_vars = design_matrix.shape
     # This method is only possible when num_samples > num_vars.
@@ -295,21 +275,19 @@ def fit_moments_dispersions(
 ) -> np.ndarray:
     """Dispersion estimates based on moments, as per the R code.
 
-    Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions()
-    <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
+    Used as initial estimates in :meth:`DeseqDataSet.fit_genewise_dispersions() <pydeseq2.dds.DeseqDataSet.fit_genewise_dispersions>`.
 
     Parameters
     ----------
-    normed_counts : ndarray
-        Array of deseq2-normalized read counts. Rows: samples, columns: genes.
-
-    size_factors : ndarray
+    normed_counts
+        Array of deseq2-normalized read counts.
+        Rows: samples, columns: genes.
+    size_factors
         DESeq2 normalization factors.
 
     Returns
     -------
-    ndarray
-        Estimated dispersion parameter for each gene.
+    Estimated dispersion parameter for each gene.
     """
     # Exclude genes with all zeroes
     normed_counts = normed_counts[:, ~(normed_counts == 0).all(axis=0)]
@@ -331,18 +309,18 @@ def robust_method_of_moments_disp(
 
     Parameters
     ----------
-    normed_counts : ndarray
-        Array of deseq2-normalized read counts. Rows: samples, columns: genes.
-
-    design_matrix : pandas.DataFrame
+    normed_counts
+        Array of deseq2-normalized read counts.
+        Rows: samples, columns: genes.
+    design_matrix
         A DataFrame with experiment design information (to split cohorts).
-        Indexed by sample barcodes. Unexpanded, *with* intercept.
+        Indexed by sample barcodes.
+        Unexpanded, *with* intercept.
 
     Returns
     -------
-    ndarray
-        Trimmed method of moment dispersion estimates.
-        Used for outlier detection based on Cook's distance.
+    Trimmed method of moment dispersion estimates.
+    Used for outlier detection based on Cook's distance.
     """
     # if there are 3 or more replicates in any cell
     three_or_more = n_or_more_replicates(design_matrix, 3)

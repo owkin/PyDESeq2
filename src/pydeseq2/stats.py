@@ -14,19 +14,16 @@ def trimmed_mean(x: np.ndarray, trim: float = 0.1, **kwargs) -> float | np.ndarr
 
     Parameters
     ----------
-    x : ndarray
+    x
         Data whose mean to compute.
-
-    trim : float
+    trim
         Fraction of data to trim at each end. (default: ``0.1``).
-
     **kwargs
         Keyword arguments, useful to pass axis.
 
     Returns
     -------
-    float or ndarray :
-        Trimmed mean.
+    Trimmed mean.
     """
     assert trim <= 0.5
     if "axis" in kwargs:
@@ -50,13 +47,12 @@ def mean_absolute_deviation(x: np.ndarray) -> float:
 
     Parameters
     ----------
-    features : ndarray
+    features
         1D array whose MAD to compute.
 
     Returns
     -------
-    float
-        Mean absolute deviation estimator.
+    Mean absolute deviation estimator.
     """
     center = np.median(x)
     return np.median(np.abs(x - center)) / norm.ppf(0.75)
@@ -68,28 +64,27 @@ def lowess(
     """Run lowess smoothing: Robust locally weighted regression.
 
     The lowess function fits a nonparametric regression curve to a scatterplot.
-    The arrays features and targets contain an equal number of elements; each pair
-    (features[i], targets[i]) defines a data point in the scatterplot. The function
-    returns the estimated (smooth) values of targets.
-    The smoothing span is given by frac. A larger value for frac will result in a
-    smoother curve. The number of robustifying iterations is given by iter. The
-    function will run faster with a smaller number of iterations.
+    The arrays features and targets contain an equal number of elements; each pair (features[i], targets[i]) defines a data point in the scatterplot.
+    The function returns the estimated (smooth) values of targets.
+    The smoothing span is given by frac.
+    A larger value for frac will result in a smoother curve.
+    The number of robustifying iterations is given by iter.
+    The function will run faster with a smaller number of iterations.
 
     Parameters
     ----------
-    features : ndarray
+    features
         A 1D array of data points.
-    targets : ndarray
+    targets
         A 1D array of target values (with the same shape as features).
-    frac : float
+    frac
         The fraction of the data used when estimating each y-value. (default: ``2/3``).
-    iter : int
+    iter
         The number of robustifying iterations. (default: ``3``).
 
     Returns
     -------
-    ndarray
-        Estimated (smooth) values of targets.
+    Estimated (smooth) values of targets.
     """
     n = len(features)
     r = int(ceil(frac * n))

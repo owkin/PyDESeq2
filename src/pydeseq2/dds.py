@@ -36,168 +36,112 @@ warnings.simplefilter("ignore", FutureWarning)
 class DeseqDataSet(ad.AnnData):
     r"""A class to implement dispersion and log fold-change (LFC) estimation.
 
-    The DeseqDataSet extends the `AnnData class
-    <https://anndata.readthedocs.io/en/latest/generated/anndata.AnnData.html#anndata.AnnData>`_.
-    As such, it implements the same methods and attributes, in addition to those that are
-    specific to pydeseq2.
-    Dispersions and LFCs are estimated following the DESeq2 pipeline
-    :cite:p:`DeseqDataSet-love2014moderated`.
+    The DeseqDataSet extends the `AnnData class <https://anndata.readthedocs.io/en/latest/generated/anndata.AnnData.html#anndata.AnnData>`_.
+    As such, it implements the same methods and attributes, in addition to those that are specific to pydeseq2.
+    Dispersions and LFCs are estimated following the DESeq2 pipeline :cite:p:`DeseqDataSet-love2014moderated`.
 
     Parameters
     ----------
-    adata : anndata.AnnData
-        AnnData from which to initialize the DeseqDataSet. Must have counts ('X') and
-        sample metadata ('obs') fields. If ``None``, both ``counts`` and ``metadata``
-        arguments must be provided.
-
-    counts : pandas.DataFrame
-        Raw counts. One column per gene, rows are indexed by sample barcodes.
-
-    metadata : pandas.DataFrame
+    adata
+        AnnData from which to initialize the DeseqDataSet.
+        Must have counts ('X') and sample metadata ('obs') fields.
+        If ``None``, both ``counts`` and ``metadata`` arguments must be provided.
+    counts
+        Raw counts.
+        One column per gene, rows are indexed by sample barcodes.
+    metadata
         DataFrame containing sample metadata.
         Must be indexed by sample barcodes.
-
-    design : str or pandas.DataFrame
-        Model design. Can be either a pandas DataFrame representing a design matrix, or
-        a formulaic formula in the format ``'x + z'`` or ``'~x+z'``.
-        If a design matrix is provided, DeseqStats built from this DeseqDataSet will
-        only support contrasts in the form of numeric vectors.
+    design
+        Model design.
+        Can be either a pandas DataFrame representing a design matrix, or a formulaic formula in the format ``'x + z'`` or ``'~x+z'``.
+        If a design matrix is provided, DeseqStats built from this DeseqDataSet will only support contrasts in the form of numeric vectors.
         (Default: ``'~condition')``.
-
-    design_factors : str or list, optional
-        Depecated. An optional list of factors to include in the design matrix.
+    design_factors
+        Depecated.
+        An optional list of factors to include in the design matrix.
         Will be removed in a future release. (default: ``None``).
-
-    continuous_factors : list, optional
-        Deprecated. Continuous factors are now automatically detected from the design,
-        or cast to categorical using the C() operator in the formula.
-        (default: ``None``).
-
-    ref_level : list, optional
+    continuous_factors
         Deprecated.
-
-    fit_type: str
-        Either ``"parametric"`` or ``"mean"`` for the type of fitting of dispersions to
-        the mean intensity. ``"parametric"``: fit a dispersion-mean relation via a
-        robust gamma-family GLM. ``"mean"``: use the mean of gene-wise dispersion
-        estimates. Will set the fit type for the DEA and the vst transformation. If
-        needed, it can be set separately for each method.(default: ``"parametric"``).
-
-    size_factors_fit_type : str
-        The normalization method to use: ``"ratio"``, ``"poscounts"`` or ``"iterative"``.
-        ``"ratio"``: fit size factors using the median-of-ratios method. ``"poscounts"``:
-        fit size factors using the method implemented in DESeq2 for the case where there
-        may be few or no genes which have no zero values.
-        ``"iterative"``: fit size factors iteratively. (default: ``"ratio"``).
-
-    control_genes : ndarray, list, or pandas.Index, optional
-        Genes to use as control genes for size factor fitting. If provided, size factors
-        will be fit using only these genes. This is useful when certain genes are known
-        to be invariant across conditions (e.g., housekeeping genes). Any valid AnnData
-        indexer (bool array, integer positions, or gene name strings) can be used.
-        (default: ``None``).
-
-    min_mu : float
+        Continuous factors are now automatically detected from the design, or cast to categorical using the C() operator in the formula. (default: ``None``).
+    ref_level
+        Deprecated.
+    fit_type
+        Either ``"parametric"`` or ``"mean"`` for the type of fitting of dispersions to the mean intensity. ``"parametric"``: fit a dispersion-mean relation via a robust gamma-family GLM. ``"mean"``: use the mean of gene-wise dispersion estimates.
+        Will set the fit type for the DEA and the vst transformation.
+        If needed, it can be set separately for each method.(default: ``"parametric"``).
+    size_factors_fit_type
+        The normalization method to use: ``"ratio"``, ``"poscounts"`` or ``"iterative"``. ``"ratio"``: fit size factors using the median-of-ratios method. ``"poscounts"``: fit size factors using the method implemented in DESeq2 for the case where there may be few or no genes which have no zero values. ``"iterative"``: fit size factors iteratively. (default: ``"ratio"``).
+    control_genes
+        Genes to use as control genes for size factor fitting.
+        If provided, size factors will be fit using only these genes.
+        This is useful when certain genes are known to be invariant across conditions (e.g., housekeeping genes).
+        Any valid AnnData indexer (bool array, integer positions, or gene name strings) can be used. (default: ``None``).
+    min_mu
         Threshold for mean estimates. (default: ``0.5``).
-
-    min_disp : float
+    min_disp
         Lower threshold for dispersion parameters. (default: ``1e-8``).
-
-    max_disp : float
+    max_disp
         Upper threshold for dispersion parameters.
-        Note: The threshold that is actually enforced is max(max_disp, len(counts)).
-        (default: ``10``).
-
-    refit_cooks : bool
+        Note: The threshold that is actually enforced is max(max_disp, len(counts)). (default: ``10``).
+    refit_cooks
         Whether to refit cooks outliers. (default: ``True``).
-
-    min_replicates : int
-        Minimum number of replicates a condition should have
-        to allow refitting its samples. (default: ``7``).
-
-    beta_tol : float
+    min_replicates
+        Minimum number of replicates a condition should have to allow refitting its samples. (default: ``7``).
+    beta_tol
         Stopping criterion for IRWLS. (default: ``1e-8``).
 
         .. math:: \vert dev_t - dev_{t+1}\vert / (\vert dev \vert + 0.1) < \beta_{tol}.
-
-    n_cpus : int
-        Number of cpus to use.  If ``None`` and if ``inference`` is not provided, all
-        available cpus will be used by the ``DefaultInference``. If both are specified
-        (i.e., ``n_cpus`` and ``inference`` are not ``None``), it will try to override
-        the ``n_cpus`` attribute of the ``inference`` object. (default: ``None``).
-
-    inference : Inference
-        Implementation of inference routines object instance.
-        (default:
-        :class:`DefaultInference <pydeseq2.default_inference.DefaultInference>`).
-
-    quiet : bool
+    n_cpus
+        Number of cpus to use.
+        If ``None`` and if ``inference`` is not provided, all available cpus will be used by the ``DefaultInference``.
+        If both are specified (i.e., ``n_cpus`` and ``inference`` are not ``None``), it will try to override the ``n_cpus`` attribute of the ``inference`` object. (default: ``None``).
+    inference
+        Implementation of inference routines object instance. (default: :class:`DefaultInference <pydeseq2.default_inference.DefaultInference>`).
+    quiet
         Suppress deseq2 status updates during fit.
-
-    low_memory : bool
-        Remove intermediate data structures from .layers and from .obsm that are no
-        longer necessary after they are used during deseq2 run, such as Cook's
-        distances. (default: False)
+    low_memory
+        Remove intermediate data structures from .layers and from .obsm that are no longer necessary after they are used during deseq2 run, such as Cook's distances. (default: False)
 
     Attributes
     ----------
     X
         A ‘number of samples’ x ‘number of genes’ count data matrix.
-
     obs
-        Key-indexed one-dimensional observations annotation of length 'number of
-        samples". Used to store design factors.
-
+        Key-indexed one-dimensional observations annotation of length 'number of samples".
+        Used to store design factors.
     var
         Key-indexed one-dimensional gene-level annotation of length ‘number of genes’.
-
     uns
         Key-indexed unstructured annotation.
-
     obsm
-        Key-indexed multi-dimensional observations annotation of length
-        ‘number of samples’. Stores "design_matrix" and "size_factors", among others.
-
+        Key-indexed multi-dimensional observations annotation of length ‘number of samples’.
+        Stores "design_matrix" and "size_factors", among others.
     varm
         Key-indexed multi-dimensional gene annotation of length ‘number of genes’.
         Stores "dispersions" and "LFC", among others.
-
     layers
         Key-indexed multi-dimensional arrays aligned to dimensions of `X`, e.g. "cooks".
-
-    n_processes : int
+    n_processes
         Number of cpus to use for multiprocessing.
-
-    non_zero_idx : ndarray
+    non_zero_idx
         Indices of genes that have non-uniformly zero counts.
-
-    non_zero_genes : pandas.Index
+    non_zero_genes
         Index of genes that have non-uniformly zero counts.
-
-    counts_to_refit : anndata.AnnData
-        Read counts after replacement, containing only genes
-        for which dispersions and LFCs must be fitted again.
-
-    new_all_zeroes_genes : pandas.Index
+    counts_to_refit
+        Read counts after replacement, containing only genes for which dispersions and LFCs must be fitted again.
+    new_all_zeroes_genes
         Genes which have only zero counts after outlier replacement.
-
-    quiet : bool
+    quiet
         Suppress deseq2 status updates during fit.
-
-    logmeans: numpy.ndarray
+    logmeans
         Gene-wise mean log counts, computed in ``preprocessing.deseq2_norm_fit()``.
-
-    filtered_genes: numpy.ndarray
-        Genes whose log means are different from -∞, computed in
-        preprocessing.deseq2_norm_fit().
-
-    factor_storage : dict
-        A dictionary storing metadata for each factor processed by the custom
-        materializer (only if ``design`` is input as a formula).
-
-    variable_to_factors : dict
-        A dictionary mapping variable names to factor names (only if ``design`` is input
-        as a formula).
+    filtered_genes
+        Genes whose log means are different from -∞, computed in preprocessing.deseq2_norm_fit().
+    factor_storage
+        A dictionary storing metadata for each factor processed by the custom materializer (only if ``design`` is input as a formula).
+    variable_to_factors
+        A dictionary mapping variable names to factor names (only if ``design`` is input as a formula).
 
     References
     ----------
@@ -372,11 +316,10 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        use_design : bool
+        use_design
             Whether to use the full design matrix to fit dispersions and the trend curve.
             If False, only an intercept is used. (default: ``False``).
-
-        fit_type: str
+        fit_type
             * ``None``: fit_type provided at initialization to fit
               the dispersions trend curve.
             * ``"parametric"``: fit a dispersion-mean relation via a robust
@@ -408,11 +351,10 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        use_design : bool
+        use_design
             Whether to use the full design matrix to fit dispersions and the trend curve.
             If False, only an intercept is used.
-            Only useful if ``fit_type = "parametric"`.
-            (default: ``False``).
+            Only useful if ``fit_type = "parametric"`. (default: ``False``).
         """
         # Start by fitting median-of-ratio size factors if not already present,
         # or if they were computed iteratively
@@ -457,14 +399,13 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        counts : numpy.ndarray
-            Counts to transform. If ``None``, use the counts from the current dataset.
-            (default: ``None``).
+        counts
+            Counts to transform.
+            If ``None``, use the counts from the current dataset. (default: ``None``).
 
         Returns
         -------
-        numpy.ndarray
-            Variance stabilized counts.
+        Variance stabilized counts.
 
         Raises
         ------
@@ -538,14 +479,10 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        fit_type : str
-            Either None, ``"parametric"`` or ``"mean"`` for the type of fitting of
-            dispersions to the mean intensity.``"parametric"``: fit a dispersion-mean
-            relation via a robust gamma-family GLM. ``"mean"``: use the mean of
-            gene-wise dispersion estimates.
+        fit_type
+            Either None, ``"parametric"`` or ``"mean"`` for the type of fitting of dispersions to the mean intensity.``"parametric"``: fit a dispersion-mean relation via a robust gamma-family GLM. ``"mean"``: use the mean of gene-wise dispersion estimates.
 
-            If None, the fit_type provided at class initialization is used.
-            (default: ``None``).
+            If None, the fit_type provided at class initialization is used. (default: ``None``).
         """
         if fit_type is not None:
             self.fit_type = fit_type
@@ -589,8 +526,7 @@ class DeseqDataSet(ad.AnnData):
 
         Returns
         -------
-        ndarray
-            A contrast vector that aligns to the columns of the design matrix.
+        A contrast vector that aligns to the columns of the design matrix.
         """
         try:
             return self.formulaic_contrasts.cond(**kwargs)
@@ -619,35 +555,26 @@ class DeseqDataSet(ad.AnnData):
     ) -> None:
         """Fit sample-wise deseq2 normalization (size) factors.
 
-        Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`,
-        unless each gene has at least one sample with zero read counts, in which case it
-        switches to the ``iterative`` method.
+        Uses the median-of-ratios method: see :func:`pydeseq2.preprocessing.deseq2_norm`, unless each gene has at least one sample with zero read counts, in which case it switches to the ``iterative`` method.
 
-        Also available is the 'poscounts' method implemented in DESeq2 for the
-        single-cell or metagenomics use case where there may be few or no features which
-        have no zero values. In this situation, size factors can depend on a very small
-        number of features (or only one feature) leading to incorrect inference. This
-        method for calculating size factors will only exclude genes which have all-0
-        values (and are not amenable to inference anyway).
+        Also available is the 'poscounts' method implemented in DESeq2 for the single-cell or metagenomics use case where there may be few or no features which have no zero values.
+        In this situation, size factors can depend on a very small number of features (or only one feature) leading to incorrect inference.
+        This method for calculating size factors will only exclude genes which have all-0 values (and are not amenable to inference anyway).
 
-        The "poscounts" method calculates the n-th root of the product of the non-zero
-        (positive) counts.
+        The "poscounts" method calculates the n-th root of the product of the non-zero (positive) counts.
 
-        Control genes can be optionally provided; if so, size factors will be fit to
-        only the genes in this argument. This is the same functionality as controlGenes
-        in R DESeq2. Any valid AnnData indexer (bool, int position, var_name string) is
-        accepted.
+        Control genes can be optionally provided; if so, size factors will be fit to only the genes in this argument.
+        This is the same functionality as controlGenes in R DESeq2.
+        Any valid AnnData indexer (bool, int position, var_name string) is accepted.
 
         Parameters
         ----------
-        fit_type : str
-            The normalization method to use: "ratio", "poscounts" or "iterative".
-            (default: ``"ratio"``).
-        control_genes : ndarray, list, or pandas.Index, optional
-            Genes to use as control genes for size factor fitting. If None, all genes
-            are used. Note that manually passing control genes here will override the
-            `DeseqDataSet` `control_genes` attribute.
-            (default: ``None``).
+        fit_type
+            The normalization method to use: "ratio", "poscounts" or "iterative". (default: ``"ratio"``).
+        control_genes
+            Genes to use as control genes for size factor fitting.
+            If None, all genes are used.
+            Note that manually passing control genes here will override the `DeseqDataSet` `control_genes` attribute. (default: ``None``).
         """
         if fit_type is None:
             fit_type = self.size_factors_fit_type
@@ -753,9 +680,8 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        vst : bool
-            Whether the dispersion estimates are being fitted as part of the VST
-            pipeline. (default: ``False``).
+        vst
+            Whether the dispersion estimates are being fitted as part of the VST pipeline. (default: ``False``).
         """
         # Check that size factors are available. If not, compute them.
         if "size_factors" not in self.obs:
@@ -839,9 +765,8 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        vst : bool
-            Whether the dispersion trend curve is being fitted as part of the VST
-            pipeline. (default: ``False``).
+        vst
+            Whether the dispersion trend curve is being fitted as part of the VST pipeline. (default: ``False``).
         """
         disp_param_name = "vst_genewise_dispersions" if vst else "genewise_dispersions"
         fit_type = self.vst_fit_type if vst else self.fit_type
@@ -880,8 +805,7 @@ class DeseqDataSet(ad.AnnData):
 
         The computation is based on genes whose dispersions are above 100 * min_disp.
 
-        Note: when the design matrix has fewer than 3 degrees of freedom, the
-        estimate of log dispersions is likely to be imprecise.
+        Note: when the design matrix has fewer than 3 degrees of freedom, the estimate of log dispersions is likely to be imprecise.
         """
         # Check that the dispersion trend curve was fitted. If not, fit it.
         if "fitted_dispersions" not in self.var:
@@ -975,8 +899,7 @@ class DeseqDataSet(ad.AnnData):
     def fit_LFC(self) -> None:
         """Fit log fold change (LFC) coefficients.
 
-        In the 2-level setting, the intercept corresponds to the base mean,
-        while the second is the actual LFC coefficient, in natural log scale.
+        In the 2-level setting, the intercept corresponds to the base mean, while the second is the actual LFC coefficient, in natural log scale.
         """
         # Check that MAP dispersions are available. If not, compute them.
         if "dispersions" not in self.var:
@@ -1080,8 +1003,7 @@ class DeseqDataSet(ad.AnnData):
     def refit(self) -> None:
         """Refit Cook outliers.
 
-        Replace values that are filtered out based on the Cooks distance with imputed
-        values, and then re-run the whole DESeq2 pipeline on replaced values.
+        Replace values that are filtered out based on the Cooks distance with imputed values, and then re-run the whole DESeq2 pipeline on replaced values.
         """
         # Replace outlier counts
         self._replace_outliers()
@@ -1150,14 +1072,11 @@ class DeseqDataSet(ad.AnnData):
     def to_picklable_anndata(self) -> ad.AnnData:
         """Convert the DESeqDataSet to a picklable AnnData object.
 
-        Builds an AnnData object from the DESeqDataSet with the same data, but converts
-        the design matrix to a DataFrame to remove the formulaic model_spec attribute,
-        which is not picklable.
+        Builds an AnnData object from the DESeqDataSet with the same data, but converts the design matrix to a DataFrame to remove the formulaic model_spec attribute, which is not picklable.
 
         Returns
         -------
-        anndata.AnnData
-            The AnnData object, without DeseqDataSet unpicklable attributes.
+        The AnnData object, without DeseqDataSet unpicklable attributes.
         """
         # Initialize an AnnData object
         adata = ad.AnnData(
@@ -1206,18 +1125,15 @@ class DeseqDataSet(ad.AnnData):
     ) -> None:
         """Plot dispersions.
 
-        Make a scatter plot with genewise dispersions, trend curve and final (MAP)
-        dispersions.
+        Make a scatter plot with genewise dispersions, trend curve and final (MAP) dispersions.
 
         Parameters
         ----------
-        log : bool
+        log
             Whether to log scale x and y axes (``default=True``).
-
-        save_path : str, optional
-            The path where to save the plot. If left None, the plot won't be saved
-            (``default=None``).
-
+        save_path
+            The path where to save the plot.
+            If left None, the plot won't be saved (``default=None``).
         **kwargs
             Keyword arguments for the scatter plot.
         """
@@ -1243,9 +1159,8 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        vst : bool
-            Whether the dispersion trend curve is being fitted as part of the VST
-            pipeline. (default: ``False``).
+        vst
+            Whether the dispersion trend curve is being fitted as part of the VST pipeline. (default: ``False``).
         """
         disp_param_name = "vst_genewise_dispersions" if vst else "genewise_dispersions"
 
@@ -1319,9 +1234,8 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        vst : bool
-            Whether the dispersion trend curve is being fitted as part of the VST
-            pipeline. (default: ``False``).
+        vst
+            Whether the dispersion trend curve is being fitted as part of the VST pipeline. (default: ``False``).
         """
         disp_param_name = "vst_genewise_dispersions" if vst else "genewise_dispersions"
 
@@ -1507,12 +1421,10 @@ class DeseqDataSet(ad.AnnData):
 
         Parameters
         ----------
-        niter : int
+        niter
             Maximum number of iterations to perform (default: ``10``).
-
-        quant : float
-            Quantile value at which negative likelihood is cut in the optimization
-            (default: ``0.95``).
+        quant
+            Quantile value at which negative likelihood is cut in the optimization (default: ``0.95``).
 
         """
         # Initialize size factors and normed counts fields

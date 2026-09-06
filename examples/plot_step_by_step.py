@@ -4,18 +4,15 @@ Step-by-step PyDESeq2 workflow
 
 This notebook details all the steps of the PyDESeq2 pipeline.
 
-It allows you to run the PyDESeq2 pipeline on the synthetic data provided
-in this repository.
+It allows you to run the PyDESeq2 pipeline on the synthetic data provided in this repository.
 
-If this is your first contact with PyDESeq2, we recommend you first have a look at the
-:doc:`standard workflow example <plot_minimal_pydeseq2_pipeline>`.
+If this is your first contact with PyDESeq2, we recommend you first have a look at the :doc:`standard workflow example <plot_minimal_pydeseq2_pipeline>`.
 
 .. contents:: Contents
     :local:
     :depth: 3
 
-We start by importing required packages and setting up an optional path to save
-results.
+We start by importing required packages and setting up an optional path to save results.
 """
 
 import os

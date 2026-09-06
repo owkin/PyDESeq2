@@ -126,6 +126,7 @@ lint.ignore = [
   # Disable one in each pair of mutually incompatible rules
   "D203", # We don't want a blank line before a class docstring
   "D213", # We want docstrings to start immediately after the opening triple quote
+  "E501", # Line too long
 ]
 lint.per-file-ignores."*/__init__.py" = [ "F401" ]
 lint.per-file-ignores."docs/*" = [ "I" ]
