@@ -337,7 +337,7 @@ class DeseqStats:
         start = time.time()
         pvals, stats, se = self.inference.wald_test(
             design_matrix=design_matrix,
-            disp=self.dds.var["dispersions"].values,
+            disp=self.dds.var["dispersions"].to_numpy(),
             lfc=LFCs,
             mu=mu,
             ridge_factor=ridge_factor,
@@ -384,8 +384,8 @@ class DeseqStats:
         coeff_idx = self.LFC.columns.get_loc(coeff)
 
         design_matrix = self.design_matrix.values
-        size = 1.0 / self.dds.var["dispersions"].values
-        offset = np.log(self.dds.obs["size_factors"]).values
+        size = 1.0 / self.dds.var["dispersions"].to_numpy()
+        offset = np.log(self.dds.obs["size_factors"]).to_numpy()
 
         # Set priors
         prior_no_shrink_scale = 15
