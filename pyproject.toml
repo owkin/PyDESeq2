@@ -1,10 +1,9 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = [ "hatch-vcs", "hatchling" ]
 
 [project]
 name = "pydeseq2"
-version = "0.5.4"
 description = "A python implementation of DESeq2."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -24,6 +23,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
+dynamic = [ "version" ]
 dependencies = [
   "anndata>=0.11",
   "formulaic>=1.0.2",
@@ -74,6 +74,7 @@ typecheck = [
 ]
 
 [tool.hatch]
+version.source = "vcs"
 build.targets.wheel.packages = [ "src/pydeseq2" ]
 envs.default.installer = "uv"
 envs.default.dependency-groups = [ "dev" ]
@@ -137,9 +138,9 @@ ini_options.addopts = [
 ]
 ini_options.filterwarnings = [
   "error",
+  'ignore:\s*A value is trying to be set on a copy of a DataFrame:FutureWarning',
   # ignore Pyarrow deprecation warnings
   'ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning',
-  'ignore:\s*A value is trying to be set on a copy of a DataFrame:FutureWarning',
   'ignore:\s*Setting an item of incompatible dtype:FutureWarning',
 ]
 
