@@ -1,6 +1,9 @@
 import sys
 import time
 import warnings
+from collections.abc import MutableMapping
+from typing import TYPE_CHECKING
+from typing import Any
 from typing import Literal
 from typing import cast
 
@@ -203,6 +206,17 @@ class DeseqDataSet(ad.AnnData):
 
     """
 
+    if TYPE_CHECKING:
+        # anndata annotates these for every container it supports; a DeseqDataSet
+        # only ever holds the in-memory subset. obsm and varm stay Any: they mix
+        # DataFrames and ndarrays.
+        X: np.ndarray  # type: ignore[assignment]
+        obs: pd.DataFrame  # type: ignore[assignment]
+        var: pd.DataFrame  # type: ignore[assignment]
+        layers: MutableMapping[str, np.ndarray]  # type: ignore[assignment]
+        obsm: MutableMapping[str, Any]  # type: ignore[assignment]
+        varm: MutableMapping[str, Any]  # type: ignore[assignment]
+
     def __init__(
         self,
         *,
@@ -238,11 +252,12 @@ class DeseqDataSet(ad.AnnData):
                     "adata was provided; ignoring metadata.", UserWarning, stacklevel=2
                 )
             # Test counts before going further
-            test_valid_counts(adata.X)
+            adata_counts = cast(np.ndarray, adata.X)
+            test_valid_counts(adata_counts)
             # Copy fields from original AnnData
             self.__dict__.update(adata.__dict__)
             # Cast counts to ints to avoid any issue
-            self.X = adata.X.astype(int)
+            self.X = adata_counts.astype(int)
         elif counts is not None and metadata is not None:
             # Test counts before going further
             test_valid_counts(counts)
@@ -483,7 +498,9 @@ class DeseqDataSet(ad.AnnData):
                     "Logmeans is set but filtered_genes is None. This should not happen."
                 )
 
-            normed_counts, _ = deseq2_norm_transform(counts, logmeans, filtered_genes)
+            normed_counts = cast(
+                np.ndarray, deseq2_norm_transform(counts, logmeans, filtered_genes)[0]
+            )
 
         if self.vst_fit_type == "parametric":
             if "vst_trend_coeffs" not in self.uns:
@@ -656,9 +673,11 @@ class DeseqDataSet(ad.AnnData):
 
             # Use AnnData internal indexing to get gene index array
             # Allows bool/int/var_name to be provided
-            _control_mask[self._normalize_indices((slice(None), control_genes))[1]] = (
-                True
-            )
+            _control_mask[
+                cast(
+                    np.ndarray, self._normalize_indices((slice(None), control_genes))[1]
+                )
+            ] = True
 
         # Otherwise mask all genes to be True
         else:
@@ -688,7 +707,7 @@ class DeseqDataSet(ad.AnnData):
             # Normalize size factors to a geometric mean of 1 to match DESeq
             self.obs["size_factors"] = sf / (np.exp(np.mean(np.log(sf))))
             self.layers["normed_counts"] = (
-                self.X / self.obs["size_factors"].values[:, None]
+                self.X / self.obs["size_factors"].to_numpy()[:, None]
             )
             self.logmeans = logmeans
 
@@ -712,8 +731,11 @@ class DeseqDataSet(ad.AnnData):
             (
                 self.layers["normed_counts"],
                 self.obs["size_factors"],
-            ) = deseq2_norm_transform(
-                self.X, cast(np.ndarray, self.logmeans), _control_mask
+            ) = cast(
+                "tuple[np.ndarray, np.ndarray]",
+                deseq2_norm_transform(
+                    self.X, cast(np.ndarray, self.logmeans), _control_mask
+                ),
             )
         else:
             raise ValueError("Counts matrix 'X' is None, cannot fit size factors.")
@@ -752,7 +774,7 @@ class DeseqDataSet(ad.AnnData):
 
         # Convert design_matrix to numpy for speed
         design_matrix = self.obsm["design_matrix"].values
-        size_factors = self.obs["size_factors"].values
+        size_factors = self.obs["size_factors"].to_numpy()
 
         # mu_hat is initialized differently depending on the number of different factor
         # groups. If there are as many different factor combinations as design factors
@@ -968,7 +990,7 @@ class DeseqDataSet(ad.AnnData):
         start = time.time()
         mle_lfcs_, mu_, hat_diagonals_, converged_ = self.inference.irls(
             counts=self.X[:, self.non_zero_idx],
-            size_factors=self.obs["size_factors"].values,
+            size_factors=self.obs["size_factors"].to_numpy(),
             design_matrix=design_matrix,
             disp=self.var.loc[self.var["non_zero"], "dispersions"].values,
             min_mu=self.min_mu,
@@ -1149,7 +1171,9 @@ class DeseqDataSet(ad.AnnData):
         )
 
         # Convert the design matrix to a DataFrame to remove model_spec
-        adata.obsm["design_matrix"] = pd.DataFrame(adata.obsm["design_matrix"])
+        adata.obsm["design_matrix"] = pd.DataFrame(
+            cast(np.ndarray, adata.obsm["design_matrix"])
+        )
 
         return adata
 
@@ -1168,7 +1192,7 @@ class DeseqDataSet(ad.AnnData):
             self.obsm["design_matrix"].values,
         )
         mde = self.inference.fit_moments_dispersions(
-            normed_counts, self.obs["size_factors"]
+            normed_counts, self.obs["size_factors"].to_numpy()
         )
         alpha_hat = np.minimum(rde, mde)
 
@@ -1206,7 +1230,7 @@ class DeseqDataSet(ad.AnnData):
         make_scatter(
             disps,
             legend_labels=legend_labels,
-            x_val=self.var["_normed_means"],
+            x_val=self.var["_normed_means"].to_numpy(),
             log=log,
             save_path=save_path,
             **kwargs,
@@ -1304,7 +1328,7 @@ class DeseqDataSet(ad.AnnData):
         self.uns["mean_disp"] = trim_mean(
             self.var.loc[
                 self.var[disp_param_name] > 10 * self.min_disp, disp_param_name
-            ].values,
+            ].to_numpy(),
             proportiontocut=0.001,
         )
 
@@ -1344,12 +1368,12 @@ class DeseqDataSet(ad.AnnData):
         if sum(self.var["replaced"] > 0):
             # Compute replacement counts: trimmed means * size_factors
             self.counts_to_refit = self[:, self.var["replaced"]].copy()
+            counts_to_refit_X = cast(np.ndarray, self.counts_to_refit.X)
 
             trim_base_mean = pd.DataFrame(
                 np.asarray(
                     trimmed_mean(
-                        self.counts_to_refit.X
-                        / self.obs["size_factors"].values[:, None],
+                        counts_to_refit_X / self.obs["size_factors"].to_numpy()[:, None],
                         trim=0.2,
                         axis=0,
                     )
@@ -1367,10 +1391,12 @@ class DeseqDataSet(ad.AnnData):
                 .T
             )
 
-            self.counts_to_refit.X[
-                self.obs["replaceable"].values[:, None] & idx[:, self.var["replaced"]]
+            counts_to_refit_X[
+                self.obs["replaceable"].to_numpy()[:, None]
+                & idx[:, self.var["replaced"]]
             ] = replacement_counts.values[
-                self.obs["replaceable"].values[:, None] & idx[:, self.var["replaced"]]
+                self.obs["replaceable"].to_numpy()[:, None]
+                & idx[:, self.var["replaced"]]
             ]
 
     def _refit_without_outliers(
@@ -1386,7 +1412,7 @@ class DeseqDataSet(ad.AnnData):
             self._replace_outliers()
 
         # Only refit genes for which replacing outliers hasn't resulted in all zeroes
-        new_all_zeroes = (self.counts_to_refit.X == 0).all(axis=0)
+        new_all_zeroes = (cast(np.ndarray, self.counts_to_refit.X) == 0).all(axis=0)
         self.new_all_zeroes_genes = self.counts_to_refit.var_names[new_all_zeroes]
 
         self.var["refitted"] = self.var["replaced"].copy()
@@ -1407,7 +1433,7 @@ class DeseqDataSet(ad.AnnData):
 
         sub_dds = DeseqDataSet(
             counts=pd.DataFrame(
-                self.counts_to_refit.X,
+                cast(np.ndarray, self.counts_to_refit.X),
                 index=self.counts_to_refit.obs_names,
                 columns=self.counts_to_refit.var_names,
             ),
@@ -1426,7 +1452,7 @@ class DeseqDataSet(ad.AnnData):
         # Use the same size factors
         sub_dds.obs["size_factors"] = self.counts_to_refit.obs["size_factors"]
         sub_dds.layers["normed_counts"] = (
-            sub_dds.X / sub_dds.obs["size_factors"].values[:, None]
+            sub_dds.X / sub_dds.obs["size_factors"].to_numpy()[:, None]
         )
 
         # Estimate gene-wise dispersions.
@@ -1561,7 +1587,9 @@ class DeseqDataSet(ad.AnnData):
         del self.obsm["design_matrix_buffer"]
 
         # Store normalized counts
-        self.layers["normed_counts"] = self.X / self.obs["size_factors"].values[:, None]
+        self.layers["normed_counts"] = (
+            self.X / self.obs["size_factors"].to_numpy()[:, None]
+        )
 
     def _check_full_rank_design(self):
         """Check that the design matrix has full column rank."""
