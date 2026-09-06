@@ -11,16 +11,16 @@ def deseq2_norm(
 
     Parameters
     ----------
-    counts : pandas.DataFrame or ndarray
-            Raw counts. One column per gene, one row per sample.
+    counts
+        Raw counts.
+        One column per gene, one row per sample.
 
     Returns
     -------
-    deseq2_counts : pandas.DataFrame or ndarray
+    deseq2_counts
         DESeq2 normalized counts.
         One column per gene, rows are indexed by sample barcodes.
-
-    size_factors : pandas.DataFrame or ndarray
+    size_factors
         DESeq2 normalization factors.
     """
     logmeans, filtered_genes = deseq2_norm_fit(counts)
@@ -35,15 +35,15 @@ def deseq2_norm_fit(counts: pd.DataFrame | np.ndarray) -> tuple[np.ndarray, np.n
 
     Parameters
     ----------
-    counts : pandas.DataFrame or ndarray
-            Raw counts. One column per gene, one row per sample.
+    counts
+        Raw counts.
+        One column per gene, one row per sample.
 
     Returns
     -------
-    logmeans : ndarray
+    logmeans
         Gene-wise mean log counts.
-
-    filtered_genes : ndarray
+    filtered_genes
         Genes whose log means are different from -∞.
     """
     # Compute gene-wise mean log counts
@@ -63,27 +63,24 @@ def deseq2_norm_transform(
 ) -> tuple[pd.DataFrame | np.ndarray, pd.DataFrame | np.ndarray]:
     """Return normalized counts and size factors from the median of ratios method.
 
-    Can be applied on external dataset, using the ``logmeans`` and ``filtered_genes``
-    previously computed in the ``fit`` function.
+    Can be applied on external dataset, using the ``logmeans`` and ``filtered_genes`` previously computed in the ``fit`` function.
 
     Parameters
     ----------
-    counts : pandas.DataFrame or ndarray
-            Raw counts. One column per gene, one row per sample.
-
-    logmeans : ndarray
+    counts
+        Raw counts.
+        One column per gene, one row per sample.
+    logmeans
         Gene-wise mean log counts.
-
-    filtered_genes : ndarray
+    filtered_genes
         Genes whose log means are different from -∞.
 
     Returns
     -------
-    deseq2_counts : pandas.DataFrame or ndarray
+    deseq2_counts
         DESeq2 normalized counts.
         One column per gene, rows are indexed by sample barcodes.
-
-    size_factors : pandas.DataFrame or ndarray
+    size_factors
         DESeq2 normalization factors.
     """
     with np.errstate(divide="ignore"):  # ignore division by zero warnings

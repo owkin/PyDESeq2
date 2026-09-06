@@ -8,9 +8,7 @@ from pydeseq2.ds import DeseqStats
 
 
 def test_zero_genes():
-    """Test that genes with only 0 counts are handled by DeseqDataSet et DeseqStats,
-    and that NaNs are returned.
-    """
+    """Test that genes with only 0 counts are handled by DeseqDataSet et DeseqStats, and that NaNs are returned."""
 
     counts_df = load_example_data(
         modality="raw_counts",
@@ -65,9 +63,7 @@ def test_nan_counts():
 
 
 def test_numeric_counts():
-    """Test that a ValueError is thrown when the count matrix contains
-    non-numeric values.
-    """
+    """Test that a ValueError is thrown when the count matrix contains non-numeric values."""
     counts_df = pd.DataFrame(
         {"gene1": [0, "a"], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
@@ -78,8 +74,7 @@ def test_numeric_counts():
 
 
 def test_integer_counts():
-    """Test that a ValueError is thrown when the count matrix contains
-    non-integer values."""
+    """Test that a ValueError is thrown when the count matrix contains non-integer values."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1.5], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
@@ -90,8 +85,7 @@ def test_integer_counts():
 
 
 def test_non_negative_counts():
-    """Test that a ValueError is thrown when the count matrix contains
-    negative values."""
+    """Test that a ValueError is thrown when the count matrix contains negative values."""
     counts_df = pd.DataFrame(
         {"gene1": [0, -1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
@@ -125,8 +119,7 @@ def test_one_factor():
 
 
 def test_rank_deficient_design():
-    """Test that a UserWarning is thrown when the design matrix does not have full
-    column rank."""
+    """Test that a UserWarning is thrown when the design matrix does not have full column rank."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
@@ -139,8 +132,7 @@ def test_rank_deficient_design():
 
 
 def test_equal_num_vars_num_samples_design():
-    """Test that a ValueError is thrown when fitting dispersions if the design matrix
-    has equal numbers of rows and columns."""
+    """Test that a ValueError is thrown when fitting dispersions if the design matrix has equal numbers of rows and columns."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1, 55], "gene2": [4, 12, 60]},
         index=["sample1", "sample2", "sample3"],
@@ -162,8 +154,7 @@ def test_equal_num_vars_num_samples_design():
 
 
 def test_matching_samples():
-    """Test that a ValueError is thrown when the Index of the design matrix does not
-    match obs."""
+    """Test that a ValueError is thrown when the Index of the design matrix does not match obs."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1, 55], "gene2": [4, 12, 60]},
         index=["sample1", "sample2", "sample3"],
@@ -196,9 +187,7 @@ def test_matching_samples():
 
 
 def test_lfc_shrinkage_coeff():
-    """Test that a KeyError is thrown when attempting to shrink an unexisting LFC
-    coefficient.
-    """
+    """Test that a KeyError is thrown when attempting to shrink an unexisting LFC coefficient."""
 
     counts_df = load_example_data(
         modality="raw_counts",
@@ -225,8 +214,7 @@ def test_lfc_shrinkage_coeff():
 
 
 def test_indexes():
-    """Test that a ValueError is thrown when the count matrix and the metadata data
-    don't have the same index."""
+    """Test that a ValueError is thrown when the count matrix and the metadata data don't have the same index."""
     counts_df = pd.DataFrame(
         {"gene1": [0, 1], "gene2": [4, 12]}, index=["sample1", "sample2"]
     )
@@ -241,8 +229,7 @@ def test_indexes():
 
 
 def test_contrast():
-    """Test that KeyErrors/ValueErrors are thrown when invalid contrasts are passed to a
-    DeseqStats."""
+    """Test that KeyErrors/ValueErrors are thrown when invalid contrasts are passed to a DeseqStats."""
 
     counts_df = load_example_data(
         modality="raw_counts",
@@ -287,9 +274,7 @@ def test_contrast():
 
 
 def test_cooks_not_refitted():
-    """Test that an AttributeError is thrown when a `DeseqStats` object is initialized
-    from a `DeseqDataSet` whose `refit_cooks` attribute is set to True, but whose
-    Cooks outliers were not actually refitted."""
+    """Test that an AttributeError is thrown when a `DeseqStats` object is initialized from a `DeseqDataSet` whose `refit_cooks` attribute is set to True, but whose Cooks outliers were not actually refitted."""
 
     counts_df = load_example_data(
         modality="raw_counts",
@@ -365,8 +350,7 @@ def test_few_samples():
 
 
 def test_few_samples_and_outlier():
-    """Test that PyDESeq2 runs bug-free with outliers and a cohort with less than 3
-    samples.
+    """Test that PyDESeq2 runs bug-free with outliers and a cohort with less than 3 samples.
     TODO: refine this test to check the correctness of the output?
     """
 
@@ -496,8 +480,7 @@ def test_zero_inflated():
 
 def test_plot_MA():
     """
-    Test that a KeyError is thrown when attempting to run plot_MA without running the
-    statistical analysis first.
+    Test that a KeyError is thrown when attempting to run plot_MA without running the statistical analysis first.
     """
 
     counts_df = load_example_data(

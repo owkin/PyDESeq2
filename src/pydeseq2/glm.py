@@ -31,57 +31,40 @@ def irls_solver(
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Raw counts for a given gene.
-
-    size_factors : ndarray
+    size_factors
         Sample-wise scaling factors (obtained from median-of-ratios).
-
-    design_matrix : ndarray
+    design_matrix
         Design matrix.
-
-    disp : float
+    disp
         Gene-wise dispersion prior.
-
-    min_mu : float
-        Lower bound on estimated means, to ensure numerical stability.
-        (default: ``0.5``).
-
-    beta_tol : float
-        Stopping criterion for IRWLS:
-        :math:`\vert dev - dev_{old}\vert / \vert dev + 0.1 \vert < \beta_{tol}`.
-        (default: ``1e-8``).
-
-    min_beta : float
+    min_mu
+        Lower bound on estimated means, to ensure numerical stability. (default: ``0.5``).
+    beta_tol
+        Stopping criterion for IRWLS: :math:`\vert dev - dev_{old}\vert / \vert dev + 0.1 \vert < \beta_{tol}`. (default: ``1e-8``).
+    min_beta
         Lower-bound on LFC. (default: ``-30``).
-
-    max_beta : float
+    max_beta
         Upper-bound on LFC. (default: ``-30``).
-
-    optimizer : str
+    optimizer
         Optimizing method to use in case IRLS starts diverging.
         Accepted values: 'BFGS' or 'L-BFGS-B'.
-        NB: only 'L-BFGS-B' ensures that LFCS will
-        lay in the [min_beta, max_beta] range. (default: ``'L-BFGS-B'``).
-
-    maxiter : int
-        Maximum number of IRLS iterations to perform before switching to L-BFGS-B.
-        (default: ``250``).
+        NB: only 'L-BFGS-B' ensures that LFCS will lay in the [min_beta, max_beta] range. (default: ``'L-BFGS-B'``).
+    maxiter
+        Maximum number of IRLS iterations to perform before switching to L-BFGS-B. (default: ``250``).
 
     Returns
     -------
-    beta: ndarray
+    beta
         Fitted (basemean, lfc) coefficients of negative binomial GLM.
-
-    mu: ndarray
+    mu
         Means estimated from size factors and beta: :math:`\mu = s_{ij} \exp(\beta^t X)`.
-
-    H: ndarray
+    H
         Diagonal of the :math:`W^{1/2} X (X^t W X)^-1 X^t W^{1/2}` covariance matrix.
-
-    converged: bool
-        Whether IRLS or the optimizer converged. If not and if dimension allows it,
-        perform grid search.
+    converged
+        Whether IRLS or the optimizer converged.
+        If not and if dimension allows it, perform grid search.
     """
     assert optimizer in ["BFGS", "L-BFGS-B"]
 
@@ -193,22 +176,18 @@ def fit_lin_mu(
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Raw counts for a given gene.
-
-    size_factors : ndarray
+    size_factors
         Sample-wise scaling factors (obtained from median-of-ratios).
-
-    design_matrix : ndarray
+    design_matrix
         Design matrix.
-
-    min_mu : float
+    min_mu
         Lower threshold for fitted means, for numerical stability. (default: ``0.5``).
 
     Returns
     -------
-    ndarray
-        Estimated mean.
+    Estimated mean.
     """
     reg = LinearRegression(fit_intercept=False)
     reg.fit(design_matrix, counts / size_factors)
@@ -229,44 +208,34 @@ def wald_test(
 ) -> tuple[float, float, float]:
     """Run Wald test for differential expression.
 
-    Computes Wald statistics, standard error and p-values from
-    dispersion and LFC estimates.
+    Computes Wald statistics, standard error and p-values from dispersion and LFC estimates.
 
     Parameters
     ----------
-    design_matrix : ndarray
+    design_matrix
         Design matrix.
-
-    disp : float
+    disp
         Dispersion estimate.
-
-    lfc : ndarray
+    lfc
         Log-fold change estimate (in natural log scale).
-
-    mu : ndarray
+    mu
         Mean estimation for the NB model.
-
-    ridge_factor : ndarray
+    ridge_factor
         Regularization factors.
-
-    contrast : ndarray
+    contrast
         Vector encoding the contrast that is being tested.
-
-    lfc_null : float
+    lfc_null
         The (log2) log fold change under the null hypothesis.
-
-    alt_hypothesis : str, optional
+    alt_hypothesis
         The alternative hypothesis for computing wald p-values.
 
     Returns
     -------
-    wald_p_value : float
+    wald_p_value
         Estimated p-value.
-
-    wald_statistic : float
+    wald_statistic
         Wald statistic.
-
-    wald_se : float
+    wald_se
         Standard error of the Wald statistic.
     """
     # Build covariance matrix estimator

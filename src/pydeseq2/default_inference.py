@@ -21,21 +21,20 @@ from pydeseq2.misc import get_num_processes
 class DefaultInference(inference.Inference):
     """Default DESeq2-related inference methods, using scipy/sklearn/numpy.
 
-    This object contains the interface to the default inference routines and uses
-    joblib internally for parallelization. Inherit this class or its parent to write
-    custom inference routines.
+    This object contains the interface to the default inference routines and uses joblib internally for parallelization.
+    Inherit this class or its parent to write custom inference routines.
 
     Parameters
     ----------
-    joblib_verbosity : int
-        The verbosity level for joblib tasks. The higher the value, the more updates
-        are reported. (default: ``0``).
-    batch_size : int
+    joblib_verbosity
+        The verbosity level for joblib tasks.
+        The higher the value, the more updates are reported. (default: ``0``).
+    batch_size
         Number of tasks to allocate to each joblib parallel worker. (default: ``128``).
-    n_cpus : int
-        Number of cpus to use. If None, all available cpus will be used.
-        (default: ``None``).
-    backend : str
+    n_cpus
+        Number of cpus to use.
+        If None, all available cpus will be used. (default: ``None``).
+    backend
         Joblib backend.
     """
 

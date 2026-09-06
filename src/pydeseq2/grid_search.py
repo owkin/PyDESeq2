@@ -13,21 +13,16 @@ def vec_nb_nll(
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Observations.
-
-    mu : ndarray
+    mu
         Mean of the distribution.
-
-    alpha : ndarray or float
-        Dispersion of the distribution, s.t. the variance is
-        :math:`\mu + \alpha \mu^2`.
+    alpha
+        Dispersion of the distribution, s.t. the variance is :math:`\mu + \alpha \mu^2`.
 
     Returns
     -------
-    ndarray
-        Negative log likelihood of the observations counts following
-        :math:`NB(\mu, \alpha)`.
+    Negative log likelihood of the observations counts following :math:`NB(\mu, \alpha)`.
     """
     n = len(counts)
     alpha_neg1 = 1 / alpha
@@ -69,40 +64,30 @@ def grid_fit_alpha(
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Raw counts for a given gene.
-
-    design_matrix : ndarray
+    design_matrix
         Design matrix.
-
-    mu : ndarray
+    mu
         Mean estimation for the NB model.
-
-    alpha_hat : float
+    alpha_hat
         Initial dispersion estimate.
-
-    min_disp : float
+    min_disp
         Lower threshold for dispersion parameters.
-
-    max_disp : float
+    max_disp
         Upper threshold for dispersion parameters.
-
-    prior_disp_var : float, optional
+    prior_disp_var
         Prior dispersion variance.
-
-    cr_reg : bool
+    cr_reg
         Whether to use Cox-Reid regularization. (default: ``True``).
-
-    prior_reg : bool
+    prior_reg
         Whether to use prior log-residual regularization. (default: ``False``).
-
-    grid_length : int
+    grid_length
         Number of grid points. (default: ``100``).
 
     Returns
     -------
-    float
-        Logarithm of the fitted dispersion parameter.
+    Logarithm of the fitted dispersion parameter.
     """
     min_log_alpha = np.log(min_disp)
     max_log_alpha = np.log(max_disp)
@@ -154,39 +139,30 @@ def grid_fit_beta(
 ) -> np.ndarray:
     """Find best LFC parameter.
 
-    Perform 2D grid search to maximize negative binomial
-    GLM log-likelihood w.r.t. LFCs.
+    Perform 2D grid search to maximize negative binomial GLM log-likelihood w.r.t. LFCs.
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Raw counts for a given gene.
-
-    size_factors : ndarray
+    size_factors
         DESeq2 normalization factors.
-
-    design_matrix : ndarray
+    design_matrix
         Design matrix.
-
-    disp : float
+    disp
         Gene-wise dispersion prior.
-
-    min_mu : float
+    min_mu
         Lower threshold for dispersion parameters.
-
-    grid_length : int
+    grid_length
         Number of grid points. (default: ``100``).
-
-    min_beta : float
+    min_beta
         Lower-bound on LFC. (default: ``30``).
-
-    max_beta : float
+    max_beta
         Upper-bound on LFC. (default: ``30``).
 
     Returns
     -------
-    ndarray
-        Fitted LFC parameter.
+    Fitted LFC parameter.
     """
     x_grid = np.linspace(min_beta, max_beta, grid_length)
     y_grid = np.linspace(min_beta, max_beta, grid_length)
@@ -235,45 +211,34 @@ def grid_fit_shrink_beta(
 ) -> np.ndarray:
     """Find best LFC parameter.
 
-    Performs 2D grid search to maximize MAP negative binomial
-    GLM log-likelihood w.r.t. LFCs, with apeGLM prior.
+    Performs 2D grid search to maximize MAP negative binomial GLM log-likelihood w.r.t. LFCs, with apeGLM prior.
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Raw counts for a given gene.
-
-    offset : ndarray
+    offset
         Natural logarithm of size factor.
-
-    design_matrix : ndarray
+    design_matrix
         Design matrix.
-
-    size : ndarray
+    size
         Size parameter of NB family (inverse of dispersion).
-
-    prior_no_shrink_scale : float
+    prior_no_shrink_scale
         Prior variance for the intercept.
-
-    prior_scale : float
+    prior_scale
         Prior variance for the LFC coefficient.
-
-    scale_cnst : float
+    scale_cnst
         Scaling factor for the optimization.
-
-    grid_length : int
+    grid_length
         Number of grid points. (default: ``100``).
-
-    min_beta : int
+    min_beta
         Lower-bound on LFC. (default: ``30``).
-
-    max_beta : int
+    max_beta
         Upper-bound on LFC. (default: ``30``).
 
     Returns
     -------
-    ndarray
-        Fitted MAP LFC parameter.
+    Fitted MAP LFC parameter.
     """
     x_grid = np.linspace(min_beta, max_beta, grid_length)
     y_grid = np.linspace(min_beta, max_beta, grid_length)

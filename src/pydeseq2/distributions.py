@@ -13,9 +13,7 @@ def nb_nll(
 ) -> float | np.ndarray:
     r"""Neg log-likelihood of a negative binomial of parameters ``mu`` and ``alpha``.
 
-    Mathematically, if ``counts`` is a vector of counting entries :math:`y_i`
-    then the likelihood of each entry :math:`y_i` to be drawn from a negative
-    binomial :math:`NB(\mu, \alpha)` is [1]
+    Mathematically, if ``counts`` is a vector of counting entries :math:`y_i` then the likelihood of each entry :math:`y_i` to be drawn from a negative binomial :math:`NB(\mu, \alpha)` is [1]
 
     .. math::
         p(y_i | \mu, \alpha) = \frac{\Gamma(y_i + \alpha^{-1})}{
@@ -24,8 +22,7 @@ def nb_nll(
         \left(\frac{1}{1 + \alpha \mu} \right)^{1/\alpha}
         \left(\frac{\mu}{\alpha^{-1} + \mu} \right)^{y_i}
 
-    As a consequence, assuming there are :math:`n` entries,
-    the total negative log-likelihood for ``counts`` is
+    As a consequence, assuming there are :math:`n` entries, the total negative log-likelihood for ``counts`` is
 
     .. math::
         \ell(\mu, \alpha) = \frac{n}{\alpha} \log(\alpha) +
@@ -41,21 +38,16 @@ def nb_nll(
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Observations.
-
-    mu : ndarray
+    mu
         Mean of the distribution :math:`\mu`.
-
-    alpha : float or ndarray
-        Dispersion of the distribution :math:`\alpha`,
-        s.t. the variance is :math:`\mu + \alpha \mu^2`.
+    alpha
+        Dispersion of the distribution :math:`\alpha`, s.t. the variance is :math:`\mu + \alpha \mu^2`.
 
     Returns
     -------
-    float or ndarray
-        Negative log likelihood of the observations counts
-        following :math:`NB(\mu, \alpha)`.
+    Negative log likelihood of the observations counts following :math:`NB(\mu, \alpha)`.
 
     Notes
     -----
@@ -89,20 +81,16 @@ def dnb_nll(counts: np.ndarray, mu: np.ndarray, alpha: float) -> float:
 
     Parameters
     ----------
-    counts : ndarray
+    counts
         Observations.
-
-    mu : float
+    mu
         Mean of the distribution.
-
-    alpha : float
-        Dispersion of the distribution,
-        s.t. the variance is :math:`\mu + \alpha\mu^2`.
+    alpha
+        Dispersion of the distribution, s.t. the variance is :math:`\mu + \alpha\mu^2`.
 
     Returns
     -------
-    float
-        Derivative of negative log likelihood of NB w.r.t. :math:`\alpha`.
+    Derivative of negative log likelihood of NB w.r.t. :math:`\alpha`.
     """
     alpha_neg1 = 1 / alpha
     ll_part = (
@@ -134,34 +122,26 @@ def nbinomFn(
 
     Parameters
     ----------
-    beta : ndarray
+    beta
         2-element array: intercept and LFC coefficients.
-
-    design_matrix : ndarray
+    design_matrix
         Design matrix.
-
-    counts : ndarray
+    counts
         Raw counts.
-
-    size : ndarray
+    size
         Size parameter of NB family (inverse of dispersion).
-
-    offset : ndarray
+    offset
         Natural logarithm of size factor.
-
-    prior_no_shrink_scale : float
+    prior_no_shrink_scale
         Prior variance for the intercept.
-
-    prior_scale : float
+    prior_scale
         Prior variance for the intercept.
-
-    shrink_index : int
+    shrink_index
         Index of the LFC coordinate to shrink. (default: ``1``).
 
     Returns
     -------
-    float
-        Sum of the NB negative likelihood and apeGLM prior.
+    Sum of the NB negative likelihood and apeGLM prior.
     """
     num_vars = design_matrix.shape[-1]
 
@@ -197,40 +177,31 @@ def nbinomGLM(
 
     Parameters
     ----------
-    design_matrix : ndarray
+    design_matrix
         Design matrix.
-
-    counts : ndarray
+    counts
         Raw counts.
-
-    size : ndarray
+    size
         Size parameter of NB family (inverse of dispersion).
-
-    offset : ndarray
+    offset
         Natural logarithm of size factor.
-
-    prior_no_shrink_scale : float
+    prior_no_shrink_scale
         Prior variance for the intercept.
-
-    prior_scale : float
+    prior_scale
         Prior variance for the LFC parameter.
-
-    optimizer : str
+    optimizer
         Optimizing method to use in case IRLS starts diverging.
         Accepted values: 'L-BFGS-B', 'BFGS' or 'Newton-CG'. (default: ``'Newton-CG'``).
-
-    shrink_index : int
+    shrink_index
         Index of the LFC coordinate to shrink. (default: ``1``).
 
     Returns
     -------
-    beta: ndarray
+    beta
         2-element array, containing the intercept (first) and the LFC (second).
-
-    inv_hessian: ndarray
+    inv_hessian
         Inverse of the Hessian of the objective at the estimated MAP LFC.
-
-    converged: bool
+    converged
         Whether L-BFGS-B converged.
     """
     num_vars = design_matrix.shape[-1]

@@ -39,8 +39,7 @@ def test_nb_nll_moments(mu, alpha):
 @mock.patch("pathlib.Path.is_dir")
 def test_rtd_example_data_loading(mocked_function, modality, mocked_dir_flag):
     """
-    Test that load_example_data still works when run from a place where the ``datasets``
-    directory is not accessible, as is when the documentation is built on readthedocs.
+    Test that load_example_data still works when run from a place where the ``datasets`` directory is not accessible, as is when the documentation is built on readthedocs.
     """
 
     # Mock the output of is_dir() as False to emulate not having access to the

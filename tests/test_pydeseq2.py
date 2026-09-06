@@ -92,9 +92,7 @@ def test_size_factors_control_genes(counts_df, metadata):
 
 
 def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.02):
-    """Test that the outputs of the DESeq2 function match those of the original R
-    package, up to a tolerance in relative error.
-    """
+    """Test that the outputs of the DESeq2 function match those of the original R package, up to a tolerance in relative error."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -119,9 +117,7 @@ def test_deseq_independent_filtering_parametric_fit(counts_df, metadata, tol=0.0
 
 
 def test_deseq_independent_filtering_mean_fit(counts_df, metadata, tol=0.02):
-    """Test that the outputs of the DESeq2 function match those of the original R
-    package, up to a tolerance in relative error, with a mean fit.
-    """
+    """Test that the outputs of the DESeq2 function match those of the original R package, up to a tolerance in relative error, with a mean fit."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -148,10 +144,7 @@ def test_deseq_independent_filtering_mean_fit(counts_df, metadata, tol=0.02):
 def test_deseq_without_independent_filtering_parametric_fit(
     counts_df, metadata, tol=0.02
 ):
-    """Test that the outputs of the DESeq2 function match those of the original R
-    package, up to a tolerance in relative error, with a parametric fit and no
-    independent filtering.
-    """
+    """Test that the outputs of the DESeq2 function match those of the original R package, up to a tolerance in relative error, with a parametric fit and no independent filtering."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -179,9 +172,7 @@ def test_deseq_without_independent_filtering_parametric_fit(
 
 @pytest.mark.parametrize("alt_hypothesis", ["lessAbs", "greaterAbs", "less", "greater"])
 def test_alt_hypothesis(alt_hypothesis, counts_df, metadata, tol=0.02):
-    """Test that the outputs of the DESeq2 function match those of the original R
-    package, up to a tolerance in relative error, with the alternative hypothesis test.
-    """
+    """Test that the outputs of the DESeq2 function match those of the original R package, up to a tolerance in relative error, with the alternative hypothesis test."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -226,10 +217,8 @@ def test_alt_hypothesis(alt_hypothesis, counts_df, metadata, tol=0.02):
 
 
 def test_deseq_no_refit_cooks(counts_df, metadata, tol=0.02):
-    """Test that the outputs of the DESeq2 function *without cooks refit*
-    match those of the original R package, up to a tolerance in relative error.
-    Note: this is just to check that the workflow runs bug-free, as we expect no outliers
-    in the synthetic dataset.
+    """Test that the outputs of the DESeq2 function *without cooks refit* match those of the original R package, up to a tolerance in relative error.
+    Note: this is just to check that the workflow runs bug-free, as we expect no outliers in the synthetic dataset.
     """
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
@@ -254,9 +243,7 @@ def test_deseq_no_refit_cooks(counts_df, metadata, tol=0.02):
 
 
 def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
-    """Test that the outputs of the lfc_shrink function match those of the original
-    R package (starting from the same inputs), up to a tolerance in relative error.
-    """
+    """Test that the outputs of the lfc_shrink function match those of the original R package (starting from the same inputs), up to a tolerance in relative error."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
     r_res = pd.read_csv(
@@ -297,9 +284,7 @@ def test_lfc_shrinkage(counts_df, metadata, tol=0.02):
 
 
 def test_lfc_shrinkage_no_apeAdapt(counts_df, metadata, tol=0.02):
-    """Test that the outputs of the lfc_shrink function match those of the original
-    R package (starting from the same inputs), up to a tolerance in relative error.
-    """
+    """Test that the outputs of the lfc_shrink function match those of the original R package (starting from the same inputs), up to a tolerance in relative error."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
     r_res = pd.read_csv(
@@ -342,10 +327,7 @@ def test_lfc_shrinkage_no_apeAdapt(counts_df, metadata, tol=0.02):
 
 
 def test_iterative_size_factors(counts_df, metadata, tol=0.02):
-    """Test that the outputs of the iterative size factor method match those of the
-    original R package (starting from the same inputs), up to a tolerance in relative
-    error.
-    """
+    """Test that the outputs of the iterative size factor method match those of the original R package (starting from the same inputs), up to a tolerance in relative error."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -365,10 +347,7 @@ def test_iterative_size_factors(counts_df, metadata, tol=0.02):
 
 
 def test_lfc_shrinkage_large_counts(counts_df, metadata, tol=0.02):
-    """Test that the outputs of the lfc_shrink function match those of the original
-    R package (starting from the same inputs), up to a tolerance in relative error in
-    the presence of a gene with very large counts.
-    """
+    """Test that the outputs of the lfc_shrink function match those of the original R package (starting from the same inputs), up to a tolerance in relative error in the presence of a gene with very large counts."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
     r_res = pd.read_csv(
@@ -433,9 +412,7 @@ def test_lfc_shrinkage_large_counts(counts_df, metadata, tol=0.02):
 # Multi-factor tests
 @pytest.mark.parametrize("with_outliers", [True, False])
 def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.04):
-    """Test that the outputs of the DESeq2 function match those of the original R
-    package, up to a tolerance in relative error.
-    """
+    """Test that the outputs of the DESeq2 function match those of the original R package, up to a tolerance in relative error."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -468,9 +445,7 @@ def test_multifactor_deseq(counts_df, metadata, with_outliers, tol=0.04):
 
 
 def test_multifactor_lfc_shrinkage(counts_df, metadata, tol=0.02):
-    """Test that the outputs of the lfc_shrink function match those of the original
-    R package (starting from the same inputs), up to a tolerance in relative error.
-    """
+    """Test that the outputs of the lfc_shrink function match those of the original R package (starting from the same inputs), up to a tolerance in relative error."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
     r_res = pd.read_csv(
@@ -515,9 +490,7 @@ def test_continuous_deseq(
     with_outliers,
     tol=0.04,
 ):
-    """Test that the outputs of the DESeq2 function match those of the original R
-    package, up to a tolerance in relative error, with a continuous factor.
-    """
+    """Test that the outputs of the DESeq2 function match those of the original R package, up to a tolerance in relative error, with a continuous factor."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -564,9 +537,7 @@ def test_continuous_deseq(
 
 
 def test_continuous_lfc_shrinkage(tol=0.02):
-    """Test that the outputs of the lfc_shrink function match those of the original
-    R package (starting from the same inputs), up to a tolerance in relative error.
-    """
+    """Test that the outputs of the lfc_shrink function match those of the original R package (starting from the same inputs), up to a tolerance in relative error."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -627,10 +598,7 @@ def test_wide_deseq(
     low_memory,
     tol=0.02,
 ):
-    """Test that the outputs of the DESeq2 function match those of the original R
-    package, up to a tolerance in relative error, on a dataset with more genes than
-    samples.
-    """
+    """Test that the outputs of the DESeq2 function match those of the original R package, up to a tolerance in relative error, on a dataset with more genes than samples."""
 
     test_path = str(Path(os.path.realpath(tests.__file__)).parent.resolve())
 
@@ -662,8 +630,7 @@ def test_wide_deseq(
 
 def test_contrast(counts_df, metadata):
     """
-    Check that the contrasts ['condition', 'B', 'A'] and ['condition', 'A', 'B'] give
-    coherent results (change of sign in LFCs and Wald stats, same (adjusted p-values).
+    Check that the contrasts ['condition', 'B', 'A'] and ['condition', 'A', 'B'] give coherent results (change of sign in LFCs and Wald stats, same (adjusted p-values).
     """
 
     dds = DeseqDataSet(counts=counts_df, metadata=metadata, design="~group + condition")
@@ -695,8 +662,7 @@ def test_contrast(counts_df, metadata):
 
 def test_anndata_init(counts_df, metadata, tol=0.02):
     """
-    Test initializing dds with an AnnData object that already has filled in fields,
-    including with the same names as those used by pydeseq2.
+    Test initializing dds with an AnnData object that already has filled in fields, including with the same names as those used by pydeseq2.
     """
     np.random.seed(42)
 
@@ -804,9 +770,7 @@ def test_mean_vst(counts_df, metadata, tol=0.02):
 
 
 def test_deseq2_norm(counts_df, metadata):
-    """Test that deseq2_norm() called on a pandas dataframe outputs the same results as
-    DeseqDataSet.fit_size_factors()
-    """
+    """Test that deseq2_norm() called on a pandas dataframe outputs the same results as DeseqDataSet.fit_size_factors()"""
     # Fit size factors from DeseqDataSet
     dds = DeseqDataSet(counts=counts_df, metadata=metadata)
     dds.fit_size_factors()

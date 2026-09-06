@@ -19,107 +19,73 @@ from pydeseq2.stats import lowess
 class DeseqStats:
     """PyDESeq2 statistical tests for differential expression.
 
-    Implements p-value estimation for differential gene expression according
-    to the DESeq2 pipeline :cite:p:`DeseqStats-love2014moderated`.
+    Implements p-value estimation for differential gene expression according to the DESeq2 pipeline :cite:p:`DeseqStats-love2014moderated`.
 
     Also supports apeGLM log-fold change shrinkage :cite:p:`DeseqStats-zhu2019heavy`.
 
     Parameters
     ----------
-    dds : DeseqDataSet
+    dds
         DeseqDataSet for which dispersion and LFCs were already estimated.
-
-    contrast : list or ndarray
+    contrast
         Either a list of three strings or a numpy array.
-        If a list of three strings, it must be in the following format:
-        ``['variable_of_interest', 'tested_level', 'ref_level']``.
+        If a list of three strings, it must be in the following format: ``['variable_of_interest', 'tested_level', 'ref_level']``.
         Names must correspond to the metadata data passed to the DeseqDataSet.
-        E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared
-        to 'condition A'.
-        If a numpy array, it must be a contrast vector of the same length as the design
-        matrix.
-
-    alpha : float
-        P-value and adjusted p-value significance threshold (usually 0.05).
-        (default: ``0.05``).
-
-    cooks_filter : bool
+        E.g., ``['condition', 'B', 'A']`` will measure the LFC of 'condition B' compared to 'condition A'.
+        If a numpy array, it must be a contrast vector of the same length as the design matrix.
+    alpha
+        P-value and adjusted p-value significance threshold (usually 0.05). (default: ``0.05``).
+    cooks_filter
         Whether to filter p-values based on cooks outliers. (default: ``True``).
-
-    independent_filter : bool
-        Whether to perform independent filtering to correct p-value trends.
-        (default: ``True``).
-
-    prior_LFC_var : ndarray
+    independent_filter
+        Whether to perform independent filtering to correct p-value trends. (default: ``True``).
+    prior_LFC_var
         Prior variance for LFCs, used for ridge regularization. (default: ``None``).
-
-    lfc_null : float
+    lfc_null
         The (log2) log fold change under the null hypothesis. (default: ``0``).
-
-    alt_hypothesis : str, optional
-        The alternative hypothesis for computing wald p-values. By default, the normal
-        Wald test assesses deviation of the estimated log fold change from the null
-        hypothesis, as given by ``lfc_null``.
+    alt_hypothesis
+        The alternative hypothesis for computing wald p-values.
+        By default, the normal Wald test assesses deviation of the estimated log fold change from the null hypothesis, as given by ``lfc_null``.
         One of ``["greaterAbs", "lessAbs", "greater", "less"]`` or ``None``.
-        The alternative hypothesis corresponds to what the user wants to find rather
-        than the null hypothesis. (default: ``None``).
-
-    inference : Inference
-        Implementation of inference routines object instance.
-        (default:
-        :class:`DefaultInference <pydeseq2.default_inference.DefaultInference>`).
-
-    quiet : bool
+        The alternative hypothesis corresponds to what the user wants to find rather than the null hypothesis. (default: ``None``).
+    inference
+        Implementation of inference routines object instance. (default: :class:`DefaultInference <pydeseq2.default_inference.DefaultInference>`).
+    quiet
         Suppress deseq2 status updates during fit.
 
     Attributes
     ----------
-    base_mean : pandas.Series
+    base_mean
         Genewise means of normalized counts.
-
-    lfc_null : float
+    lfc_null
         The (log2) log fold change under the null hypothesis.
-
-    alt_hypothesis : str, optional
+    alt_hypothesis
         The alternative hypothesis for computing wald p-values.
-
-    contrast_vector : ndarray
+    contrast_vector
         Vector encoding the contrast (variable being tested).
-
-    contrast_idx : int
+    contrast_idx
         Index of the LFC column corresponding to the variable being tested.
-
-    design_matrix : pandas.DataFrame
+    design_matrix
         A DataFrame with experiment design information (to split cohorts).
-        Indexed by sample barcodes. Depending on the contrast that is provided to the
-        DeseqStats object, it may differ from the DeseqDataSet design matrix, as the
-        reference level may need to be adapted.
-
-    LFC : pandas.DataFrame
+        Indexed by sample barcodes.
+        Depending on the contrast that is provided to the DeseqStats object, it may differ from the DeseqDataSet design matrix, as the reference level may need to be adapted.
+    LFC
         Estimated log-fold change between conditions and intercept, in natural log scale.
-
-    SE : pandas.Series
+    SE
         Standard LFC error.
-
-    statistics : pandas.Series
+    statistics
         Wald statistics.
-
-    p_values : pandas.Series
+    p_values
         P-values estimated from Wald statistics.
-
-    padj : pandas.Series
+    padj
         P-values adjusted for multiple testing.
-
-    results_df : pandas.DataFrame
+    results_df
         Summary of the statistical analysis.
-
-    shrunk_LFCs : bool
+    shrunk_LFCs
         Whether LFCs are shrunk.
-
-    n_processes : int
+    n_processes
         Number of threads to use for multiprocessing.
-
-    quiet : bool
+    quiet
         Suppress deseq2 status updates during fit.
 
     References
@@ -231,8 +197,7 @@ class DeseqStats:
         Parameters
         ----------
         **kwargs
-            Keyword arguments: providing new values for ``lfc_null`` or
-            ``alt_hypothesis`` will override the corresponding ``DeseqStat`` attributes.
+            Keyword arguments: providing new values for ``lfc_null`` or ``alt_hypothesis`` will override the corresponding ``DeseqStat`` attributes.
         """
         new_lfc_null = kwargs.get("lfc_null", "default")
         new_alt_hypothesis = kwargs.get("alt_hypothesis", "default")
@@ -367,13 +332,12 @@ class DeseqStats:
 
         Parameters
         ----------
-        coeff : str
-            The LFC coefficient to shrink. Must be one of the columns of the LFC matrix.
-            (default: ``None``).
-
-        adapt: bool
-            Whether to use the MLE estimates of LFC to adapt the prior. If False, the
-            prior scale is set to 1. (``default=True``)
+        coeff
+            The LFC coefficient to shrink.
+            Must be one of the columns of the LFC matrix. (default: ``None``).
+        adapt
+            Whether to use the MLE estimates of LFC to adapt the prior.
+            If False, the prior scale is set to 1. (``default=True``)
         """
         if coeff not in self.LFC.columns:
             raise KeyError(
@@ -454,19 +418,16 @@ class DeseqStats:
         """
         Create an log ratio (M)-average (A) plot using matplotlib.
 
-        Useful for looking at log fold-change versus mean expression
-        between two groups/samples/etc.
+        Useful for looking at log fold-change versus mean expression between two groups/samples/etc.
         Uses matplotlib to emulate the ``make_MA()`` function in DESeq2 in R.
 
         Parameters
         ----------
-        log : bool
+        log
             Whether or not to log scale x and y axes (``default=True``).
-
-        save_path : str, optional
-            The path where to save the plot. If left None, the plot won't be saved
-            (``default=None``).
-
+        save_path
+            The path where to save the plot.
+            If left None, the plot won't be saved (``default=None``).
         **kwargs
             Matplotlib keyword arguments for the scatter plot.
         """
@@ -562,19 +523,16 @@ class DeseqStats:
 
         Parameters
         ----------
-        coeff_idx : str
+        coeff_idx
             Index of the coefficient to shrink.
-
-        min_var : float
+        min_var
             Lower bound for prior variance. (default: ``1e-6``).
-
-        max_var : float
+        max_var
             Upper bound for prior variance. (default: ``400``).
 
         Returns
         -------
-        float
-            Estimated prior variance.
+        Estimated prior variance.
         """
         keep = ~self.LFC.iloc[:, coeff_idx].isna()
         S = self.LFC[keep].iloc[:, coeff_idx] ** 2
