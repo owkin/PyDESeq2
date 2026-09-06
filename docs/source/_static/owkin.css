@@ -18,7 +18,7 @@ html {
 body {
     font-family: "averta", "Helvetica Neue", helvetica, arial, sans-serif;
     color: black;
-    text-align:justify;
+    text-align: justify;
     font-size: var(--font-size-normal);
 }
 
@@ -30,7 +30,9 @@ a:hover {
     color: black;
 }
 
-h1, h2, h3,
+h1,
+h2,
+h3,
 .rst-content .toctree-wrapper > p.caption {
     font-family: var(--font-title);
     font-weight: bolder;
@@ -57,7 +59,9 @@ h3 {
     margin: 4.5rem auto 2.5rem;
 }
 
-p, ul, ol {
+p,
+ul,
+ol {
     font-size: var(--font-size-normal);
     line-height: 1.4;
     margin: 0 0 1.5em 0;
@@ -73,12 +77,11 @@ p, ul, ol {
         background-color: white;
     }
 
-    .rst-content div[class^=highlight] {
+    .rst-content div[class^="highlight"] {
         max-width: calc(100vw - 300px - 2 * 75px - 3.236em);
         min-width: 100%;
         width: fit-content;
         overflow-x: hidden;
-
     }
 }
 
@@ -92,9 +95,7 @@ p, ul, ol {
 
 .wy-side-nav-search {
     padding: 2.8rem 0 0 0;
-
 }
-
 
 .wy-breadcrumbs {
     /*text-transform: uppercase;*/
@@ -166,7 +167,12 @@ a:visited:hover {
 }
 
 html.writer-html4 .rst-content dl:not(.docutils) > dt,
-html.writer-html5 .rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple) > dt {
+html.writer-html5
+    .rst-content
+    dl[class]:not(.option-list):not(.field-list):not(.footnote):not(
+        .glossary
+    ):not(.simple)
+    > dt {
     font-size: var(--font-size-small);
 }
 

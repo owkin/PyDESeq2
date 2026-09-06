@@ -1,10 +1,9 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = [ "hatch-vcs", "hatchling" ]
 
 [project]
 name = "pydeseq2"
-version = "0.5.4"
 description = "A python implementation of DESeq2."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -24,100 +23,139 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
+dynamic = [ "version" ]
 dependencies = [
-  "anndata>=0.11.0",
+  "anndata>=0.11",
   "formulaic>=1.0.2",
-  "numpy>=2.2.0",
-  "pandas>=2.3.0",
-  "scikit-learn>=1.6.0",
-  "scipy>=1.15.0",
-  "formulaic-contrasts>=0.2.0",
-  "matplotlib>=3.10.0",
+  "formulaic-contrasts>=0.2",
+  "matplotlib>=3.10",
+  "numpy>=2.2",
+  "pandas>=2.3",
+  "scikit-learn>=1.6",
+  "scipy>=1.15",
+  "session-info2",
 ]
-optional-dependencies.dev = [
-  "pre-commit>=2.16.0",
-  "numpydoc",
-  "mypy==1.18.2",
-  "pandas-stubs",
-  "ruff==0.14.0",
-  "scipy-stubs",
-]
-optional-dependencies.doc = [
-  "jupyter",
-  "sphinx>=8.0.0",
-  "sphinx_rtd_theme",
-  "sphinx-autobuild",
-  "texttable",
-  "myst-parser",
-  "docutils",
-  "sphinx_click",
-  "sphinx_gallery",
-  "sphinx_autodoc_typehints",
-  "sphinxcontrib-bibtex",
-  "ipython",
-  "gitpython>=3.1.42",
-  "sphinxcontrib-googleanalytics>=0.5",
-]
+# https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://pydeseq2.readthedocs.io/"
-urls.Homepage = "https://github.com/owkin/PyDESeq2"
-urls.Source = "https://github.com/owkin/PyDESeq2"
+urls.Homepage = "https://github.com/scverse/PyDESeq2"
+urls.Source = "https://github.com/scverse/PyDESeq2"
 
 [dependency-groups]
-test = [
-  "coverage",
-  "pytest>=8.4.0",
+dev = [
+  "prek",
+  "twine>=4.0.2",
 ]
+test = [
+  "coverage>=7.10",
+  "pytest>=8.4",
+  "pytest-cov",     # For VS Code's coverage functionality
+]
+doc = [
+  "docutils>=0.8,!=0.18.*,!=0.19.*",
+  "gitpython>=3.1.42",
+  "ipython",
+  "jupyter",
+  "myst-parser",
+  "numpydoc",
+  "sphinx>=8",
+  "sphinx-autobuild",
+  "sphinx-autodoc-typehints",
+  "sphinx-click",
+  "sphinx-gallery",
+  "sphinx-rtd-theme",
+  "sphinxcontrib-bibtex",
+  "sphinxcontrib-googleanalytics>=0.5",
+  "texttable",
+]
+typecheck = [
+  "mypy",
+  "pandas-stubs",
+  "scipy-stubs",
+]
+
+[tool.hatch]
+version.source = "vcs"
+build.targets.wheel.packages = [ "src/pydeseq2" ]
+envs.default.installer = "uv"
+envs.default.dependency-groups = [ "dev" ]
+envs.docs.scripts.build = "sphinx-build -M html docs/source docs/_build -W {args}"
+envs.docs.scripts.clean = "git clean -fdX -- {args:docs}"
+envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
+envs.docs.dependency-groups = [ "doc" ]
+envs.hatch-test.matrix = [
+  # Test the lowest and highest supported Python versions with normal deps
+  { deps = [ "stable" ], python = [ "3.12", "3.14" ] },
+  # Test the newest supported Python version also with pre-release deps
+  { deps = [ "pre" ], python = [ "3.14" ] },
+]
+# If the matrix variable `deps` is set to "pre",
+# set the environment variable `UV_PRERELEASE` to "allow".
+envs.hatch-test.overrides.matrix.deps.env-vars = [
+  { value = "allow", key = "UV_PRERELEASE", if = [ "pre" ] },
+]
+envs.hatch-test.dependency-groups = [ "dev", "test" ]
+envs.hatch-check-types.scripts.check = [ "mypy src/pydeseq2 --ignore-missing-imports" ]
+envs.hatch-check-types.dependency-groups = [ "typecheck", "test" ]
 
 [tool.ruff]
 line-length = 89
-
-[tool.ruff.lint]
-select = [
-    "F",  # Errors detected by Pyflakes
-    "E",  # Error detected by Pycodestyle
-    "W",  # Warning detected by Pycodestyle
-    "I",  # isort
-    "D",  # pydocstyle
-    "B",  # flake8-bugbear
-    "TID",  # flake8-tidy-imports
-    "C4",  # flake8-comprehensions
-    "BLE",  # flake8-blind-except
-    "UP",  # pyupgrade
-    "RUF100",  # Report unused noqa directives
+src = [ "src" ]
+extend-include = [ "*.ipynb" ]
+format.docstring-code-format = true
+lint.select = [
+  "B",      # flake8-bugbear
+  "BLE",    # flake8-blind-except
+  "C4",     # flake8-comprehensions
+  "D",      # pydocstyle
+  "E",      # Error detected by Pycodestyle
+  "F",      # Errors detected by Pyflakes
+  "I",      # isort
+  "RUF100", # Report unused noqa directives
+  "TID",    # flake8-tidy-imports
+  "UP",     # pyupgrade
+  "W",      # Warning detected by Pycodestyle
 ]
-ignore = [
-    # Missing docstring in public package
-    "D104",
-    # Missing docstring in public module
-    "D100",
-    # Missing docstring in __init__
-    "D107",
-    # We don’t want a blank line before a class docstring
-    "D203",
-    # We want docstrings to start immediately after the opening triple quote
-    "D213",
+lint.ignore = [
+  "D100", # Missing docstring in public module
+  "D104", # Missing docstring in public package
+  "D107", # Missing docstring in __init__
+  # Disable one in each pair of mutually incompatible rules
+  "D203", # We don't want a blank line before a class docstring
+  "D213", # We want docstrings to start immediately after the opening triple quote
 ]
-
-[tool.ruff.lint.isort]
-force-single-line = true
-
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
-
-[tool.ruff.lint.per-file-ignores]
-"docs/*" = ["I"]
-"tests/*" = ["D"]
+lint.per-file-ignores."*/__init__.py" = [ "F401" ]
+lint.per-file-ignores."docs/*" = [ "I" ]
 # Ignore errors linked to sphinx gallery syntax
-"examples/*" = ["D205", "B018", "D400"]
-# Ignore unused imports in __init__.py files
-"*/__init__.py" = ["F401"]
+lint.per-file-ignores."examples/*" = [ "B018", "D205", "D400" ]
+lint.per-file-ignores."tests/*" = [ "D" ]
+lint.isort.force-single-line = true
+lint.pydocstyle.convention = "numpy"
 
-# pyproject.toml
-[tool.pytest.ini_options]
-filterwarnings = [
-    "error",
-    '''ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning''',
-    # ignore Pyarrow deprecation warnings
-    '''ignore:\s*A value is trying to be set on a copy of a DataFrame:FutureWarning''',
-    '''ignore:\s*Setting an item of incompatible dtype:FutureWarning''',
+[tool.pytest]
+ini_options.testpaths = [ "tests" ]
+ini_options.addopts = [
+  "--import-mode=importlib", # allow using test files with same name
+]
+ini_options.filterwarnings = [
+  "error",
+  'ignore:\s*A value is trying to be set on a copy of a DataFrame:FutureWarning',
+  # ignore Pyarrow deprecation warnings
+  'ignore:\s*Pyarrow will become a required dependency of pandas:DeprecationWarning',
+  'ignore:\s*Setting an item of incompatible dtype:FutureWarning',
+]
+
+[tool.coverage]
+run.omit = [
+  "**/test_*.py",
+]
+run.patch = [ "subprocess" ]
+run.source = [ "pydeseq2" ]
+
+[tool.cruft]
+skip = [
+  ".git",
+  "docs",
+  "examples",
+  "src",
+  "tests",
 ]

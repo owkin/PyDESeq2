@@ -1,0 +1,40 @@
+{
+  "template": "https://github.com/scverse/cookiecutter-scverse",
+  "commit": "6518dfa1abde7379ea7255daf0ce09c23f2b4c94",
+  "checkout": "v0.8.0",
+  "context": {
+    "cookiecutter": {
+      "project_name": "PyDESeq2",
+      "package_name": "pydeseq2",
+      "project_description": "A python implementation of DESeq2.",
+      "author_full_name": "Boris Muzellec",
+      "author_email": "boris.muzellec@owkin.com",
+      "github_user": "scverse",
+      "github_repo": "PyDESeq2",
+      "license": "MIT License",
+      "ide_integration": true,
+      "issue_categorization": "labels",
+      "_copy_without_render": [
+        ".github/workflows/build.yaml",
+        ".github/workflows/test.yaml",
+        "docs/_templates/autosummary/**.rst"
+      ],
+      "_exclude_on_template_update": [
+        "CHANGELOG.md",
+        "LICENSE",
+        "README.md",
+        "docs/api.md",
+        "docs/index.md",
+        "docs/notebooks/example.ipynb",
+        "docs/references.bib",
+        "docs/references.md",
+        "src/**",
+        "tests/**"
+      ],
+      "_render_devdocs": false,
+      "_jinja2_env_vars": { "lstrip_blocks": true, "trim_blocks": true },
+      "_template": "https://github.com/scverse/cookiecutter-scverse"
+    }
+  },
+  "directory": null
+}
