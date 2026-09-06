@@ -35,10 +35,8 @@ dependencies = [
   "matplotlib>=3.9.0",
 ]
 optional-dependencies.dev = [
-  "pytest>=8.4.0",
   "pre-commit>=2.16.0",
   "numpydoc",
-  "coverage",
   "mypy==1.18.2",
   "pandas-stubs",
   "ruff==0.14.0",
@@ -63,6 +61,12 @@ optional-dependencies.doc = [
 urls.Documentation = "https://pydeseq2.readthedocs.io/"
 urls.Homepage = "https://github.com/owkin/PyDESeq2"
 urls.Source = "https://github.com/owkin/PyDESeq2"
+
+[dependency-groups]
+test = [
+  "coverage",
+  "pytest>=8.4.0",
+]
 
 [tool.ruff]
 line-length = 89
