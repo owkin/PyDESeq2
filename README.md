@@ -72,7 +72,7 @@ If you're interested in contributing or want access to the development version, 
 The list of package version requirements is available in `pyproject.toml`.
 
 For reference, the code is being tested in a github workflow (CI) with python
-3.11 to 3.13 and the latest versions of the following packages:
+3.12 to 3.13 and the latest versions of the following packages:
 
 ```
 - anndata
