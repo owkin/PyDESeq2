@@ -46,7 +46,9 @@ def load_example_data(
     )
 
     # Load data
-    datasets_path = Path(pydeseq2.__file__).parents[2] / "datasets"
+    datasets_path = Path(pydeseq2.__file__).parent / "datasets"
+    if not datasets_path.exists():
+        datasets_path = Path(pydeseq2.__file__).parents[2] / "datasets"
 
     if dataset == "synthetic":
         path_to_data = datasets_path / "synthetic"

@@ -80,6 +80,7 @@ typecheck = [
 [tool.hatch]
 version.source = "vcs"
 build.targets.wheel.packages = [ "src/pydeseq2" ]
+build.targets.wheel.force-include.datasets = "pydeseq2/datasets"
 envs.default.installer = "uv"
 envs.default.dependency-groups = [ "dev" ]
 envs.docs.scripts.build = "sphinx-build -M html docs docs/_build -W {args}"
